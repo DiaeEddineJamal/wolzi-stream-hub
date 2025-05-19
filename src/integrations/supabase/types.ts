@@ -9,7 +9,114 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          id: string
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          id: string
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      user_ratings: {
+        Row: {
+          created_at: string
+          id: string
+          media_id: string
+          media_type: string
+          rating: number
+          review: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          media_id: string
+          media_type: string
+          rating: number
+          review?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          media_id?: string
+          media_type?: string
+          rating?: number
+          review?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      watch_history: {
+        Row: {
+          id: string
+          media_id: string
+          media_type: string
+          progress: number | null
+          user_id: string
+          watched_at: string
+        }
+        Insert: {
+          id?: string
+          media_id: string
+          media_type: string
+          progress?: number | null
+          user_id: string
+          watched_at?: string
+        }
+        Update: {
+          id?: string
+          media_id?: string
+          media_type?: string
+          progress?: number | null
+          user_id?: string
+          watched_at?: string
+        }
+        Relationships: []
+      }
+      watchlist: {
+        Row: {
+          added_at: string
+          id: string
+          media_id: string
+          media_type: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          id?: string
+          media_id: string
+          media_type: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          id?: string
+          media_id?: string
+          media_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
