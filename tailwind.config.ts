@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -64,11 +63,13 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				wolzi: {
-					'accent': '#e50914',
-					'accent-hover': '#f40612',
-					'dark-blue': '#141e30',
-					'light-blue': '#243b55',
-					'card': 'rgba(15, 23, 42, 0.6)'
+					'accent': '#1db954', // Spotify green
+					'accent-hover': '#1ed760',
+					'dark-blue': '#121212', // Dark background
+					'light-blue': '#212121', // Secondary dark background
+					'card': 'rgba(33, 33, 33, 0.7)',
+					'gray': '#535353', // Medium gray
+					'light-gray': '#b3b3b3' // Light gray
 				}
 			},
 			borderRadius: {

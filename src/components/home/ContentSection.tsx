@@ -4,6 +4,13 @@ import { ArrowRight } from "lucide-react";
 import MediaCard from "./MediaCard";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 interface ContentItem {
   id: string;
@@ -12,6 +19,7 @@ interface ContentItem {
   rating?: number;
   year?: string;
   mediaType: "movie" | "tv" | "anime";
+  description?: string;
 }
 
 interface ContentSectionProps {
@@ -43,7 +51,7 @@ const ContentSection: React.FC<ContentSectionProps> = ({
             <Button
               asChild
               variant="ghost"
-              className="text-gray-400 hover:text-white flex items-center gap-1"
+              className="text-wolzi-light-gray hover:text-white flex items-center gap-1"
               size="sm"
             >
               <a href={viewMoreLink}>
@@ -54,23 +62,35 @@ const ContentSection: React.FC<ContentSectionProps> = ({
           )}
         </div>
         
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 lg:gap-5">
-          {items.map((item, index) => (
-            <div
-              key={item.id}
-              className="animate-scale-in"
-              style={{ animationDelay: `${index * 0.05}s` }}
-              onMouseEnter={() => setHoveredIndex(index)}
-              onMouseLeave={() => setHoveredIndex(null)}
-            >
-              <MediaCard
-                {...item}
-                showHover={hoveredIndex === index}
-                size="medium"
-              />
-            </div>
-          ))}
-        </div>
+        <Carousel
+          opts={{
+            align: "start",
+            loop: true,
+          }}
+          className="w-full"
+        >
+          <CarouselContent className="-ml-2 md:-ml-4">
+            {items.map((item, index) => (
+              <CarouselItem 
+                key={item.id} 
+                className="pl-2 md:pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6"
+                onMouseEnter={() => setHoveredIndex(index)}
+                onMouseLeave={() => setHoveredIndex(null)}
+              >
+                <div className="animate-scale-in" style={{ animationDelay: `${index * 0.05}s` }}>
+                  <MediaCard
+                    {...item}
+                    showHover={hoveredIndex === index}
+                    size="medium"
+                    description={item.description || `Watch ${item.title} online. ${item.mediaType === "tv" ? "TV Series" : item.mediaType === "anime" ? "Anime" : "Movie"} from ${item.year || "recent years"}.`}
+                  />
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious className="left-1 bg-wolzi-dark-blue/60 hover:bg-wolzi-dark-blue/80 border-wolzi-gray/30" />
+          <CarouselNext className="right-1 bg-wolzi-dark-blue/60 hover:bg-wolzi-dark-blue/80 border-wolzi-gray/30" />
+        </Carousel>
       </div>
     </section>
   );

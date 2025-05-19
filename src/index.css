@@ -14,7 +14,7 @@
     --popover: 222 47% 11%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 0 84% 49%;
+    --primary: 142 70% 40%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 217 33% 17%;
@@ -23,7 +23,7 @@
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 75%;
 
-    --accent: 0 84% 49%;
+    --accent: 142 70% 40%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62% 30%;
@@ -31,7 +31,7 @@
 
     --border: 217 33% 17%;
     --input: 217 33% 17%;
-    --ring: 212 93% 49%;
+    --ring: 142 70% 40%;
 
     --radius: 0.5rem;
   }
@@ -67,7 +67,7 @@
 
 @layer components {
   .glass-card {
-    @apply backdrop-blur-md bg-wolzi-card border border-white/10 shadow-lg rounded-lg transition-all duration-300;
+    @apply backdrop-blur-md bg-opacity-70 bg-wolzi-card border border-white/10 shadow-lg rounded-lg transition-all duration-300;
   }
 
   .hover-scale {
@@ -75,10 +75,14 @@
   }
 
   .nav-link {
-    @apply text-sm font-medium text-gray-300 hover:text-white transition-colors;
+    @apply text-sm font-medium text-wolzi-light-gray hover:text-white transition-colors;
   }
 
   .gradient-text {
-    @apply text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300;
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-white to-wolzi-light-gray;
+  }
+  
+  .frosted-glass {
+    @apply backdrop-blur-lg bg-wolzi-card/70 border border-white/10 shadow-lg;
   }
 }
