@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import MediaCard from "./MediaCard";

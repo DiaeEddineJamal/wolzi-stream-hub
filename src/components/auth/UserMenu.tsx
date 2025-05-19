@@ -21,7 +21,7 @@ interface Profile {
 }
 
 const UserMenu: React.FC = () => {
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
@@ -86,7 +86,7 @@ const UserMenu: React.FC = () => {
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="cursor-pointer"
-          onClick={() => signOut()}
+          onClick={() => logout()}
         >
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>

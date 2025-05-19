@@ -1,88 +1,336 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
   :root {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+  --background: 0 0% 3.9%;
+  --foreground: 0 0% 98%;
 
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
+  --card: 0 0% 5%;
+  --card-foreground: 0 0% 98%;
 
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
+  --popover: 0 0% 3.9%;
+  --popover-foreground: 0 0% 98%;
 
-    --primary: 142 70% 40%;
-    --primary-foreground: 210 40% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 0 0% 9%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+  --secondary: 0 0% 14.9%;
+  --secondary-foreground: 0 0% 98%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 75%;
+  --muted: 0 0% 14.9%;
+  --muted-foreground: 0 0% 63.9%;
 
-    --accent: 142 70% 40%;
-    --accent-foreground: 210 40% 98%;
+  --accent: 0 0% 14.9%;
+  --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 142 70% 40%;
+  --border: 0 0% 14.9%;
+  --input: 0 0% 14.9%;
+  --ring: 0 0% 83.9%;
 
     --radius: 0.5rem;
-  }
-}
-
-@layer base {
-  * {
-    @apply border-border;
+  
+  /* Custom Wolziflix theme colors - updated to match palette */
+  --wolzi-bg: 0 0% 7%; /* #121212 (18,18,18) */
+  --wolzi-card-bg: 0 0% 13%; /* #212121 (33,33,33) */
+  --wolzi-accent: 142 70% 42%; /* #1db954 (29,185,84) */
+  --wolzi-accent-hover: 142 70% 35%; /* Darker green */
+  --wolzi-accent-light: 142 70% 50%; /* Lighter green */
+  --wolzi-text: 0 0% 98%; /* White text */
+  --wolzi-text-muted: 0 0% 70%; /* #b3b3b3 (179,179,179) */
+  --wolzi-light-gray: 0 0% 70%; /* #b3b3b3 (179,179,179) */
+  --wolzi-border: 0 0% 33%; /* #535353 (83,83,83) */
+  --wolzi-dark-gray: 0 0% 13%; /* #212121 (33,33,33) */
   }
 
   body {
-    @apply bg-gradient-to-b from-wolzi-dark-blue to-wolzi-light-blue text-foreground min-h-screen font-sans antialiased;
-    background-attachment: fixed;
+  background-color: hsl(var(--wolzi-bg));
+  color: hsl(var(--wolzi-text));
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 
+    Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+}
+
+.gradient-text {
+  background: linear-gradient(to right, #1db954, #1ed760);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   }
 
+/* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
-    height: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-transparent;
+  background: hsl(var(--wolzi-dark-gray));
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted rounded-full;
+  background: hsl(var(--wolzi-border));
+  border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted/80;
+  background: hsl(var(--wolzi-light-gray));
+  }
+
+/* Card hover effects */
+.media-card {
+  transition: all 0.3s ease;
+  transform-origin: center bottom;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.media-card:hover {
+  transform: scale(1.05);
+  z-index: 10;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.trending-card-hover {
+  transition: all 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  height: 300px; /* Fixed height for all cards */
+}
+
+.trending-card-hover:hover {
+  transform: translateY(-10px) scale(1.05);
+  z-index: 20;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6);
+}
+
+.media-card-poster {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  height: 100%; /* Ensure full height */
+}
+
+.media-card-poster img {
+  transition: transform 0.5s ease;
+  height: 100%;
+  object-fit: cover;
+}
+
+.media-card:hover .media-card-poster img,
+.trending-card-hover:hover .media-card-poster img {
+  transform: scale(1.1);
+}
+
+.media-card-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.4), transparent);
+  padding: 1rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.media-card:hover .media-card-overlay,
+.trending-card-hover:hover .media-card-overlay,
+.trending-card-hover:hover .card-info-overlay {
+  opacity: 1;
+}
+
+.card-info-overlay {
+  transition: all 0.3s ease;
+  transform: translateY(0);
+}
+
+.trending-card-hover:hover .card-info-overlay {
+  transform: translateY(-5px);
+}
+
+/* Play button pulse animation */
+.play-button-pulse {
+  animation: playPulse 2s infinite;
+}
+
+@keyframes playPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(29, 185, 84, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(29, 185, 84, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(29, 185, 84, 0);
   }
 }
 
-@layer components {
-  .glass-card {
-    @apply backdrop-blur-md bg-opacity-70 bg-wolzi-card border border-white/10 shadow-lg rounded-lg transition-all duration-300;
-  }
+.scale-hover-effect {
+  transition: all 0.4s ease;
+}
 
-  .hover-scale {
-    @apply transition-transform duration-200 hover:scale-[1.03] hover:shadow-xl;
-  }
+.trending-card-hover:hover .scale-hover-effect {
+  transform: scale(1);
+}
 
-  .nav-link {
-    @apply text-sm font-medium text-wolzi-light-gray hover:text-white transition-colors;
-  }
+/* Hero banner styling */
+.hero-banner {
+  position: relative;
+  height: 80vh;
+  width: 100%;
+  overflow: hidden;
+}
 
-  .gradient-text {
-    @apply text-transparent bg-clip-text bg-gradient-to-r from-white to-wolzi-light-gray;
+.hero-banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.7s ease-in-out;
+}
+
+.hero-banner-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    to right,
+    rgba(0, 0, 0, 0.9) 0%,
+    rgba(0, 0, 0, 0.6) 50%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  display: flex;
+  align-items: center;
+}
+
+.hero-banner-content {
+  max-width: 50%;
+  padding: 0 2rem;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+/* Hero banner indicators */
+.hero-indicators {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 0.5rem;
+  z-index: 10;
+}
+
+.hero-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.hero-indicator.active {
+  background-color: hsl(var(--wolzi-accent));
+  width: 20px;
+  border-radius: 10px;
+}
+
+/* Carousel styling */
+.carousel {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Frosted glass effect */
+.frosted-glass {
+  background: rgba(33, 33, 33, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: var(--radius);
+  border: 1px solid rgba(83, 83, 83, 0.1);
+}
+
+/* Video player container */
+.video-player-container {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+  overflow: hidden;
+  border-radius: var(--radius);
+}
+
+.video-player-container iframe,
+.video-player-container video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Streaming source selector */
+.streaming-sources-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.source-card {
+  background-color: hsl(var(--wolzi-card-bg));
+  border: 1px solid hsl(var(--wolzi-border));
+  border-radius: var(--radius);
+  padding: 1rem;
+  transition: all 0.2s ease;
+}
+
+.source-card:hover {
+  border-color: hsl(var(--wolzi-accent));
+  transform: translateY(-2px);
+}
+
+.source-card.active {
+  border-color: hsl(var(--wolzi-accent));
+  background-color: hsla(var(--wolzi-accent), 0.1);
+}
+
+/* Button with glow effect */
+.glow-button {
+  background-color: hsl(var(--wolzi-accent));
+  transition: all 0.3s ease;
+}
+
+.glow-button:hover {
+  background-color: hsl(var(--wolzi-accent-hover));
+  box-shadow: 0 0 15px hsla(var(--wolzi-accent), 0.5);
+}
+
+/* Loading animation */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top-color: hsl(var(--wolzi-accent));
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
-  
-  .frosted-glass {
-    @apply backdrop-blur-lg bg-wolzi-card/70 border border-white/10 shadow-lg;
+}
+
+/* For moving carousel effect */
+.moving-carousel {
+  animation: moveCarousel 60s linear infinite;
+}
+
+@keyframes moveCarousel {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
   }
 }
