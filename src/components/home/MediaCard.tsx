@@ -1,6 +1,7 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
-import { Play, Star, Clock, Calendar, Film, Tv } from "lucide-react";
+import { Play, Star, Calendar, Film, Tv } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { motion } from "framer-motion";
@@ -41,7 +42,6 @@ const MediaCard: React.FC<MediaCardProps> = ({
       case "movie":
         return <Film className="h-3.5 w-3.5 mr-1" />;
       case "tv":
-        return <Tv className="h-3.5 w-3.5 mr-1" />;
       case "anime":
         return <Tv className="h-3.5 w-3.5 mr-1" />;
       default:
@@ -82,50 +82,103 @@ const MediaCard: React.FC<MediaCardProps> = ({
     return `/${mediaType}/${id}`;
   };
 
+  // Card hover animations
+  const cardVariants = {
+    hover: {
+      y: -10,
+      transition: {
+        duration: 0.3,
+        ease: "easeOut",
+      },
+    },
+  };
+
+  // Overlay hover animations
+  const overlayVariants = {
+    initial: { opacity: 0 },
+    hover: {
+      opacity: 1,
+      transition: {
+        duration: 0.3,
+      },
+    },
+  };
+
+  // Button hover animations
+  const buttonVariants = {
+    initial: { scale: 0.9, opacity: 0 },
+    hover: {
+      scale: 1,
+      opacity: 1,
+      transition: {
+        duration: 0.3,
+        delay: 0.1,
+      },
+    },
+  };
+
+  // Play icon animation
+  const playIconVariants = {
+    initial: { scale: 0.8, opacity: 0 },
+    hover: {
+      scale: 1.1,
+      opacity: 1,
+      transition: {
+        duration: 0.3,
+        type: "spring",
+        stiffness: 200,
+      },
+    },
+  };
+
   return (
-    <HoverCard>
+    <HoverCard openDelay={200} closeDelay={100}>
       <HoverCardTrigger asChild>
         <motion.div 
-          whileHover={{ 
-            y: -5,
-            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.7)",
-            transition: { 
-              duration: 0.3,
-              ease: "easeOut" 
-            }
-          }}
-          transition={{ 
-            duration: 0.4 
-          }}
+          initial="initial" 
+          whileHover="hover" 
+          variants={cardVariants}
+          className="overflow-hidden"
         >
           <Link
             to={getDetailsUrl()}
             className={cn(
-              "relative rounded-lg overflow-hidden block trending-card-hover",
+              "relative rounded-lg overflow-hidden block",
               sizeClasses[size],
               className
             )}
           >
-            <div className="absolute inset-0 bg-cover bg-center h-full" 
+            <div className="absolute inset-0 bg-cover bg-center h-full transform transition-transform duration-700 hover:scale-110" 
                 style={{ backgroundImage: `url(${posterUrl})` }} />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent opacity-80 transition-opacity" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80" />
             
             {showHover && (
-              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center p-4 text-white">
-                <div className="rounded-full bg-wolzi-accent/80 p-3 mb-3 transform hover:scale-110 transition-transform">
+              <motion.div 
+                variants={overlayVariants}
+                className="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex flex-col items-center justify-center p-4 text-white"
+              >
+                <motion.div 
+                  variants={playIconVariants}
+                  className="rounded-full bg-wolzi-accent p-3 mb-3"
+                >
                   <Play className="h-8 w-8 fill-white" />
-                </div>
-                <span className="font-semibold text-sm sm:text-base text-center">Watch Now</span>
-              </div>
+                </motion.div>
+                <motion.span 
+                  variants={buttonVariants}
+                  className="font-semibold text-sm sm:text-base text-center"
+                >
+                  Watch Now
+                </motion.span>
+              </motion.div>
             )}
             
-            <div className="absolute bottom-0 left-0 right-0 p-3 flex flex-col items-start card-info-overlay">
-              <h3 className="text-sm sm:text-base font-medium text-white line-clamp-2">
+            <div className="absolute bottom-0 left-0 right-0 p-3 flex flex-col items-start z-10">
+              <h3 className="text-sm sm:text-base font-medium text-white line-clamp-2 group-hover:text-wolzi-accent transition-colors duration-300">
                 {title}
               </h3>
               
               <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm">
-                {rating && (
+                {rating !== undefined && rating > 0 && (
                   <div className="flex items-center text-yellow-400">
                     <Star className="h-3 w-3 fill-yellow-400 mr-0.5" />
                     <span>{rating.toFixed(1)}</span>
@@ -145,12 +198,12 @@ const MediaCard: React.FC<MediaCardProps> = ({
         </motion.div>
       </HoverCardTrigger>
       
-      <HoverCardContent className="frosted-glass w-80 p-4">
+      <HoverCardContent className="bg-wolzi-dark-blue/80 backdrop-blur-lg border-wolzi-gray/30 w-80 p-4 animate-slide-up">
         <div className="space-y-2">
           <h4 className="text-lg font-semibold">{title}</h4>
           
           <div className="flex items-center gap-3 text-sm">
-            {rating && (
+            {rating !== undefined && rating > 0 && (
               <div className="flex items-center">
                 <Star className="h-3.5 w-3.5 fill-yellow-400 mr-1" />
                 <span>{rating.toFixed(1)}</span>
@@ -179,13 +232,13 @@ const MediaCard: React.FC<MediaCardProps> = ({
           <div className="flex gap-2 pt-2">
             <Link
               to={getWatchUrl()}
-              className="bg-wolzi-accent hover:bg-wolzi-accent-hover text-white rounded px-3 py-1 text-sm flex items-center"
+              className="bg-wolzi-accent hover:bg-wolzi-accent-hover text-white rounded px-3 py-1 text-sm flex items-center transition-colors duration-300"
             >
               <Play className="h-3.5 w-3.5 mr-1" /> Watch Now
             </Link>
             <Link
               to={getDetailsUrl()}
-              className="bg-wolzi-gray hover:bg-opacity-80 text-white rounded px-3 py-1 text-sm"
+              className="bg-wolzi-gray hover:bg-opacity-80 text-white rounded px-3 py-1 text-sm transition-colors duration-300"
             >
               Details
             </Link>

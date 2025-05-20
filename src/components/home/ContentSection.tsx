@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import MediaCard from "./MediaCard";
@@ -10,6 +11,8 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 
 interface ContentItem {
   id: string;
@@ -39,25 +42,44 @@ const ContentSection: React.FC<ContentSectionProps> = ({
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   return (
-    <section className={cn("py-6", className)}>
+    <motion.section 
+      className={cn("py-8", className)}
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ duration: 0.6 }}
+    >
       <div className="container px-4 mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl md:text-2xl font-bold text-white">
+          <motion.h2 
+            className="text-xl md:text-2xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent"
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
             {title}
-          </h2>
+          </motion.h2>
           
           {showViewMore && viewMoreLink && (
-            <Button
-              asChild
-              variant="ghost"
-              className="text-wolzi-light-gray hover:text-white flex items-center gap-1"
-              size="sm"
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
             >
-              <a href={viewMoreLink}>
-                <span>View All</span>
-                <ArrowRight className="h-4 w-4" />
-              </a>
-            </Button>
+              <Button
+                asChild
+                variant="ghost"
+                className="text-wolzi-light-gray hover:text-white hover:bg-wolzi-dark-blue/40 flex items-center gap-1 group"
+                size="sm"
+              >
+                <Link to={viewMoreLink}>
+                  <span>View All</span>
+                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
+                </Link>
+              </Button>
+            </motion.div>
           )}
         </div>
         
@@ -76,22 +98,27 @@ const ContentSection: React.FC<ContentSectionProps> = ({
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
-                <div className="animate-scale-in" style={{ animationDelay: `${index * 0.05}s` }}>
+                <motion.div 
+                  className="h-full"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.05 }}
+                >
                   <MediaCard
                     {...item}
                     showHover={hoveredIndex === index}
                     size="medium"
                     description={item.description || `Watch ${item.title} online. ${item.mediaType === "tv" ? "TV Series" : item.mediaType === "anime" ? "Anime" : "Movie"} from ${item.year || "recent years"}.`}
                   />
-                </div>
+                </motion.div>
               </CarouselItem>
             ))}
           </CarouselContent>
-          <CarouselPrevious className="left-1 bg-wolzi-dark-blue/60 hover:bg-wolzi-dark-blue/80 border-wolzi-gray/30" />
-          <CarouselNext className="right-1 bg-wolzi-dark-blue/60 hover:bg-wolzi-dark-blue/80 border-wolzi-gray/30" />
+          <CarouselPrevious className="left-1 bg-wolzi-dark-blue/70 hover:bg-wolzi-dark-blue/90 border-wolzi-gray/30" />
+          <CarouselNext className="right-1 bg-wolzi-dark-blue/70 hover:bg-wolzi-dark-blue/90 border-wolzi-gray/30" />
         </Carousel>
       </div>
-    </section>
+    </motion.section>
   );
 };
 

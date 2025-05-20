@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Play, Info } from 'lucide-react';
 
 interface HeroBannerItem {
   id: string;
@@ -19,7 +21,7 @@ interface HeroBannerProps {
 
 const HeroBanner: React.FC<HeroBannerProps> = ({
   featuredItems,
-  autoPlayInterval = 6000, // 8 seconds default interval
+  autoPlayInterval = 6000, // 6 seconds default interval
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(1); // 1 for forward, -1 for backward
@@ -74,7 +76,7 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
   const slideVariants = {
     enter: (direction: number) => ({
       opacity: 0,
-      scale: 1.05,
+      scale: direction > 0 ? 1.05 : 0.95,
       filter: "blur(8px)"
     }),
     center: {
@@ -84,13 +86,13 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
     },
     exit: (direction: number) => ({
       opacity: 0,
-      scale: 0.98,
+      scale: direction > 0 ? 0.95 : 1.05,
       filter: "blur(8px)"
     }),
   };
   
   const textVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 30 },
     visible: { 
       opacity: 1, 
       y: 0,
@@ -139,7 +141,7 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
   };
   
   return (
-    <div className="hero-banner">
+    <div className="hero-banner relative h-[80vh] min-h-[500px] overflow-hidden">
       <AnimatePresence custom={direction} initial={false} mode="wait">
         <motion.div
           key={currentIndex}
@@ -150,26 +152,28 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
           animate="center"
           exit="exit"
           transition={{
-            opacity: { duration: 1.2, ease: "easeInOut" },
-            scale: { duration: 1.5, ease: [0.25, 1, 0.5, 1] },
-            filter: { duration: 1.2, ease: "easeOut" }
+            opacity: { duration: 1.5, ease: "easeInOut" },
+            scale: { duration: 1.8, ease: [0.19, 1, 0.22, 1] }, // Expo ease
+            filter: { duration: 1.5, ease: "easeOut" }
           }}
         >
           {/* Background Image with its own animation */}
-          <motion.img
-            src={currentItem.imageUrl}
-            alt={currentItem.title}
-            className="hero-banner-image"
-            initial={{ scale: 1.1 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 10, ease: "easeOut" }}
+          <motion.div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${currentItem.imageUrl})` }}
+            initial={{ scale: 1.1, filter: "brightness(0.8)" }}
+            animate={{ 
+              scale: 1, 
+              filter: "brightness(1)",
+              transition: { duration: 10, ease: "easeOut" }
+            }}
           />
           
           {/* Gradient Overlay */}
-          <div className="hero-banner-overlay">
-            <div className="container mx-auto px-4">
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent">
+            <div className="container mx-auto px-4 h-full flex items-end pb-20 sm:pb-24">
               <motion.div 
-                className="hero-banner-content"
+                className="max-w-3xl"
                 initial="hidden"
                 animate="visible"
                 exit="exit"
@@ -191,13 +195,13 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
                 }}
               >
                 <motion.div variants={textVariants}>
-                  <span className={`px-2 py-1 text-xs font-semibold rounded-sm uppercase ${getMediaLabelStyles(currentItem.mediaType)}`}>
+                  <span className={`px-2 py-1 text-xs sm:text-sm font-semibold rounded-sm uppercase ${getMediaLabelStyles(currentItem.mediaType)}`}>
                     {currentItem.mediaType === 'movie' ? 'Movie' : currentItem.mediaType === 'tv' ? 'TV Series' : 'Anime'}
                   </span>
                 </motion.div>
                 
                 <motion.h1 
-                  className="text-4xl md:text-5xl lg:text-6xl font-bold mt-3 mb-3"
+                  className="text-4xl md:text-5xl lg:text-6xl font-bold mt-3 mb-3 bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent"
                   variants={textVariants}
                 >
                   {currentItem.title}
@@ -220,11 +224,9 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
                     variants={buttonVariants}
                     whileHover="hover"
                   >
-                    <Button asChild className="glow-button">
+                    <Button asChild className="bg-wolzi-accent hover:bg-wolzi-accent-hover text-white">
                       <Link to={`/${currentItem.mediaType}/${currentItem.id}`}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                        </svg>
+                        <Play className="w-5 h-5 mr-2" />
                         Watch Now
                       </Link>
                     </Button>
@@ -234,13 +236,9 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
                     variants={buttonVariants}
                     whileHover="hover"
                   >
-                    <Button variant="outline" asChild>
+                    <Button variant="outline" asChild className="border-wolzi-gray/50 hover:bg-wolzi-dark-blue/50 hover:border-white/50">
                       <Link to={`/${currentItem.mediaType}/${currentItem.id}`}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="10"></circle>
-                          <line x1="12" y1="8" x2="12" y2="16"></line>
-                          <line x1="8" y1="12" x2="16" y2="12"></line>
-                        </svg>
+                        <Info className="w-5 h-5 mr-2" />
                         More Info
                       </Link>
                     </Button>
@@ -253,12 +251,17 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
       </AnimatePresence>
       
       {/* Indicators */}
-      <div className="hero-indicators">
+      <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-10">
         {featuredItems.map((_, index) => (
-          <div
+          <button
             key={index}
-            className={`hero-indicator ${currentIndex === index ? 'active' : ''}`}
             onClick={() => goToSlide(index)}
+            className={`w-2 h-2 rounded-full transition-all duration-300 ${
+              currentIndex === index 
+                ? "w-8 bg-wolzi-accent" 
+                : "bg-white/50 hover:bg-white/80"
+            }`}
+            aria-label={`Go to slide ${index + 1}`}
           />
         ))}
       </div>
@@ -289,53 +292,25 @@ const SingleHeroBanner: React.FC<HeroBannerItem> = ({
     }
   };
 
-  // Animation variants
-  const textVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      transition: {
-        duration: 0.6,
-        ease: "easeOut",
-      }
-    }
-  };
-  
-  const buttonVariants = {
-    hidden: { opacity: 0, scale: 0.8 },
-    visible: { 
-      opacity: 1, 
-      scale: 1, 
-      transition: {
-        delay: 0.3,
-        duration: 0.5,
-        ease: "easeOut",
-      }
-    },
-    hover: {
-      scale: 1.05,
-      transition: {
-        duration: 0.2,
-        ease: "easeInOut",
-      }
-    }
-  };
-
   return (
-    <div className="hero-banner">
+    <div className="hero-banner relative h-[80vh] min-h-[500px] overflow-hidden">
       {/* Background Image */}
-      <img
-        src={imageUrl}
-        alt={title}
-        className="hero-banner-image"
+      <motion.div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url(${imageUrl})` }}
+        initial={{ scale: 1.1, filter: "brightness(0.8)" }}
+        animate={{ 
+          scale: 1, 
+          filter: "brightness(1)",
+          transition: { duration: 6, ease: "easeOut" }
+        }}
       />
       
       {/* Gradient Overlay */}
-      <div className="hero-banner-overlay">
-        <div className="container mx-auto px-4">
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent">
+        <div className="container mx-auto px-4 h-full flex items-end pb-20 sm:pb-24">
           <motion.div 
-            className="hero-banner-content"
+            className="max-w-3xl"
             initial="hidden"
             animate="visible"
             variants={{
@@ -348,22 +323,30 @@ const SingleHeroBanner: React.FC<HeroBannerItem> = ({
               }
             }}
           >
-            <motion.div variants={textVariants}>
-              <span className={`px-2 py-1 text-xs font-semibold rounded-sm uppercase ${getMediaLabelStyles(mediaType)}`}>
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <span className={`px-2 py-1 text-xs sm:text-sm font-semibold rounded-sm uppercase ${getMediaLabelStyles(mediaType)}`}>
                 {mediaType === 'movie' ? 'Movie' : mediaType === 'tv' ? 'TV Series' : 'Anime'}
               </span>
             </motion.div>
             
             <motion.h1 
-              className="text-4xl md:text-5xl lg:text-6xl font-bold mt-3 mb-3"
-              variants={textVariants}
+              className="text-4xl md:text-5xl lg:text-6xl font-bold mt-3 mb-3 bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.2 }}
             >
               {title}
             </motion.h1>
             
             <motion.p 
               className="text-wolzi-light-gray mb-6 text-base md:text-lg max-w-2xl"
-              variants={textVariants}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.4 }}
             >
               {description.length > 200 
                 ? `${description.substring(0, 200)}...` 
@@ -372,33 +355,29 @@ const SingleHeroBanner: React.FC<HeroBannerItem> = ({
             
             <motion.div 
               className="flex flex-wrap gap-3"
-              variants={textVariants}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.7, delay: 0.6 }}
             >
               <motion.div
-                variants={buttonVariants}
-                whileHover="hover"
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.2 }}
               >
-                <Button asChild className="glow-button">
+                <Button asChild className="bg-wolzi-accent hover:bg-wolzi-accent-hover text-white">
                   <Link to={`/${mediaType}/${id}`}>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                    </svg>
+                    <Play className="w-5 h-5 mr-2" />
                     Watch Now
                   </Link>
                 </Button>
               </motion.div>
               
               <motion.div
-                variants={buttonVariants}
-                whileHover="hover"
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.2 }}
               >
-                <Button variant="outline" asChild>
+                <Button variant="outline" asChild className="border-wolzi-gray/50 hover:bg-wolzi-dark-blue/50 hover:border-white/50">
                   <Link to={`/${mediaType}/${id}`}>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="8" x2="12" y2="16"></line>
-                      <line x1="8" y1="12" x2="16" y2="12"></line>
-                    </svg>
+                    <Info className="w-5 h-5 mr-2" />
                     More Info
                   </Link>
                 </Button>

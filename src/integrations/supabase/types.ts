@@ -33,6 +33,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_preferences: {
+        Row: {
+          active_streaming_source: string | null
+          autoplay: boolean | null
+          created_at: string | null
+          theme: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          active_streaming_source?: string | null
+          autoplay?: boolean | null
+          created_at?: string | null
+          theme?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          active_streaming_source?: string | null
+          autoplay?: boolean | null
+          created_at?: string | null
+          theme?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_ratings: {
         Row: {
           created_at: string

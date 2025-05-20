@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
@@ -5,6 +6,8 @@ import tmdbApi, { getPosterUrl } from '@/integrations/api/tmdb';
 import ContentSection from '@/components/home/ContentSection';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { motion } from 'framer-motion';
+import { Search } from 'lucide-react';
 
 interface SearchResult {
   id: string;
@@ -24,6 +27,7 @@ const SearchResults: React.FC = () => {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [movies, setMovies] = useState<SearchResult[]>([]);
   const [tvShows, setTvShows] = useState<SearchResult[]>([]);
+  const [people, setPeople] = useState<SearchResult[]>([]);
   const [searchQuery, setSearchQuery] = useState(query);
   const [totalResults, setTotalResults] = useState(0);
   const [page, setPage] = useState(1);
@@ -53,14 +57,31 @@ const SearchResults: React.FC = () => {
         overview: result.overview
       }));
       
-      setResults(processedResults);
+      // If it's the first page, replace results, otherwise append
+      if (pageNum === 1) {
+        setResults(processedResults);
+      } else {
+        setResults(prev => [...prev, ...processedResults]);
+      }
+      
       setTotalResults(data.total_results);
       setTotalPages(data.total_pages);
       setPage(pageNum);
       
       // Filter results by type
-      setMovies(processedResults.filter((item: SearchResult) => item.mediaType === 'movie'));
-      setTvShows(processedResults.filter((item: SearchResult) => item.mediaType === 'tv'));
+      const newMovies = processedResults.filter((item: SearchResult) => item.mediaType === 'movie');
+      const newTvShows = processedResults.filter((item: SearchResult) => item.mediaType === 'tv');
+      const newPeople = processedResults.filter((item: SearchResult) => item.mediaType === 'person');
+      
+      if (pageNum === 1) {
+        setMovies(newMovies);
+        setTvShows(newTvShows);
+        setPeople(newPeople);
+      } else {
+        setMovies(prev => [...prev, ...newMovies]);
+        setTvShows(prev => [...prev, ...newTvShows]);
+        setPeople(prev => [...prev, ...newPeople]);
+      }
       
     } catch (error) {
       console.error('Error searching content:', error);
@@ -83,84 +104,135 @@ const SearchResults: React.FC = () => {
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { 
+        staggerChildren: 0.1 
+      } 
+    }
+  };
+  
+  const childVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.5 }
+    }
+  };
+
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <form onSubmit={handleSearch} className="flex gap-2">
+      <motion.div 
+        className="container mx-auto px-4 pt-24 pb-16"
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
+        <motion.div variants={childVariants} className="mb-8">
+          <form onSubmit={handleSearch} className="flex gap-2 max-w-2xl mx-auto">
             <Input
               type="text"
               placeholder="Search movies, TV shows, anime..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="max-w-lg"
+              className="flex-grow bg-wolzi-dark-blue/60 border-wolzi-gray/30 focus:border-wolzi-accent"
             />
-            <Button type="submit" className="glow-button">Search</Button>
+            <Button type="submit" className="bg-wolzi-accent hover:bg-wolzi-accent-hover">
+              <Search className="h-4 w-4 mr-2" />
+              Search
+            </Button>
           </form>
-        </div>
+        </motion.div>
         
         {query && (
-          <h1 className="text-3xl font-bold mb-6">
-            Search Results for <span className="gradient-text">"{query}"</span>
-          </h1>
+          <motion.h1 variants={childVariants} className="text-3xl font-bold mb-8 text-center">
+            Search Results for <span className="bg-gradient-to-r from-wolzi-accent to-wolzi-accent-hover bg-clip-text text-transparent">"{query}"</span>
+          </motion.h1>
         )}
         
         {loading && results.length === 0 ? (
           <div className="flex justify-center items-center h-64">
-            <div className="loading-spinner"></div>
+            <div className="w-12 h-12 border-4 border-wolzi-accent/30 border-t-wolzi-accent rounded-full animate-spin"></div>
           </div>
         ) : (
           <>
             {results.length === 0 && query ? (
-              <div className="text-center p-12 frosted-glass rounded-lg">
+              <motion.div 
+                variants={childVariants}
+                className="text-center p-12 bg-wolzi-dark-blue/40 backdrop-blur-sm border border-wolzi-gray/20 rounded-lg max-w-2xl mx-auto"
+              >
                 <h2 className="text-xl font-medium mb-2">No Results Found</h2>
                 <p className="text-wolzi-light-gray">
                   We couldn't find anything matching your search. Try different keywords or browse our categories.
                 </p>
-              </div>
+              </motion.div>
             ) : (
               <>
                 {movies.length > 0 && (
-                  <ContentSection
-                    title="Movies"
-                    items={movies}
-                    className="mb-12"
-                  />
+                  <motion.div variants={childVariants}>
+                    <ContentSection
+                      title="Movies"
+                      items={movies.map(item => ({
+                        ...item,
+                        mediaType: 'movie' as 'movie' | 'tv' | 'anime'
+                      }))}
+                      className="mb-12"
+                    />
+                  </motion.div>
                 )}
                 
                 {tvShows.length > 0 && (
-                  <ContentSection
-                    title="TV Series"
-                    items={tvShows}
-                    className="mb-12"
-                  />
+                  <motion.div variants={childVariants}>
+                    <ContentSection
+                      title="TV Series"
+                      items={tvShows.map(item => ({
+                        ...item,
+                        mediaType: 'tv' as 'movie' | 'tv' | 'anime'
+                      }))}
+                      className="mb-12"
+                    />
+                  </motion.div>
                 )}
                 
                 {totalPages > 1 && page < totalPages && (
-                  <div className="flex justify-center mt-8">
+                  <motion.div 
+                    variants={childVariants}
+                    className="flex justify-center mt-8"
+                  >
                     <Button 
                       onClick={handleLoadMore}
                       variant="outline"
-                      className="frosted-glass"
+                      className="bg-wolzi-dark-blue/40 backdrop-blur-sm border-wolzi-gray/30 hover:bg-wolzi-dark-blue/60 hover:border-wolzi-accent/50"
                       disabled={loading}
                     >
-                      {loading ? 'Loading...' : 'Load More Results'}
+                      {loading ? (
+                        <>
+                          <span className="w-4 h-4 border-2 border-wolzi-light-gray/30 border-t-white rounded-full animate-spin mr-2"></span>
+                          Loading...
+                        </>
+                      ) : 'Load More Results'}
                     </Button>
-                  </div>
+                  </motion.div>
                 )}
                 
                 {totalResults > 0 && (
-                  <div className="text-center text-wolzi-light-gray mt-4">
+                  <motion.div 
+                    variants={childVariants}
+                    className="text-center text-wolzi-light-gray mt-4"
+                  >
                     Showing {results.length} of {totalResults} results
-                  </div>
+                  </motion.div>
                 )}
               </>
             )}
           </>
         )}
-      </div>
+      </motion.div>
     </MainLayout>
   );
 };
 
-export default SearchResults; 
+export default SearchResults;
