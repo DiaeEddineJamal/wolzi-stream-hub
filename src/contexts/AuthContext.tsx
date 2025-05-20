@@ -54,54 +54,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Check for session and set up auth state listener
+  // Initialize auth state
   useEffect(() => {
-    const checkSession = async () => {
-      setLoading(true);
+    const initializeAuth = async () => {
       try {
         // Get the current session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-          console.error('Error getting session:', sessionError);
-          return;
+          throw sessionError;
         }
-        
-        setSession(session);
-        
-        if (session?.user) {
-          setUser(session.user);
+
+        if (currentSession?.user) {
+          setSession(currentSession);
+          setUser(currentSession.user);
           setIsLoggedIn(true);
-          
-          // Fetch the user's profile
-          const profileData = await fetchProfile(session.user.id);
+
+          // Fetch profile data
+          const profileData = await fetchProfile(currentSession.user.id);
           if (profileData) {
             setProfile(profileData);
-          } else {
-            console.log('No profile found for user:', session.user.id);
           }
         }
       } catch (error) {
-        console.error('Error checking session:', error);
+        console.error('Error initializing auth:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    // Call the function to check the session
-    checkSession();
+    initializeAuth();
 
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user || null);
-        setIsLoggedIn(!!session);
+      async (event, currentSession) => {
+        console.log('Auth state changed:', event, currentSession);
         
-        if (session?.user) {
-          // Fetch the user's profile
-          const profileData = await fetchProfile(session.user.id);
-          setProfile(profileData);
+        setSession(currentSession);
+        setUser(currentSession?.user || null);
+        setIsLoggedIn(!!currentSession);
+
+        if (currentSession?.user) {
+          const profileData = await fetchProfile(currentSession.user.id);
+          if (profileData) {
+            setProfile(profileData);
+          }
         } else {
           setProfile(null);
         }
@@ -109,12 +106,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     return () => {
-      // Clean up the subscription when the component unmounts
-      subscription?.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
-  // Login function
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
@@ -125,12 +120,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
-      // Set user and session
       setUser(data.user);
       setSession(data.session);
       setIsLoggedIn(true);
 
-      // Fetch user profile
       if (data.user) {
         const profileData = await fetchProfile(data.user.id);
         setProfile(profileData);
@@ -143,38 +136,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Signup function
   const signup = async (email: string, password: string, username: string) => {
     setLoading(true);
     try {
-      console.log('Starting signup process with email:', email);
-      
-      // Sign up the user
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          // Add data needed for the profile
           data: {
             username: username
           }
         }
       });
 
-      if (error) {
-        console.error('Supabase signup error:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('Signup response:', data);
-      
       if (!data.user) {
-        console.error('No user returned from signup');
         throw new Error('User was not created');
       }
 
-      // Create a profile for the user after successful signup
-      console.log('Creating profile for user:', data.user.id);
+      // Create profile
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
@@ -184,21 +165,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updated_at: new Date().toISOString()
         });
 
-      if (profileError) {
-        console.error('Profile creation error:', profileError);
-        throw profileError;
-      }
+      if (profileError) throw profileError;
 
-      // Set user, session, and fetch profile
       setUser(data.user);
       setSession(data.session);
       setIsLoggedIn(!!data.session);
-      
-      // Fetch the newly created profile
+
       const profileData = await fetchProfile(data.user.id);
       setProfile(profileData);
-      
-      console.log('Signup completed successfully');
+
     } catch (error) {
       console.error('Error during signup:', error);
       throw error;
@@ -207,12 +182,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Logout function
   const logout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      
+
       setUser(null);
       setProfile(null);
       setSession(null);
@@ -223,35 +197,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Update profile function
   const updateProfile = async (profileData: Partial<UserProfile>) => {
     if (!user) throw new Error('User not authenticated');
-    
+
     try {
-      // Make sure the id is included and matches the user id
       const dataToUpdate = {
         ...profileData,
         id: user.id,
         updated_at: new Date().toISOString(),
       };
-      
-      // Remove id from the update if it's trying to change the id
+
       if (profileData.id && profileData.id !== user.id) {
         delete dataToUpdate.id;
       }
-      
+
       const { data, error } = await supabase
         .from('profiles')
         .update(dataToUpdate)
         .eq('id', user.id)
         .select()
         .single();
-      
+
       if (error) throw error;
-      
-      // Update the local profile state
+
       setProfile(prev => prev ? { ...prev, ...data } : data);
-      
+
       return data;
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -260,14 +230,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ 
+    <AuthContext.Provider value={{
       user,
       profile,
       session,
-      isLoggedIn, 
-      login, 
-      logout, 
-      signup, 
+      isLoggedIn,
+      login,
+      logout,
+      signup,
       updateProfile,
       loading
     }}>
