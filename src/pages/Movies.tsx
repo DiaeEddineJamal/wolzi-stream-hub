@@ -86,19 +86,25 @@ const Movies: React.FC = () => {
           <>
             <ContentSection
               title="Popular Movies"
-              items={popularMovies}
+              items={popularMovies.slice(0, 12)}
+              viewMoreLink="/movies/popular"
+              showViewMore={true}
               className="mb-12"
             />
             
             <ContentSection
               title="Top Rated Movies"
-              items={topRatedMovies}
+              items={topRatedMovies.slice(0, 12)}
+              viewMoreLink="/movies/top-rated"
+              showViewMore={true}
               className="mb-12"
             />
             
             <ContentSection
               title="Upcoming Movies"
-              items={upcomingMovies}
+              items={upcomingMovies.slice(0, 12)}
+              viewMoreLink="/movies/upcoming"
+              showViewMore={true}
               className="mb-12"
             />
           </>

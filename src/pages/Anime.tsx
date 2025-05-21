@@ -109,7 +109,9 @@ const Anime: React.FC = () => {
             <TabsContent value="popular">
               <ContentSection
                 title="Popular Anime"
-                items={popularAnime}
+                items={popularAnime.slice(0, 12)}
+                viewMoreLink="/anime/popular"
+                showViewMore={true}
                 className="mb-12"
               />
             </TabsContent>
@@ -117,7 +119,9 @@ const Anime: React.FC = () => {
             <TabsContent value="airing">
               <ContentSection
                 title="Currently Airing Anime"
-                items={airingAnime}
+                items={airingAnime.slice(0, 12)}
+                viewMoreLink="/anime/airing"
+                showViewMore={true}
                 className="mb-12"
               />
             </TabsContent>
@@ -125,7 +129,9 @@ const Anime: React.FC = () => {
             <TabsContent value="upcoming">
               <ContentSection
                 title="Upcoming Anime"
-                items={upcomingAnime}
+                items={upcomingAnime.slice(0, 12)}
+                viewMoreLink="/anime/upcoming"
+                showViewMore={true}
                 className="mb-12"
               />
             </TabsContent>
@@ -133,7 +139,8 @@ const Anime: React.FC = () => {
             <TabsContent value="recent">
               <ContentSection
                 title="Recent Episodes"
-                items={recentEpisodes}
+                items={recentEpisodes.slice(0, 12)} // Keep slice for consistency on this page
+                // No viewMoreLink for recent episodes as per instructions
                 className="mb-12"
               />
             </TabsContent>
