@@ -71,13 +71,17 @@ const TVSeries: React.FC = () => {
           <>
             <ContentSection
               title="Popular TV Series"
-              items={popularShows}
+              items={popularShows.slice(0, 12)}
+              viewMoreLink="/tv/popular"
+              showViewMore={true}
               className="mb-12"
             />
             
             <ContentSection
               title="Top Rated TV Series"
-              items={topRatedShows}
+              items={topRatedShows.slice(0, 12)}
+              viewMoreLink="/tv/top-rated"
+              showViewMore={true}
               className="mb-12"
             />
           </>

@@ -217,44 +217,52 @@ const Index: React.FC = () => {
           <>
         <ContentSection
           title="Trending Now"
-              items={trending}
-          viewMoreLink="/trending"
-              className="mt-12"
+          items={trending.slice(0, 12)} // Keep the homepage concise
+          viewMoreLink="/trending/all"
+          showViewMore={true}
+          className="mt-12"
         />
         
         <ContentSection
           title="Popular Movies"
-          items={popularMovies}
-          viewMoreLink="/movies"
-              className="mt-12"
-            />
+          items={popularMovies.slice(0, 12)}
+          viewMoreLink="/movies/popular"
+          showViewMore={true}
+          className="mt-12"
+        />
             
-            <ContentSection
-              title="Top Rated Movies"
-              items={topRatedMovies}
-              viewMoreLink="/movies/top-rated"
-              className="mt-12"
+        <ContentSection
+          title="Top Rated Movies"
+          items={topRatedMovies.slice(0, 12)}
+          viewMoreLink="/movies/top-rated"
+          showViewMore={true}
+          className="mt-12"
+        />
+        
+        {/* Assuming "Top TV Series" on Index means Popular for broader appeal, link to /tv/popular */}
+        {/* If you want a dedicated "Top Rated TV" section on Index, create another ContentSection for topRatedTVShows */}
+        <ContentSection
+          title="Popular TV Series" 
+          items={popularTVShows.slice(0, 12)} // Changed from topRatedTVShows to popularTVShows for this section
+          viewMoreLink="/tv/popular"
+          showViewMore={true}
+          className="mt-12"
+        />
+            
+        <ContentSection
+          title="Popular Anime" // Changed from "Anime Shows" for clarity
+          items={animeShows.slice(0, 12)}
+          viewMoreLink="/anime/popular"
+          showViewMore={true}
+          className="mt-12"
         />
         
         <ContentSection
-              title="Top TV Series"
-              items={topRatedTVShows}
-              viewMoreLink="/tv-series"
-              className="mt-12"
-            />
-            
-            <ContentSection
-              title="Anime Shows"
-              items={animeShows}
-          viewMoreLink="/anime"
-              className="mt-12"
-        />
-        
-        <ContentSection
-              title="Upcoming Movies"
-              items={upcomingMovies}
-              viewMoreLink="/movies/upcoming"
-              className="mt-12"
+          title="Upcoming Movies"
+          items={upcomingMovies.slice(0, 12)}
+          viewMoreLink="/movies/upcoming"
+          showViewMore={true}
+          className="mt-12"
         />
           </>
         )}

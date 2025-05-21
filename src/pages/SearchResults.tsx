@@ -172,29 +172,25 @@ const SearchResults: React.FC = () => {
             ) : (
               <>
                 {movies.length > 0 && (
-                  <motion.div variants={childVariants}>
-                    <ContentSection
-                      title="Movies"
-                      items={movies.map(item => ({
-                        ...item,
-                        mediaType: 'movie' as 'movie' | 'tv' | 'anime'
-                      }))}
-                      className="mb-12"
-                    />
-                  </motion.div>
+                  <ContentSection
+                    title="Movies"
+                    items={movies.map(item => ({
+                      ...item,
+                      mediaType: 'movie' as 'movie' | 'tv' | 'anime'
+                    }))}
+                    className="mb-12"
+                  />
                 )}
                 
                 {tvShows.length > 0 && (
-                  <motion.div variants={childVariants}>
-                    <ContentSection
-                      title="TV Series"
-                      items={tvShows.map(item => ({
-                        ...item,
-                        mediaType: 'tv' as 'movie' | 'tv' | 'anime'
-                      }))}
-                      className="mb-12"
-                    />
-                  </motion.div>
+                  <ContentSection
+                    title="TV Series"
+                    items={tvShows.map(item => ({
+                      ...item,
+                      mediaType: 'tv' as 'movie' | 'tv' | 'anime'
+                    }))}
+                    className="mb-12"
+                  />
                 )}
                 
                 {totalPages > 1 && page < totalPages && (
