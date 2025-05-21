@@ -76,11 +76,31 @@ export const jikanApi = {
   
   // Get anime by search query
   searchAnime: async (query: string, page = 1, limit = 20) => {
-    const response = await api.get('/anime', { 
-      params: { q: query, page, limit } 
-    });
-    await sleep(350);
-    return response;
+    try {
+      console.log(`Searching anime with query: ${query}, page: ${page}`);
+      const response = await api.get('/anime', { 
+        params: { q: query, page, limit } 
+      });
+      await sleep(350);
+      return response;
+    } catch (error) {
+      console.error('Error searching anime:', error);
+      // Return a valid empty response structure
+      return {
+        data: {
+          data: [],
+          pagination: {
+            last_visible_page: 1,
+            has_next_page: false,
+            items: {
+              count: 0,
+              total: 0,
+              per_page: limit
+            }
+          }
+        }
+      };
+    }
   },
   
   // Get anime details by ID

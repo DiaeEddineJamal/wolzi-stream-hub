@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Search, User, Heart, History, LogIn, Menu, X } from "lucide-react";
@@ -118,19 +117,54 @@ const NavBar: React.FC = () => {
                   <Link 
                     to={item.path}
                     className={cn(
-                      "group inline-flex h-9 w-max items-center justify-center px-4 py-2 text-sm font-medium transition-colors",
+                      "group inline-flex h-9 w-max items-center justify-center px-4 py-2 text-sm font-medium transition-colors relative overflow-hidden",
                       isActivePath(item.path) 
                         ? "text-wolzi-accent" 
                         : "text-white/80 hover:text-white"
                     )}
                   >
+                    <motion.span
+                      initial={{ y: 0 }}
+                      whileHover={{ y: -20 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                    >
+                      {item.title}
+                    </motion.span>
+                    
+                    <motion.span
+                      initial={{ y: 20, opacity: 0 }}
+                      whileHover={{ y: 0, opacity: 1 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className="absolute left-0 right-0 text-center text-wolzi-accent"
+                  >
                     {item.title}
+                    </motion.span>
+                    
                     {isActivePath(item.path) && (
                       <motion.div
-                        className="absolute bottom-0 left-0 right-0 h-[2px] bg-wolzi-accent"
-                        layoutId="navbar-indicator"
+                        className="absolute -bottom-1 left-1/2 w-[5px] h-[5px] rounded-full bg-wolzi-accent"
+                        layoutId="navbar-dot-indicator"
+                        initial={{ x: "-50%" }}
+                        animate={{ 
+                          x: "-50%",
+                          boxShadow: ["0 0 0px 0px rgba(255,130,130,0.0)", "0 0 5px 2px rgba(255,130,130,0.5)", "0 0 0px 0px rgba(255,130,130,0.0)"]
+                        }}
+                        transition={{ 
+                          boxShadow: { 
+                            repeat: Infinity, 
+                            duration: 2,
+                            ease: "easeInOut"
+                          } 
+                        }}
                       />
                     )}
+                    
+                    <motion.div
+                      className="absolute bottom-0 left-0 right-0 h-[2px] bg-wolzi-accent/70"
+                      initial={{ scaleX: 0, originX: "left" }}
+                      whileHover={{ scaleX: 1 }}
+                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                    />
                   </Link>
                 </NavigationMenuItem>
               ))}
@@ -230,7 +264,7 @@ const NavBar: React.FC = () => {
                 placeholder="Search movies, shows, anime..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pr-8"
+                className="pr-8 bg-wolzi-dark-blue/50 border-wolzi-gray/30 focus:border-wolzi-accent"
               />
               <Button
                 type="button"
@@ -260,11 +294,14 @@ const NavBar: React.FC = () => {
               {!showSearch && (
                 <Button 
                   variant="ghost" 
-                  className="justify-start py-3 -ml-2 mb-2" 
-                  onClick={toggleSearch}
+                  className="justify-start py-3 -ml-2 mb-2 w-full text-left" 
+                  onClick={() => {
+                    toggleSearch();
+                    toggleMobileMenu(); // Close mobile menu when opening search
+                  }}
                 >
                   <Search className="h-4 w-4 mr-2" />
-                  Search
+                  Search Movies, TV Shows & Anime
                 </Button>
               )}
               

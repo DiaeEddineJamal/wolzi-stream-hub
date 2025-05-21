@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -31,10 +31,15 @@ interface SeasonInfo {
 }
 
 const Watch: React.FC = () => {
-  const { mediaType, id, seasonNumber, episodeNumber } = useParams();
+  const { id, seasonNumber, episodeNumber } = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Add logging to debug URL parameters
+  console.log(`Watch Component Parameters - id: ${id}, season: ${seasonNumber}, episode: ${episodeNumber}`);
+  console.log("Current path:", location.pathname);
   
   const [title, setTitle] = useState<string>('');
   const [sourceUrl, setSourceUrl] = useState<string>('');
@@ -51,8 +56,19 @@ const Watch: React.FC = () => {
   const [seasons, setSeasons] = useState<SeasonInfo[]>([]);
   const [episodeCount, setEpisodeCount] = useState<number>(30); // Default to 30 episodes
   
+  // Determine media type from URL path instead of parameter
+  // Extract media type from the path: /watch/movie/... or /watch/tv/... or /watch/anime/...
+  const determineMediaType = (): MediaType => {
+    const path = location.pathname;
+    if (path.startsWith('/watch/movie/')) return 'movie';
+    if (path.startsWith('/watch/tv/')) return 'tv';  
+    if (path.startsWith('/watch/anime/')) return 'anime';
+    return 'movie'; // Default fallback
+  };
+  
   // Get actual media type with fallback
-  const actualMediaType = (mediaType as MediaType) || 'movie';
+  const actualMediaType = determineMediaType();
+  console.log(`Resolved media type: ${actualMediaType}`);
   
   useEffect(() => {
     const fetchMediaDetails = async () => {
@@ -154,7 +170,7 @@ const Watch: React.FC = () => {
     };
     
     fetchMediaDetails();
-  }, [id, mediaType, user]);
+  }, [id, actualMediaType, user]);
   
   // Add a separate effect for when season changes
   useEffect(() => {
@@ -205,7 +221,7 @@ const Watch: React.FC = () => {
     // Almost all streaming services should use iframe
     setUseIframe(true);
     
-  }, [activeSource, id, mediaType, seasonNumber, episodeNumber]);
+  }, [activeSource, id, actualMediaType, seasonNumber, episodeNumber]);
   
   const checkWatchHistory = async () => {
     if (!user || !id) return;
@@ -254,18 +270,18 @@ const Watch: React.FC = () => {
     // If no source is active, choose the best default for the content type
     if (actualMediaType === 'anime') {
       // For anime, prefer LuluStreams or VidSrc.to
-      if (!['lulustreams', 'vidsrcto', 'embedsu', 'krakenfiles'].includes(activeSource)) {
+      if (!['lulustreams', 'vidsrcto', 'upcloud', 'vidcloud', 'embedsu'].includes(activeSource)) {
         recommendedSource = 'lulustreams';
       }
     } else if (actualMediaType === 'movie') {
       // For movies, prefer Embed.su or Kraken Files
-      if (!['embedsu', 'krakenfiles', 'vidsrcto', 'lulustreams'].includes(activeSource)) {
+      if (!['embedsu', 'krakenfiles', 'upcloud', 'vidcloud', 'vidsrcto'].includes(activeSource)) {
         recommendedSource = 'embedsu';
       }
     } else if (actualMediaType === 'tv') {
-      // For TV series, prefer VidSrc.to or Embed.su
-      if (!['vidsrcto', 'embedsu', 'lulustreams', 'krakenfiles'].includes(activeSource)) {
-        recommendedSource = 'vidsrcto';
+      // For TV series, prefer UpCloud or VidCloud
+      if (!['upcloud', 'vidcloud', 'vidsrcto', 'embedsu', 'lulustreams'].includes(activeSource)) {
+        recommendedSource = 'upcloud';
       }
     }
     
@@ -280,15 +296,17 @@ const Watch: React.FC = () => {
       );
     }
     
+    // Ensure we're passing the correct mediaType to getStreamingUrl
+    // This ensures TV series get 'tv' URLs, not 'movie' URLs
     const url = getStreamingUrl(
-      actualMediaType,
+      actualMediaType, // Use actualMediaType to ensure correct URL generation
       id,
       seasonNumber ? parseInt(seasonNumber) : undefined,
       episodeNumber ? parseInt(episodeNumber) : undefined,
       recommendedSource
     );
     
-    console.log(`Creating stream URL: ${url} for ${actualMediaType}/${id}`);
+    console.log(`Creating stream URL: ${url} for ${actualMediaType}/${id} - Season: ${seasonNumber || 'N/A'}, Episode: ${episodeNumber || 'N/A'}`);
     setSourceUrl(url);
     setError(null);
     setIsLoading(true);
@@ -391,12 +409,15 @@ const Watch: React.FC = () => {
   // Add handleIframeError function to debug iframe issues
   const handleIframeError = (e: any) => {
     console.error('Iframe error:', e);
+    console.error(`Iframe error details - mediaType: ${actualMediaType}, ID: ${id}, Season: ${seasonNumber || 'N/A'}, Episode: ${episodeNumber || 'N/A'}, Source: ${activeSource}`);
+    console.error(`URL that caused error: ${sourceUrl}`);
     setError('Failed to load content. Please try a different source.');
   };
 
   // Handle 404 errors specifically
   const handle404Error = (sourceId: string) => {
     console.error(`404 Error detected for source: ${sourceId}, URL: ${sourceUrl}`);
+    console.error(`404 Error details - mediaType: ${actualMediaType}, ID: ${id}, Season: ${seasonNumber || 'N/A'}, Episode: ${episodeNumber || 'N/A'}`);
     
     let errorMessage = 'The content could not be found.';
     
@@ -510,6 +531,12 @@ const Watch: React.FC = () => {
       
       if (mediaTypeParam === 'movie') {
         switch(sourceId) {
+          case 'upcloud':
+            testUrl = `https://dokicloud.one/embed/${contentId}?autoplay=1&loop=1`;
+            break;
+          case 'vidcloud':
+            testUrl = `https://vidembed.io/movies/watch-${contentId}`;
+            break;
           case 'embedsu':
             testUrl = `https://embed.su/embed/movie/${contentId}`;
             break;
@@ -526,6 +553,12 @@ const Watch: React.FC = () => {
       } else if (mediaTypeParam === 'tv') {
         // For TV series, we'll test season 1 episode 1
         switch(sourceId) {
+          case 'upcloud':
+            testUrl = `https://dokicloud.one/embed/${contentId}/1/1?autoplay=1&loop=1`;
+            break;
+          case 'vidcloud':
+            testUrl = `https://vidembed.io/videos/watch-${contentId}-season-1-episode-1`;
+            break;
           case 'embedsu':
             testUrl = `https://embed.su/embed/tv/${contentId}/1/1`;
             break;
@@ -542,7 +575,14 @@ const Watch: React.FC = () => {
       } else if (mediaTypeParam === 'anime') {
         // For anime, we'll test episode 1
         switch(sourceId) {
+          case 'upcloud':
+            testUrl = `https://dokicloud.one/embed/${contentId}/1/1?autoplay=1&loop=1`;
+            break;
+          case 'vidcloud':
+            testUrl = `https://vidembed.io/videos/watch-${contentId}-season-1-episode-1`;
+            break;
           case 'embedsu':
+            // Ensure anime uses TV endpoint, not movie
             testUrl = `https://embed.su/embed/tv/${contentId}/1/1`;
             break;
           case 'vidsrcto':
@@ -556,6 +596,9 @@ const Watch: React.FC = () => {
             break;
         }
       }
+      
+      // Log URL generation for debugging
+      console.log(`Generated test URL for ${mediaTypeParam}/${contentId} on ${sourceId}: ${testUrl}`);
       
       // Skip if no test URL
       if (!testUrl) return { available: true, sourceId };
@@ -655,6 +698,159 @@ const Watch: React.FC = () => {
           </Button>
         </div>
       </header>
+      
+      {/* Season and Episode Selection - Moved above the video player */}
+      {(actualMediaType === 'tv' || actualMediaType === 'anime') && (
+        <div className="bg-wolzi-bg/90 backdrop-blur-md px-4 py-3 border-b border-wolzi-border">
+          <div className="flex flex-wrap items-center gap-3 max-w-5xl mx-auto">
+            {actualMediaType === 'tv' && (
+              <div className="flex items-center space-x-2">
+                <label className="text-wolzi-light-gray font-medium text-sm">Season:</label>
+                <div className="relative">
+                  <select 
+                    className="px-3 py-1.5 rounded-md bg-wolzi-dark-gray/70 border border-wolzi-border text-white appearance-none cursor-pointer pr-10 focus:ring-1 focus:ring-wolzi-accent focus:border-wolzi-accent"
+                    value={seasonNumber || '1'}
+                    onChange={(e) => {
+                      setError(null);
+                      setIsLoading(true);
+                      navigate(`/watch/${actualMediaType}/${id}/season/${e.target.value}/episode/1`);
+                    }}
+                  >
+                    {seasons.length > 0 ? (
+                      seasons.map(season => (
+                        <option key={season.id} value={season.season_number}>{season.name}</option>
+                      ))
+                    ) : (
+                      Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
+                        <option key={num} value={num}>Season {num}</option>
+                      ))
+                    )}
+                  </select>
+                  <div className="absolute right-3 top-2.5 pointer-events-none text-wolzi-light-gray">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex items-center space-x-2">
+              <label className="text-wolzi-light-gray font-medium text-sm">Episode:</label>
+              <div className="relative">
+                <select 
+                  className="px-3 py-1.5 rounded-md bg-wolzi-dark-gray/70 border border-wolzi-border text-white appearance-none cursor-pointer pr-10 focus:ring-1 focus:ring-wolzi-accent focus:border-wolzi-accent"
+                  value={episodeNumber || '1'}
+                  onChange={(e) => {
+                    setError(null);
+                    setIsLoading(true);
+                    if (actualMediaType === 'tv') {
+                      navigate(`/watch/${actualMediaType}/${id}/season/${seasonNumber || '1'}/episode/${e.target.value}`);
+                    } else {
+                      navigate(`/watch/${actualMediaType}/${id}/episode/${e.target.value}`);
+                    }
+                  }}
+                >
+                  {Array.from({ length: episodeCount }, (_, i) => i + 1).map(epNum => (
+                    <option key={epNum} value={epNum}>Episode {epNum}</option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-2.5 pointer-events-none text-wolzi-light-gray">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m6 9 6 6 6-6"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex-grow"></div>
+            
+            <div className="flex items-center space-x-2">
+              <label className="text-wolzi-light-gray font-medium text-sm">Server:</label>
+              <div className="relative">
+                <select 
+                  className="px-3 py-1.5 rounded-md bg-wolzi-dark-gray/70 border border-wolzi-border text-white appearance-none cursor-pointer pr-10 focus:ring-1 focus:ring-wolzi-accent focus:border-wolzi-accent"
+                  value={activeSource}
+                  onChange={(e) => {
+                    setError(null);
+                    setIsLoading(true);
+                    handleSourceChange(e.target.value);
+                  }}
+                >
+                  {sources
+                    .filter(source => ['upcloud', 'vidcloud', 'embedsu', 'vidsrcto', 'lulustreams', 'krakenfiles'].includes(source.id))
+                    .map(source => (
+                      <option key={source.id} value={source.id}>{source.name}</option>
+                    ))
+                  }
+                </select>
+                <div className="absolute right-3 top-2.5 pointer-events-none text-wolzi-light-gray">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m6 9 6 6 6-6"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs"
+              onClick={() => setShowSettings(!showSettings)}
+            >
+              <Settings size={14} className="mr-1" />
+              Settings
+            </Button>
+          </div>
+          
+          {/* Episode Navigation Quick Access Buttons */}
+          <div className="flex items-center gap-2 mt-3 max-w-5xl mx-auto">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-wolzi-light-gray hover:text-white"
+              disabled={parseInt(episodeNumber || '1') <= 1}
+              onClick={() => {
+                const prevEp = parseInt(episodeNumber || '1') - 1;
+                if (prevEp >= 1) {
+                  setError(null);
+                  setIsLoading(true);
+                  if (actualMediaType === 'tv') {
+                    navigate(`/watch/${actualMediaType}/${id}/season/${seasonNumber || '1'}/episode/${prevEp}`);
+                  } else {
+                    navigate(`/watch/${actualMediaType}/${id}/episode/${prevEp}`);
+                  }
+                }
+              }}
+            >
+              Previous Episode
+            </Button>
+            
+            <div className="flex-grow"></div>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-wolzi-light-gray hover:text-white"
+              disabled={parseInt(episodeNumber || '1') >= episodeCount}
+              onClick={() => {
+                const nextEp = parseInt(episodeNumber || '1') + 1;
+                if (nextEp <= episodeCount) {
+                  setError(null);
+                  setIsLoading(true);
+                  if (actualMediaType === 'tv') {
+                    navigate(`/watch/${actualMediaType}/${id}/season/${seasonNumber || '1'}/episode/${nextEp}`);
+                  } else {
+                    navigate(`/watch/${actualMediaType}/${id}/episode/${nextEp}`);
+                  }
+                }
+              }}
+            >
+              Next Episode
+            </Button>
+          </div>
+        </div>
+      )}
       
       {/* Video Player */}
       <div className="flex-1 flex items-center justify-center bg-wolzi-dark-gray relative" style={{ minHeight: '75vh' }}>
@@ -817,7 +1013,7 @@ const Watch: React.FC = () => {
         
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-w-4xl">
           {sources
-            .filter(source => ['embedsu', 'vidsrcto', 'lulustreams', 'krakenfiles'].includes(source.id))
+            .filter(source => ['upcloud', 'vidcloud', 'embedsu', 'vidsrcto', 'lulustreams', 'krakenfiles'].includes(source.id))
             .map((source) => (
             <motion.div
               key={source.id}
@@ -850,9 +1046,14 @@ const Watch: React.FC = () => {
                       4K
                     </span>
                   )}
-                  {actualMediaType === 'tv' && source.id === 'vidsrcto' && (
+                  {actualMediaType === 'tv' && source.id === 'upcloud' && (
                     <span className="bg-blue-500/80 text-white text-xs px-1.5 py-0.5 rounded-full">
                       HD
+                    </span>
+                  )}
+                  {actualMediaType === 'tv' && source.id === 'vidcloud' && (
+                    <span className="bg-green-500/80 text-white text-xs px-1.5 py-0.5 rounded-full">
+                      Fast
                     </span>
                   )}
                 </div>
@@ -863,15 +1064,27 @@ const Watch: React.FC = () => {
               )}
               
               <div className="mt-2 text-xs">
-                {source.id === 'embedsu' && (
+                {source.id === 'upcloud' && (
+                  <div className="flex items-center">
+                    <span className="inline-block w-2 h-2 rounded-full bg-blue-400 mr-1.5"></span>
+                    Full HD Library
+                  </div>
+                )}
+                {source.id === 'vidcloud' && (
                   <div className="flex items-center">
                     <span className="inline-block w-2 h-2 rounded-full bg-green-400 mr-1.5"></span>
+                    Extensive TV Series
+                  </div>
+                )}
+                {source.id === 'embedsu' && (
+                  <div className="flex items-center">
+                    <span className="inline-block w-2 h-2 rounded-full bg-gray-400 mr-1.5"></span>
                     All content
                   </div>
                 )}
                 {source.id === 'vidsrcto' && (
                   <div className="flex items-center">
-                    <span className="inline-block w-2 h-2 rounded-full bg-blue-400 mr-1.5"></span>
+                    <span className="inline-block w-2 h-2 rounded-full bg-indigo-400 mr-1.5"></span>
                     Movies & TV
                   </div>
                 )}
@@ -901,149 +1114,21 @@ const Watch: React.FC = () => {
                 ? <span>LuluStreams is recommended for anime content</span>
                 : actualMediaType === 'movie'
                 ? <span>Kraken Files offers the best quality for movies</span>
-                : <span>VidSrc.to works best for TV series</span>
+                : <span>UpCloud and VidCloud work best for TV series</span>
               }
             </p>
           </div>
           
           <p className="mb-1 font-medium">Source compatibility:</p>
           <ul className="list-disc list-inside space-y-1 opacity-80">
-            <li><span className="font-medium text-green-400">Embed.su</span>: Excellent for movies and TV shows, great overall compatibility</li>
-            <li><span className="font-medium text-blue-400">VidSrc.to</span>: Reliable for TV series and movies with good quality options</li>
+            <li><span className="font-medium text-blue-400">UpCloud</span>: Large HD library of TV series with excellent streaming quality</li>
+            <li><span className="font-medium text-green-400">VidCloud</span>: Fast servers with extensive TV show collection and subtitles</li>
+            <li><span className="font-medium text-gray-400">Embed.su</span>: Good for movies and TV shows, reliable overall</li>
+            <li><span className="font-medium text-indigo-400">VidSrc.to</span>: Reliable for TV series and movies with good quality options</li>
             <li><span className="font-medium text-purple-400">LuluStreams</span>: Best for anime content with wide selection and subtitles</li>
             <li><span className="font-medium text-yellow-400">Kraken Files</span>: High-quality 4K streams for premium content</li>
           </ul>
         </div>
-
-        {/* Season and Episode Selection */}
-        {actualMediaType === 'tv' && (
-          <div className="mt-6 border-t border-wolzi-border pt-4">
-            <h3 className="text-lg font-medium mb-3">Season and Episode</h3>
-            
-            <div className="flex items-center space-x-4 mb-6">
-              <div className="relative flex-1 max-w-xs">
-                <label className="block text-sm font-medium mb-2 text-wolzi-light-gray">Season</label>
-                <select 
-                  className="w-full px-3 py-2 rounded-md bg-wolzi-dark-gray border border-wolzi-border text-white appearance-none cursor-pointer pr-10"
-                  value={seasonNumber || '1'}
-                  onChange={(e) => {
-                    setError(null);
-                    setIsLoading(true);
-                    navigate(`/watch/${actualMediaType}/${id}/season/${e.target.value}/episode/1`);
-                  }}
-                >
-                  {seasons.length > 0 ? (
-                    seasons.map(season => (
-                      <option key={season.id} value={season.season_number}>{season.name}</option>
-                    ))
-                  ) : (
-                    Array.from({ length: 20 }, (_, i) => i + 1).map(num => (
-                      <option key={num} value={num}>Season {num}</option>
-                    ))
-                  )}
-                </select>
-                <div className="absolute right-3 top-9 pointer-events-none text-wolzi-light-gray">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="m6 9 6 6 6-6"/>
-                  </svg>
-                </div>
-              </div>
-            </div>
-            
-            <h4 className="text-sm font-medium mb-3 text-wolzi-light-gray">Select Episode</h4>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 mb-4">
-              {Array.from({ length: episodeCount }, (_, i) => i + 1).map(epNum => {
-                const isActive = parseInt(episodeNumber || '1') === epNum;
-                
-                return (
-                  <motion.div
-                    key={epNum}
-                    whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                    whileTap={{ scale: 0.95 }}
-                    className={`
-                      relative rounded-md overflow-hidden cursor-pointer transition-all shadow-sm
-                      hover:shadow-md border
-                      ${isActive 
-                        ? 'border-wolzi-accent bg-wolzi-accent/20' 
-                        : 'border-wolzi-gray/20 bg-wolzi-dark-gray/50 hover:bg-wolzi-dark-gray'
-                      }
-                    `}
-                    onClick={() => {
-                      setError(null);
-                      setIsLoading(true);
-                      navigate(`/watch/${actualMediaType}/${id}/season/${seasonNumber || '1'}/episode/${epNum}`);
-                    }}
-                  >
-                    <div className="aspect-video bg-wolzi-dark-gray/50 flex items-center justify-center">
-                      <span className="text-2xl font-bold text-wolzi-accent/80">{epNum}</span>
-                    </div>
-                    <div className="p-2">
-                      <p className="text-sm font-medium truncate">Episode {epNum}</p>
-                    </div>
-                    {isActive && (
-                      <div className="absolute top-2 right-2 bg-wolzi-accent rounded-full p-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20 6 9 17l-5-5"/>
-                        </svg>
-                      </div>
-                    )}
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-        
-        {/* Add similar UI for anime episodes */}
-        {actualMediaType === 'anime' && (
-          <div className="mt-6 border-t border-wolzi-border pt-4">
-            <h3 className="text-lg font-medium mb-3">Episodes</h3>
-            
-            <h4 className="text-sm font-medium mb-3 text-wolzi-light-gray">Select Episode</h4>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 mb-4">
-              {Array.from({ length: episodeCount }, (_, i) => i + 1).map(epNum => {
-                const isActive = parseInt(episodeNumber || '1') === epNum;
-                
-                return (
-                  <motion.div
-                    key={epNum}
-                    whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                    whileTap={{ scale: 0.95 }}
-                    className={`
-                      relative rounded-md overflow-hidden cursor-pointer transition-all shadow-sm
-                      hover:shadow-md border
-                      ${isActive 
-                        ? 'border-wolzi-accent bg-wolzi-accent/20' 
-                        : 'border-wolzi-gray/20 bg-wolzi-dark-gray/50 hover:bg-wolzi-dark-gray'
-                      }
-                    `}
-                    onClick={() => {
-                      setError(null);
-                      setIsLoading(true);
-                      navigate(`/watch/${actualMediaType}/${id}/episode/${epNum}`);
-                    }}
-                  >
-                    <div className="aspect-video bg-wolzi-dark-gray/50 flex items-center justify-center">
-                      <span className="text-2xl font-bold text-wolzi-accent/80">{epNum}</span>
-                    </div>
-                    <div className="p-2">
-                      <p className="text-sm font-medium truncate">Episode {epNum}</p>
-                    </div>
-                    {isActive && (
-                      <div className="absolute top-2 right-2 bg-wolzi-accent rounded-full p-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20 6 9 17l-5-5"/>
-                        </svg>
-                      </div>
-                    )}
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

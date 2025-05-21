@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Play, Star, Calendar, Film, Tv } from "lucide-react";
@@ -82,10 +81,17 @@ const MediaCard: React.FC<MediaCardProps> = ({
     return `/${mediaType}/${id}`;
   };
 
-  // Card hover animations
+  // Card hover animations - updated for consistency in all directions
   const cardVariants = {
+    initial: {
+      scale: 1,
+      y: 0,
+      boxShadow: "0px 0px 0px rgba(0, 0, 0, 0)",
+    },
     hover: {
-      y: -10,
+      scale: 1.03,
+      y: -5,
+      boxShadow: "0px 10px 25px rgba(0, 0, 0, 0.2)",
       transition: {
         duration: 0.3,
         ease: "easeOut",
@@ -95,38 +101,46 @@ const MediaCard: React.FC<MediaCardProps> = ({
 
   // Overlay hover animations
   const overlayVariants = {
-    initial: { opacity: 0 },
+    initial: { 
+      opacity: 0,
+      backdropFilter: "blur(0px)" 
+    },
     hover: {
       opacity: 1,
+      backdropFilter: "blur(3px)",
       transition: {
-        duration: 0.3,
+        duration: 0.2,
       },
     },
   };
 
   // Button hover animations
   const buttonVariants = {
-    initial: { scale: 0.9, opacity: 0 },
+    initial: { scale: 0.9, opacity: 0, y: 10 },
     hover: {
       scale: 1,
       opacity: 1,
+      y: 0,
       transition: {
         duration: 0.3,
-        delay: 0.1,
+        delay: 0.05,
+        type: "spring",
+        stiffness: 400,
       },
     },
   };
 
   // Play icon animation
   const playIconVariants = {
-    initial: { scale: 0.8, opacity: 0 },
+    initial: { scale: 0.8, opacity: 0, rotateY: 90 },
     hover: {
       scale: 1.1,
       opacity: 1,
+      rotateY: 0,
       transition: {
         duration: 0.3,
         type: "spring",
-        stiffness: 200,
+        stiffness: 300,
       },
     },
   };
@@ -138,7 +152,7 @@ const MediaCard: React.FC<MediaCardProps> = ({
           initial="initial" 
           whileHover="hover" 
           variants={cardVariants}
-          className="overflow-hidden"
+          className="overflow-hidden rounded-lg"
         >
           <Link
             to={getDetailsUrl()}
@@ -155,11 +169,11 @@ const MediaCard: React.FC<MediaCardProps> = ({
             {showHover && (
               <motion.div 
                 variants={overlayVariants}
-                className="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex flex-col items-center justify-center p-4 text-white"
+                className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center p-4 text-white"
               >
                 <motion.div 
                   variants={playIconVariants}
-                  className="rounded-full bg-wolzi-accent p-3 mb-3"
+                  className="rounded-full bg-wolzi-accent p-3 mb-3 shadow-lg shadow-wolzi-accent/20"
                 >
                   <Play className="h-8 w-8 fill-white" />
                 </motion.div>

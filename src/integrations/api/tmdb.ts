@@ -57,8 +57,35 @@ export const tmdbApi = {
     api.get('/tv/top_rated', { params: { page } }),
   
   // Search
-  searchMulti: (query: string, page = 1) => 
-    api.get('/search/multi', { params: { query, page } }),
+  searchMulti: (query: string, page = 1) => {
+    console.log('Searching with query:', query);
+    return api.get('/search/multi', { 
+      params: { 
+        query, 
+        page,
+        include_adult: false,
+        language: 'en-US'
+      } 
+    }).catch(error => {
+      console.error('TMDB search error:', error);
+      throw error;
+    });
+  },
+  
+  searchByType: (type: string, query: string, page = 1) => {
+    console.log(`Searching ${type} with query:`, query);
+    return api.get(`/search/${type}`, { 
+      params: { 
+        query, 
+        page,
+        include_adult: false,
+        language: 'en-US'
+      } 
+    }).catch(error => {
+      console.error(`TMDB ${type} search error:`, error);
+      throw error;
+    });
+  },
   
   // Details
   getMovieDetails: (id: number) => 

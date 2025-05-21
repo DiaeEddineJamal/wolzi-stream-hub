@@ -146,6 +146,58 @@ const fetchUpcomingAnimePage = async (page: number) => {
   };
 };
 
+// Fetch search results for View All functionality
+const fetchSearchResultsPage = async (page: number, query: string, type: string) => {
+  console.log(`Fetching search results page ${page} for type ${type}, query: ${query}`);
+  try {
+    if (!query.trim()) {
+      console.error('Empty query provided to fetchSearchResultsPage');
+      return {
+        items: [],
+        totalPages: 0,
+        totalResults: 0,
+      };
+    }
+    
+    if (type === 'movie' || type === 'tv') {
+      const { data } = await tmdbApi.searchByType(type, query, page);
+      return {
+        items: data.results.map(type === 'movie' ? tmdbMovieToMediaItem : tmdbTvShowToMediaItem),
+        totalPages: data.total_pages || 1,
+        totalResults: data.total_results || 0,
+      };
+    } else if (type === 'anime') {
+      const { data } = await jikanApi.searchAnime(query, page);
+      return {
+        items: data.data.map(jikanAnimeToMediaItem),
+        totalPages: data.pagination?.last_visible_page || page,
+        totalResults: data.pagination?.items?.total || data.data.length,
+      };
+    }
+    
+    // Fallback for multi-search
+    console.log('Using multi-search fallback');
+    const { data } = await tmdbApi.searchMulti(query, page);
+    const items = data.results
+      .filter((item: any) => ['movie', 'tv'].includes(item.media_type))
+      .map((item: any) => item.media_type === 'movie' ? tmdbMovieToMediaItem(item) : tmdbTvShowToMediaItem(item));
+    
+    return {
+      items,
+      totalPages: data.total_pages || 1,
+      totalResults: data.total_results || 0,
+    };
+  } catch (error) {
+    console.error('Error in fetchSearchResultsPage:', error);
+    // Return empty data on error
+    return {
+      items: [],
+      totalPages: 1,
+      totalResults: 0,
+    };
+  }
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -169,7 +221,11 @@ const App = () => (
             <Route path="/movie/:id" element={<MediaDetail />} />
             <Route path="/tv/:id" element={<MediaDetail />} />
             <Route path="/anime/:id" element={<MediaDetail />} />
+            
+            {/* Add explicit routes for season/episode parameters */}
+            <Route path="/tv/:id/season/:seasonNumber" element={<MediaDetail />} />
             <Route path="/tv/:id/season/:seasonNumber/episode/:episodeNumber" element={<MediaDetail />} />
+            <Route path="/anime/:id/episode/:episodeNumber" element={<MediaDetail />} />
             
             {/* Watch routes */}
             <Route path="/watch/movie/:id" element={<Watch />} />
@@ -222,6 +278,31 @@ const App = () => (
             <Route 
               path="/anime/upcoming" 
               element={<ViewAllPage title="Upcoming Anime" fetchDataFunction={fetchUpcomingAnimePage} />} 
+            />
+            
+            {/* View All Search Results */}
+            <Route 
+              path="/view-all"
+              element={
+                <ViewAllPage 
+                  title={(() => {
+                    const searchParams = new URLSearchParams(window.location.search);
+                    const query = searchParams.get('query') || '';
+                    const type = searchParams.get('type') || 'all';
+                    const typeLabel = type === 'movie' ? 'Movies' : 
+                                      type === 'tv' ? 'TV Series' : 
+                                      type === 'anime' ? 'Anime' : 'Results';
+                    return `Search ${typeLabel}: "${query}"`;
+                  })()}
+                  fetchDataFunction={(page) => {
+                    const searchParams = new URLSearchParams(window.location.search);
+                    const query = searchParams.get('query') || '';
+                    const type = searchParams.get('type') || 'all';
+                    console.log(`ViewAllPage fetching data: page=${page}, type=${type}, query=${query}`);
+                    return fetchSearchResultsPage(page, query, type);
+                  }}
+                />
+              }
             />
             
             {/* 404 */}

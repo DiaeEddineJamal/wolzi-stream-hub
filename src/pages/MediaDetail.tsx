@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -119,10 +119,16 @@ interface GogoAnimeInfo {
 }
 
 const MediaDetail: React.FC = () => {
-  const { id, mediaType, seasonNumber, episodeNumber } = useParams();
+  const { id, seasonNumber, episodeNumber } = useParams();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Add debug logging for the URL parameters
+  console.log("MediaDetail params:", { id, seasonNumber, episodeNumber });
+  console.log("Current path:", location.pathname);
+  
   const [loading, setLoading] = useState(true);
   const [mediaDetails, setMediaDetails] = useState<MediaDetails | null>(null);
   const [animeDetails, setAnimeDetails] = useState<AnimeDetails | null>(null);
@@ -142,7 +148,19 @@ const MediaDetail: React.FC = () => {
   const [streamingLinks, setStreamingLinks] = useState<any[]>([]);
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
 
-  const actualMediaType = mediaType as MediaType || 'movie';
+  // Determine media type from URL path instead of parameter
+  // Extract media type from the path: /movie/... or /tv/... or /anime/...
+  const determineMediaType = (): MediaType => {
+    const path = location.pathname;
+    if (path.startsWith('/movie/')) return 'movie';
+    if (path.startsWith('/tv/')) return 'tv';  
+    if (path.startsWith('/anime/')) return 'anime';
+    return 'movie'; // Default fallback
+  };
+  
+  const actualMediaType = determineMediaType();
+  console.log("Resolved media type:", actualMediaType);
+  
   const title = mediaDetails?.title || mediaDetails?.name || animeDetails?.title || '';
 
   useEffect(() => {
@@ -731,7 +749,7 @@ const MediaDetail: React.FC = () => {
               <div className="aspect-video w-full bg-black rounded-md overflow-hidden">
                 {actualMediaType === 'movie' && (
                   <iframe
-                    src={`https://embed.su/embed/movie/${id}`}
+                    src={getStreamingUrl(actualMediaType, id, undefined, undefined, 'embedsu')}
                     className="w-full h-full"
                     frameBorder="0"
                     allowFullScreen
@@ -743,7 +761,7 @@ const MediaDetail: React.FC = () => {
                 
                 {actualMediaType === 'tv' && selectedSeason && selectedEpisode && (
                   <iframe
-                    src={`https://embed.su/embed/tv/${id}/${selectedSeason}/${selectedEpisode}`}
+                    src={getStreamingUrl(actualMediaType, id, selectedSeason, selectedEpisode, 'embedsu')}
                     className="w-full h-full"
                     frameBorder="0"
                     allowFullScreen
@@ -755,7 +773,9 @@ const MediaDetail: React.FC = () => {
                 
                 {actualMediaType === 'anime' && selectedEpisode && gogoAnimeInfo && (
                   <iframe
-                    src={`https://gogoanimehd.io/streaming.php?id=${gogoAnimeInfo.id}&ep=${selectedEpisode}`}
+                    src={gogoAnimeInfo 
+                      ? `https://gogoanimehd.io/streaming.php?id=${gogoAnimeInfo.id}&ep=${selectedEpisode}`
+                      : getStreamingUrl(actualMediaType, id, undefined, selectedEpisode, 'embedsu')}
                     className="w-full h-full"
                     frameBorder="0"
                     allowFullScreen
@@ -1012,8 +1032,8 @@ const MediaDetail: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {streamingSources
                   .filter(source => {
-                    // Only show Embed.su and VidSrc.to as reliable sources
-                    return ['embedsu', 'vidsrcto'].includes(source.id);
+                    // Show the most reliable sources
+                    return ['upcloud', 'vidcloud', 'embedsu', 'vidsrcto', 'lulustreams', 'krakenfiles'].includes(source.id);
                   })
                   .map((source) => (
                   <div 
@@ -1029,7 +1049,29 @@ const MediaDetail: React.FC = () => {
                     {source.description && (
                       <p className="text-sm text-wolzi-light-gray mt-1">{source.description}</p>
                     )}
-                    <div className="flex justify-end mt-2">
+                    <div className="flex justify-between mt-2">
+                      <div className="text-xs">
+                        {source.id === 'upcloud' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-500/30 text-blue-200">
+                            HD TV Shows
+                          </span>
+                        )}
+                        {source.id === 'vidcloud' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/30 text-green-200">
+                            Fast Streaming
+                          </span>
+                        )}
+                        {source.id === 'lulustreams' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-500/30 text-purple-200">
+                            Anime
+                          </span>
+                        )}
+                        {source.id === 'krakenfiles' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/30 text-yellow-200">
+                            4K
+                          </span>
+                        )}
+                      </div>
                       {source.isActive && (
                         <span className="text-xs bg-wolzi-accent px-2 py-1 rounded-full text-white">Active</span>
                       )}
@@ -1040,7 +1082,10 @@ const MediaDetail: React.FC = () => {
               
               <div className="mt-8 pt-4 border-t border-wolzi-border">
                 <p className="text-sm text-wolzi-light-gray">
-                  Note: We only show the most reliable streaming sources based on extensive testing. Quality and availability may vary.
+                  Recommended sources: 
+                  {actualMediaType === 'tv' && <span className="font-medium text-blue-400 ml-1">UpCloud</span>} 
+                  {actualMediaType === 'anime' && <span className="font-medium text-purple-400 ml-1">LuluStreams</span>}
+                  {actualMediaType === 'movie' && <span className="font-medium text-yellow-400 ml-1">Kraken Files</span>}
                 </p>
               </div>
             </Card>

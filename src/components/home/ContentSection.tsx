@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React from "react";
 import { ArrowRight } from "lucide-react";
 import MediaCard from "./MediaCard";
 import { Button } from "@/components/ui/button";
@@ -39,8 +38,6 @@ const ContentSection: React.FC<ContentSectionProps> = ({
   className,
   showViewMore = true,
 }) => {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-
   return (
     <motion.section 
       className={cn("py-8", className)}
@@ -95,8 +92,6 @@ const ContentSection: React.FC<ContentSectionProps> = ({
               <CarouselItem 
                 key={item.id} 
                 className="pl-2 md:pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6"
-                onMouseEnter={() => setHoveredIndex(index)}
-                onMouseLeave={() => setHoveredIndex(null)}
               >
                 <motion.div 
                   className="h-full"
@@ -106,7 +101,7 @@ const ContentSection: React.FC<ContentSectionProps> = ({
                 >
                   <MediaCard
                     {...item}
-                    showHover={hoveredIndex === index}
+                    showHover={true}
                     size="medium"
                     description={item.description || `Watch ${item.title} online. ${item.mediaType === "tv" ? "TV Series" : item.mediaType === "anime" ? "Anime" : "Movie"} from ${item.year || "recent years"}.`}
                   />

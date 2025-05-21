@@ -1,13 +1,12 @@
-
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
 import tmdbApi, { getPosterUrl } from '@/integrations/api/tmdb';
 import ContentSection from '@/components/home/ContentSection';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
-import { Search } from 'lucide-react';
+import { Search, ArrowRight } from 'lucide-react';
 
 interface SearchResult {
   id: string;
@@ -30,8 +29,9 @@ const SearchResults: React.FC = () => {
   const [people, setPeople] = useState<SearchResult[]>([]);
   const [searchQuery, setSearchQuery] = useState(query);
   const [totalResults, setTotalResults] = useState(0);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [totalMovies, setTotalMovies] = useState(0);
+  const [totalTvShows, setTotalTvShows] = useState(0);
+  const [totalPeople, setTotalPeople] = useState(0);
 
   useEffect(() => {
     if (query) {
@@ -40,51 +40,76 @@ const SearchResults: React.FC = () => {
     }
   }, [query]);
 
-  const searchContent = async (searchTerm: string, pageNum = 1) => {
+  const searchContent = async (searchTerm: string) => {
     if (!searchTerm.trim()) return;
     
     setLoading(true);
     try {
-      const { data } = await tmdbApi.searchMulti(searchTerm, pageNum);
+      console.log('Performing search for:', searchTerm);
+      const response = await tmdbApi.searchMulti(searchTerm, 1);
+      console.log('Search response:', response);
       
-      const processedResults = data.results.map((result: any) => ({
-        id: result.id.toString(),
-        title: result.title || result.name,
+      if (!response.data || !response.data.results || !Array.isArray(response.data.results)) {
+        console.error('Invalid search response structure:', response);
+        setResults([]);
+        setMovies([]);
+        setTvShows([]);
+        setPeople([]);
+        setTotalResults(0);
+        return;
+      }
+      
+      const { data } = response;
+      console.log('Search results count:', data.results.length);
+      
+      const processedResults = data.results.map((result: any) => {
+        // Ensure we have all required fields or provide defaults
+        return {
+          id: result.id?.toString() || '',
+          title: result.title || result.name || 'Unknown Title',
         posterUrl: getPosterUrl(result.poster_path || result.profile_path) || "https://via.placeholder.com/500x750?text=No+Image",
         rating: result.vote_average || 0,
         year: (result.release_date || result.first_air_date || "").substring(0, 4),
-        mediaType: result.media_type,
-        overview: result.overview
-      }));
+          mediaType: result.media_type || 'unknown',
+          overview: result.overview || ''
+        };
+      });
       
-      // If it's the first page, replace results, otherwise append
-      if (pageNum === 1) {
         setResults(processedResults);
-      } else {
-        setResults(prev => [...prev, ...processedResults]);
-      }
-      
-      setTotalResults(data.total_results);
-      setTotalPages(data.total_pages);
-      setPage(pageNum);
+      setTotalResults(data.total_results || 0);
       
       // Filter results by type
       const newMovies = processedResults.filter((item: SearchResult) => item.mediaType === 'movie');
       const newTvShows = processedResults.filter((item: SearchResult) => item.mediaType === 'tv');
       const newPeople = processedResults.filter((item: SearchResult) => item.mediaType === 'person');
       
-      if (pageNum === 1) {
+      console.log('Filtered results:', {
+        movies: newMovies.length,
+        tvShows: newTvShows.length,
+        people: newPeople.length
+      });
+      
         setMovies(newMovies);
         setTvShows(newTvShows);
         setPeople(newPeople);
-      } else {
-        setMovies(prev => [...prev, ...newMovies]);
-        setTvShows(prev => [...prev, ...newTvShows]);
-        setPeople(prev => [...prev, ...newPeople]);
-      }
+      
+      // Calculate totals for each category
+      const movieTotal = data.results.filter((item: any) => item.media_type === 'movie').length;
+      const tvTotal = data.results.filter((item: any) => item.media_type === 'tv').length;
+      const peopleTotal = data.results.filter((item: any) => item.media_type === 'person').length;
+      
+      setTotalMovies(movieTotal);
+      setTotalTvShows(tvTotal);
+      setTotalPeople(peopleTotal);
       
     } catch (error) {
       console.error('Error searching content:', error);
+      // Reset all state on error
+      setResults([]);
+      setMovies([]);
+      setTvShows([]);
+      setPeople([]);
+      setTotalResults(0);
     } finally {
       setLoading(false);
     }
@@ -98,9 +123,14 @@ const SearchResults: React.FC = () => {
     }
   };
 
-  const handleLoadMore = () => {
-    if (page < totalPages) {
-      searchContent(query, page + 1);
+  const getViewAllUrl = (type: 'movie' | 'tv' | 'person') => {
+    if (!query.trim()) return '#'; // Don't navigate if query is empty
+    try {
+      console.log(`Creating view all URL for type: ${type}, query: ${query}`);
+      return `/view-all?type=${encodeURIComponent(type)}&query=${encodeURIComponent(query.trim())}`;
+    } catch (error) {
+      console.error('Error creating view all URL:', error);
+      return '#';
     }
   };
 
@@ -172,45 +202,46 @@ const SearchResults: React.FC = () => {
             ) : (
               <>
                 {movies.length > 0 && (
+                  <motion.div variants={childVariants} className="mb-12">
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-xl font-bold">Movies</h2>
+                      <Link 
+                        to={getViewAllUrl('movie')}
+                        className="flex items-center text-wolzi-accent hover:text-wolzi-accent-hover transition-colors duration-300"
+                      >
+                        View All <ArrowRight className="h-4 w-4 ml-1" />
+                      </Link>
+                    </div>
                   <ContentSection
-                    title="Movies"
+                      title=""
                     items={movies.map(item => ({
                       ...item,
                       mediaType: 'movie' as 'movie' | 'tv' | 'anime'
                     }))}
-                    className="mb-12"
+                      className=""
                   />
+                  </motion.div>
                 )}
                 
                 {tvShows.length > 0 && (
+                  <motion.div variants={childVariants} className="mb-12">
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-xl font-bold">TV Series</h2>
+                      <Link 
+                        to={getViewAllUrl('tv')}
+                        className="flex items-center text-wolzi-accent hover:text-wolzi-accent-hover transition-colors duration-300"
+                      >
+                        View All <ArrowRight className="h-4 w-4 ml-1" />
+                      </Link>
+                    </div>
                   <ContentSection
-                    title="TV Series"
+                      title=""
                     items={tvShows.map(item => ({
                       ...item,
                       mediaType: 'tv' as 'movie' | 'tv' | 'anime'
                     }))}
-                    className="mb-12"
+                      className=""
                   />
-                )}
-                
-                {totalPages > 1 && page < totalPages && (
-                  <motion.div 
-                    variants={childVariants}
-                    className="flex justify-center mt-8"
-                  >
-                    <Button 
-                      onClick={handleLoadMore}
-                      variant="outline"
-                      className="bg-wolzi-dark-blue/40 backdrop-blur-sm border-wolzi-gray/30 hover:bg-wolzi-dark-blue/60 hover:border-wolzi-accent/50"
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <>
-                          <span className="w-4 h-4 border-2 border-wolzi-light-gray/30 border-t-white rounded-full animate-spin mr-2"></span>
-                          Loading...
-                        </>
-                      ) : 'Load More Results'}
-                    </Button>
                   </motion.div>
                 )}
                 
@@ -219,7 +250,7 @@ const SearchResults: React.FC = () => {
                     variants={childVariants}
                     className="text-center text-wolzi-light-gray mt-4"
                   >
-                    Showing {results.length} of {totalResults} results
+                    Showing results from the first page. Use "View All" to see more results.
                   </motion.div>
                 )}
               </>
