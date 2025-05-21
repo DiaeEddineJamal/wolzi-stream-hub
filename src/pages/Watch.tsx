@@ -1,12 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import tmdbApi, { getPosterUrl } from '@/integrations/api/tmdb';
-import jikanApi from '@/integrations/api/jikan';
-import gogoAnimeApi from '@/integrations/api/gogoanime';
 import { streamingSources, getStreamingUrl } from '@/integrations/api/streamingSources';
 import ReactPlayer from 'react-player';
 import { ArrowLeft, Info, Bookmark, Heart, Share2, Settings } from 'lucide-react';
@@ -56,6 +54,19 @@ const Watch: React.FC = () => {
   const [seasons, setSeasons] = useState<SeasonInfo[]>([]);
   const [episodeCount, setEpisodeCount] = useState<number>(30); // Default to 30 episodes
   
+  // New function to detect VidSrc.to errors through messages
+  const [vidsrcNetworkError, setVidsrcNetworkError] = useState<boolean>(false);
+  
+  // Add auto-next episode functionality
+  const [autoNextEnabled, setAutoNextEnabled] = useState<boolean>(true);
+  const [showNextEpisodeOverlay, setShowNextEpisodeOverlay] = useState<boolean>(false);
+  const [countdownTime, setCountdownTime] = useState<number>(10);
+  const [duration, setDuration] = useState<number>(0);
+  const [hasNextEpisode, setHasNextEpisode] = useState<boolean>(false);
+  const [videoEnded, setVideoEnded] = useState<boolean>(false);
+  const [averageEpisodeDuration] = useState<number>(2400); // Average episode length ~40min in seconds
+  const videoEndDetectionTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
   // Determine media type from URL path instead of parameter
   // Extract media type from the path: /watch/movie/... or /watch/tv/... or /watch/anime/...
   const determineMediaType = (): MediaType => {
@@ -70,6 +81,153 @@ const Watch: React.FC = () => {
   const actualMediaType = determineMediaType();
   console.log(`Resolved media type: ${actualMediaType}`);
   
+  // Check if there's a next episode available
+  useEffect(() => {
+    if (actualMediaType === 'tv' || actualMediaType === 'anime') {
+      const currentEp = episodeNumber ? parseInt(episodeNumber) : 1;
+      const hasNext = currentEp < episodeCount;
+      setHasNextEpisode(hasNext);
+      console.log(`Has next episode: ${hasNext}, Current: ${currentEp}, Total: ${episodeCount}`);
+    } else {
+      setHasNextEpisode(false);
+    }
+  }, [episodeNumber, episodeCount, actualMediaType]);
+  
+  // Improve auto-next episode detection for iframe players
+  useEffect(() => {
+    // For iframe players, we need to estimate when a video ends since we can't
+    // directly access the video's progress or ended state
+    
+    // Start a timer that will trigger after average episode length plus some buffer
+    // Only do this for TV series and anime with auto-play enabled
+    if (autoNextEnabled && hasNextEpisode && (actualMediaType === 'tv' || actualMediaType === 'anime') && 
+        !videoEnded && !showNextEpisodeOverlay && !isLoading && sourceUrl) {
+      
+      console.log("Setting up video end detection timer");
+      
+      // Clear any existing timer
+      if (videoEndDetectionTimerRef.current) {
+        clearTimeout(videoEndDetectionTimerRef.current);
+      }
+      
+      // Set a timer to check if we should show the next episode overlay
+      // Use average episode duration (40 min) minus 30 seconds for countdown
+      videoEndDetectionTimerRef.current = setTimeout(() => {
+        console.log("Video end detection timer triggered");
+        
+        // Only trigger if the user hasn't navigated away or paused
+        if (autoNextEnabled && hasNextEpisode && !videoEnded && !showNextEpisodeOverlay) {
+          console.log("Starting next episode countdown based on timer");
+          setShowNextEpisodeOverlay(true);
+        }
+      }, (averageEpisodeDuration - 30) * 1000); // Convert to milliseconds
+    }
+    
+    return () => {
+      // Clean up timer on unmount or when dependencies change
+      if (videoEndDetectionTimerRef.current) {
+        clearTimeout(videoEndDetectionTimerRef.current);
+      }
+    };
+  }, [autoNextEnabled, hasNextEpisode, actualMediaType, videoEnded, showNextEpisodeOverlay, isLoading, sourceUrl]);
+
+  // Add event listener for messages from iframe that might indicate video progress
+  useEffect(() => {
+    const handleVideoMessages = (event: MessageEvent) => {
+      // Check if the message might be related to video progress
+      // This is a generic approach since different players send different message formats
+      try {
+        if (typeof event.data === 'string') {
+          // Log for debugging
+          if (event.data.includes('progress') || event.data.includes('time') || 
+              event.data.includes('duration') || event.data.includes('end')) {
+            console.log('Received video-related message:', event.data);
+          }
+          
+          // Check for common end signals from various players
+          if (event.data.includes('ended') || 
+              event.data.includes('complete') || 
+              event.data.includes('finished') ||
+              (event.data.includes('progress') && event.data.includes('1.0'))) {
+            console.log('Video end message detected from iframe');
+            setVideoEnded(true);
+            if (autoNextEnabled && hasNextEpisode && !showNextEpisodeOverlay) {
+              console.log("Starting next episode countdown based on iframe message");
+              setShowNextEpisodeOverlay(true);
+            }
+          }
+        } else if (typeof event.data === 'object' && event.data !== null) {
+          // Some players send progress as an object
+          const data = event.data;
+          if (data.event === 'ended' || data.event === 'complete' || 
+              data.action === 'ended' || data.action === 'complete' ||
+              (data.progress && data.progress > 0.95)) {
+            console.log('Video end event detected from iframe object:', data);
+            setVideoEnded(true);
+            if (autoNextEnabled && hasNextEpisode && !showNextEpisodeOverlay) {
+              console.log("Starting next episode countdown based on iframe object");
+              setShowNextEpisodeOverlay(true);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error processing video message:', error);
+      }
+    };
+    
+    window.addEventListener('message', handleVideoMessages);
+    return () => window.removeEventListener('message', handleVideoMessages);
+  }, [autoNextEnabled, hasNextEpisode, showNextEpisodeOverlay]);
+
+  // Modify the existing progress handler for ReactPlayer
+  const handleProgress = ({ playedSeconds, loadedSeconds, played }: { 
+    playedSeconds: number, 
+    loadedSeconds: number,
+    played: number 
+  }) => {
+    // Only update database every 10 seconds to reduce writes
+    if (Math.abs(playedSeconds - progress) > 10) {
+      setProgress(playedSeconds);
+      updateWatchHistory(playedSeconds);
+    }
+    
+    // Check if duration is available from video player
+    if (loadedSeconds > duration) {
+      setDuration(loadedSeconds);
+    }
+    
+    // Check if we're near the end of the video (95% complete)
+    if (duration > 0 && playedSeconds > 0 && 
+        (playedSeconds / duration > 0.95 || played > 0.95) && 
+        !showNextEpisodeOverlay && 
+        hasNextEpisode && 
+        autoNextEnabled) {
+      console.log(`Video nearly complete: ${playedSeconds}/${duration}, ratio: ${playedSeconds/duration}`);
+      setShowNextEpisodeOverlay(true);
+    }
+  };
+
+  // Add a video ended handler for ReactPlayer
+  const handleEnded = () => {
+    console.log("Video ended event from ReactPlayer");
+    setVideoEnded(true);
+    if (autoNextEnabled && hasNextEpisode && !showNextEpisodeOverlay) {
+      setShowNextEpisodeOverlay(true);
+    }
+  };
+
+  // Reset video ended state when changing episodes or sources
+  useEffect(() => {
+    setVideoEnded(false);
+    setShowNextEpisodeOverlay(false);
+    
+    // Also reset the timer
+    if (videoEndDetectionTimerRef.current) {
+      clearTimeout(videoEndDetectionTimerRef.current);
+      videoEndDetectionTimerRef.current = null;
+    }
+  }, [id, seasonNumber, episodeNumber, activeSource]);
+  
   useEffect(() => {
     const fetchMediaDetails = async () => {
       if (!id) {
@@ -80,60 +238,36 @@ const Watch: React.FC = () => {
       try {
         setIsLoading(true);
         
-        // Fetch media details based on media type
-        if (actualMediaType === 'anime') {
-          try {
-            const { data } = await jikanApi.getAnimeDetails(parseInt(id));
-            if (data && data.data) {
-              setTitle(data.data.title);
-              
-              // Set episode count based on anime data
-              if (data.data.episodes) {
-                setEpisodeCount(data.data.episodes);
-              }
-            } else {
-              throw new Error('Invalid anime data structure');
-            }
-          } catch (animeError) {
-            console.error('Error fetching anime details:', animeError);
-            setError(`Failed to load anime: ${animeError.message || 'Unknown error'}`);
-            return;
-          }
+        // Fetch media details from TMDB API regardless of media type
+        // For anime, we'll treat it as a TV show
+        const mediaTypeForApi = actualMediaType === 'anime' ? 'tv' : actualMediaType;
+        
+        try {
+          const { data } = mediaTypeForApi === 'movie'
+            ? await tmdbApi.getMovieDetails(parseInt(id))
+            : await tmdbApi.getTVShowDetails(parseInt(id));
           
-        } else if (actualMediaType === 'movie') {
-          try {
-            const { data } = await tmdbApi.getMovieDetails(parseInt(id));
-            setTitle(data.title);
-          } catch (movieError) {
-            console.error('Error fetching movie details:', movieError);
-            setError(`Failed to load movie: ${movieError.message || 'Unknown error'}`);
-            return;
-          }
-        } else if (actualMediaType === 'tv') {
-          try {
-            const { data } = await tmdbApi.getTVShowDetails(parseInt(id));
-            setTitle(data.name);
+          setTitle(data.title || data.name);
+          
+          // Store seasons information
+          if ((mediaTypeForApi === 'tv' || actualMediaType === 'anime') && data.seasons && data.seasons.length > 0) {
+            // Filter out "Specials" which is usually season 0
+            const validSeasons = data.seasons.filter(season => season.season_number > 0);
+            setSeasons(validSeasons);
             
-            // Store seasons information
-            if (data.seasons && data.seasons.length > 0) {
-              // Filter out "Specials" which is usually season 0
-              const validSeasons = data.seasons.filter(season => season.season_number > 0);
-              setSeasons(validSeasons);
-              
-              // Set episode count for current season
-              const currentSeason = validSeasons.find(
-                season => season.season_number === (seasonNumber ? parseInt(seasonNumber) : 1)
-              );
-              
-              if (currentSeason && currentSeason.episode_count) {
-                setEpisodeCount(currentSeason.episode_count);
-              }
+            // Set episode count for current season
+            const currentSeason = validSeasons.find(
+              season => season.season_number === (seasonNumber ? parseInt(seasonNumber) : 1)
+            );
+            
+            if (currentSeason && currentSeason.episode_count) {
+              setEpisodeCount(currentSeason.episode_count);
             }
-          } catch (tvError) {
-            console.error('Error fetching TV details:', tvError);
-            setError(`Failed to load TV series: ${tvError.message || 'Unknown error'}`);
-            return;
           }
+        } catch (fetchError) {
+          console.error(`Error fetching ${mediaTypeForApi} details:`, fetchError);
+          setError(`Failed to load content: ${fetchError.message || 'Unknown error'}`);
+          return;
         }
         
         // Fetch user preferences if logged in
@@ -145,13 +279,25 @@ const Watch: React.FC = () => {
             .single();
             
           if (data && data.active_streaming_source) {
-            setActiveSource(data.active_streaming_source);
-            setSources(prev => 
-              prev.map(source => ({
-                ...source,
-                isActive: source.id === data.active_streaming_source
-              }))
-            );
+            // Only use the preference if it's one of the allowed sources
+            if (['embedsu', 'vidsrcto'].includes(data.active_streaming_source)) {
+              setActiveSource(data.active_streaming_source);
+              setSources(prev => 
+                prev.map(source => ({
+                  ...source,
+                  isActive: source.id === data.active_streaming_source
+                }))
+              );
+            } else {
+              // If preference is not allowed, set default to embedsu
+              setActiveSource('embedsu');
+              setSources(prev => 
+                prev.map(source => ({
+                  ...source,
+                  isActive: source.id === 'embedsu'
+                }))
+              );
+            }
           }
         }
         
@@ -221,6 +367,11 @@ const Watch: React.FC = () => {
     // Almost all streaming services should use iframe
     setUseIframe(true);
     
+    // Automatically disable sandbox for providers known to reject it
+    if (['vidsrcto', 'vidcloud'].includes(activeSource)) {
+      setDisableSandbox(true);
+    }
+    
   }, [activeSource, id, actualMediaType, seasonNumber, episodeNumber]);
   
   const checkWatchHistory = async () => {
@@ -264,25 +415,21 @@ const Watch: React.FC = () => {
   const updateStreamingUrl = () => {
     if (!id) return;
     
-    // Choose appropriate default source based on media type
+    // For anime storage backward compatibility
+    if (actualMediaType === 'anime' && title) {
+      const storedTitle = localStorage.getItem(`anime_title_${id}`);
+      if (!storedTitle && title) {
+        localStorage.setItem(`anime_title_${id}`, title);
+      }
+    }
+    
+    // Choose appropriate source from available sources
     let recommendedSource = activeSource;
     
-    // If no source is active, choose the best default for the content type
-    if (actualMediaType === 'anime') {
-      // For anime, prefer LuluStreams or VidSrc.to
-      if (!['lulustreams', 'vidsrcto', 'upcloud', 'vidcloud', 'embedsu'].includes(activeSource)) {
-        recommendedSource = 'lulustreams';
-      }
-    } else if (actualMediaType === 'movie') {
-      // For movies, prefer Embed.su or Kraken Files
-      if (!['embedsu', 'krakenfiles', 'upcloud', 'vidcloud', 'vidsrcto'].includes(activeSource)) {
-        recommendedSource = 'embedsu';
-      }
-    } else if (actualMediaType === 'tv') {
-      // For TV series, prefer UpCloud or VidCloud
-      if (!['upcloud', 'vidcloud', 'vidsrcto', 'embedsu', 'lulustreams'].includes(activeSource)) {
-        recommendedSource = 'upcloud';
-      }
+    // If current source is not one of the allowed ones, use embedsu as fallback
+    const allowedSources = streamingSources.filter(source => source.isActive).map(source => source.id);
+    if (!allowedSources.includes(recommendedSource)) {
+      recommendedSource = 'embedsu';
     }
     
     // If the recommended source is different from active source, update it
@@ -297,22 +444,35 @@ const Watch: React.FC = () => {
     }
     
     // Ensure we're passing the correct mediaType to getStreamingUrl
-    // This ensures TV series get 'tv' URLs, not 'movie' URLs
+    // For anime, treat as TV shows
+    const mediaTypeForUrl = actualMediaType === 'anime' ? 'tv' : actualMediaType;
+    
     const url = getStreamingUrl(
-      actualMediaType, // Use actualMediaType to ensure correct URL generation
+      mediaTypeForUrl,
       id,
       seasonNumber ? parseInt(seasonNumber) : undefined,
       episodeNumber ? parseInt(episodeNumber) : undefined,
       recommendedSource
     );
     
-    console.log(`Creating stream URL: ${url} for ${actualMediaType}/${id} - Season: ${seasonNumber || 'N/A'}, Episode: ${episodeNumber || 'N/A'}`);
+    console.log(`Creating stream URL: ${url} for ${mediaTypeForUrl}/${id} - Season: ${seasonNumber || 'N/A'}, Episode: ${episodeNumber || 'N/A'}`);
     setSourceUrl(url);
     setError(null);
     setIsLoading(true);
   };
   
   const handleSourceChange = async (sourceId: string) => {
+    // Validate source is one of the allowed ones
+    const allowedSources = streamingSources.map(source => source.id);
+    if (!allowedSources.includes(sourceId)) {
+      toast({
+        title: "Source not available",
+        description: "This streaming source is not available",
+        variant: "warning",
+      });
+      return;
+    }
+    
     setActiveSource(sourceId);
     setSources(prev => 
       prev.map(source => ({
@@ -390,12 +550,9 @@ const Watch: React.FC = () => {
     }
   };
   
-  const handleProgress = ({ playedSeconds }: { playedSeconds: number }) => {
-    // Only update database every 10 seconds to reduce writes
-    if (Math.abs(playedSeconds - progress) > 10) {
-      setProgress(playedSeconds);
-      updateWatchHistory(playedSeconds);
-    }
+  const handleDuration = (duration: number) => {
+    setDuration(duration);
+    console.log(`Video duration: ${duration} seconds`);
   };
   
   const goBack = () => {
@@ -406,134 +563,36 @@ const Watch: React.FC = () => {
     navigate(`/${actualMediaType}/${id}`);
   };
   
-  // Add handleIframeError function to debug iframe issues
-  const handleIframeError = (e: any) => {
-    console.error('Iframe error:', e);
-    console.error(`Iframe error details - mediaType: ${actualMediaType}, ID: ${id}, Season: ${seasonNumber || 'N/A'}, Episode: ${episodeNumber || 'N/A'}, Source: ${activeSource}`);
-    console.error(`URL that caused error: ${sourceUrl}`);
-    setError('Failed to load content. Please try a different source.');
-  };
-
-  // Handle 404 errors specifically
-  const handle404Error = (sourceId: string) => {
-    console.error(`404 Error detected for source: ${sourceId}, URL: ${sourceUrl}`);
-    console.error(`404 Error details - mediaType: ${actualMediaType}, ID: ${id}, Season: ${seasonNumber || 'N/A'}, Episode: ${episodeNumber || 'N/A'}`);
+  // Add the missing goToNextEpisode function
+  const goToNextEpisode = () => {
+    if (!hasNextEpisode) return;
     
-    let errorMessage = 'The content could not be found.';
-    
-    if (sourceId === 'embedsu') {
-      errorMessage = 'The movie or episode was not found on Embed.su. Please try another source.';
-    } else if (sourceId === 'vidsrcto') {
-      errorMessage = 'The content was not found on VidSrc.to. Please try a different source.';
-    } else if (sourceId === 'lulustreams') {
-      errorMessage = 'This content is not available on LuluStreams. Please select another option.';
-    } else if (sourceId === 'krakenfiles') {
-      errorMessage = 'The high-quality version could not be found. Try a standard source instead.';
-    }
-    
-    setError(errorMessage);
-    
-    // Automatically switch to another source after 3 seconds
-    setTimeout(() => {
-      const availableSources = sources.filter(s => 
-        s.id !== activeSource && ['embedsu', 'vidsrcto', 'lulustreams', 'krakenfiles'].includes(s.id)
-      );
-      
-      if (availableSources.length > 0) {
-        // Try the next source
-        handleSourceChange(availableSources[0].id);
+    const nextEp = parseInt(episodeNumber || '1') + 1;
+    if (nextEp <= episodeCount) {
+      setError(null);
+      setIsLoading(true);
+      if (actualMediaType === 'tv') {
+        navigate(`/watch/${actualMediaType}/${id}/season/${seasonNumber || '1'}/episode/${nextEp}`);
+      } else {
+        navigate(`/watch/${actualMediaType}/${id}/episode/${nextEp}`);
       }
-    }, 3000);
-  };
-
-  // Update handleIframeLoad to check for 404 errors
-  const handleIframeLoad = () => {
-    console.log('Iframe loaded successfully');
-    
-    // Check if iframe loaded a 404 page
-    try {
-      const iframe = document.querySelector('iframe');
-      if (iframe) {
-        // Wait a moment for iframe to fully load
-        setTimeout(() => {
-          try {
-            // Try to access iframe content - this may fail due to CORS
-            const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-            
-            // Look for common 404 indicators in the title or content
-            if (iframeDoc && 
-                (iframeDoc.title.includes('404') || 
-                 iframeDoc.body.innerHTML.includes('404 Not Found'))) {
-              handle404Error(activeSource);
-              return;
-            }
-          } catch (error) {
-            // CORS error likely - can't inspect iframe
-            console.log('Cannot inspect iframe content due to CORS');
-          }
-        }, 1000);
-      }
-    } catch (error) {
-      console.error('Error checking iframe content:', error);
-    }
-    
-    setIsLoading(false);
-  };
-  
-  // Add LuluStreams special handler for anime
-  const getAnimeIdForLuluStreams = async (animeTitle: string): Promise<string> => {
-    try {
-      // This would normally come from an API call to match the anime title with LuluStreams ID
-      // For this example, we'll just use the title with some formatting
-      const formattedTitle = animeTitle
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
-      
-      console.log(`Generated LuluStreams ID for anime: ${formattedTitle}`);
-      return formattedTitle;
-    } catch (error) {
-      console.error('Error generating LuluStreams ID:', error);
-      return id || ''; // Fallback to original ID
     }
   };
-  
-  // Handle anime source switch to LuluStreams
-  useEffect(() => {
-    if (actualMediaType === 'anime' && activeSource === 'lulustreams' && title) {
-      const handleAnimeSourceChange = async () => {
-        try {
-          setIsLoading(true);
-          const luluId = await getAnimeIdForLuluStreams(title);
-          
-          const url = `https://lulu-streams.com/anime/watch/${luluId}${episodeNumber ? `/episode-${episodeNumber}` : ''}`;
-          console.log(`Special anime URL for LuluStreams: ${url}`);
-          setSourceUrl(url);
-        } catch (error) {
-          console.error('Error handling anime source change:', error);
-          // Fallback to regular URL generation
-          updateStreamingUrl();
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      
-      handleAnimeSourceChange();
-    }
-  }, [activeSource, actualMediaType, title, episodeNumber]);
   
   // Add source availability validation
   const validateSourceAvailability = async (sourceId: string, mediaTypeParam: string, contentId: string) => {
     try {
+      // Skip validation for sources we know will work with anime
+      if (mediaTypeParam === 'anime' && 
+          ['doodstream', 'megamax', 'embedsu', 'streamtape'].includes(sourceId)) {
+        return { available: true, sourceId };
+      }
+      
       // Generate test URL based on the source
       let testUrl = '';
       
       if (mediaTypeParam === 'movie') {
         switch(sourceId) {
-          case 'upcloud':
-            testUrl = `https://dokicloud.one/embed/${contentId}?autoplay=1&loop=1`;
-            break;
           case 'vidcloud':
             testUrl = `https://vidembed.io/movies/watch-${contentId}`;
             break;
@@ -543,19 +602,22 @@ const Watch: React.FC = () => {
           case 'vidsrcto':
             testUrl = `https://vidsrc.to/embed/movie/${contentId}`;
             break;
-          case 'lulustreams':
-            testUrl = `https://lulu-streams.com/movies/play/${contentId}`;
+          case 'superembed':
+            testUrl = `https://multiembed.mov/directstream.php?video_id=${contentId}&tmdb=1`;
             break;
-          case 'krakenfiles':
-            testUrl = `https://krakenfiles.com/embed/movie/${contentId}`;
+          case 'smashystream':
+            testUrl = `https://embed.smashystream.com/playere.php?tmdb=${contentId}`;
+            break;
+          case 'flixhq':
+            testUrl = `https://flixhq.to/ajax/movie/episodes/${contentId}`;
+            break;
+          case 'movieshd':
+            testUrl = `https://movieshd.watch/embed/${contentId}`;
             break;
         }
       } else if (mediaTypeParam === 'tv') {
         // For TV series, we'll test season 1 episode 1
         switch(sourceId) {
-          case 'upcloud':
-            testUrl = `https://dokicloud.one/embed/${contentId}/1/1?autoplay=1&loop=1`;
-            break;
           case 'vidcloud':
             testUrl = `https://vidembed.io/videos/watch-${contentId}-season-1-episode-1`;
             break;
@@ -565,21 +627,24 @@ const Watch: React.FC = () => {
           case 'vidsrcto':
             testUrl = `https://vidsrc.to/embed/tv/${contentId}/1/1`;
             break;
-          case 'lulustreams':
-            testUrl = `https://lulu-streams.com/series/watch/${contentId}/season/1/episode/1`;
+          case 'superembed':
+            testUrl = `https://multiembed.mov/directstream.php?video_id=${contentId}&tmdb=1&s=1&e=1`;
             break;
-          case 'krakenfiles':
-            testUrl = `https://krakenfiles.com/embed/series/${contentId}/1/1`;
+          case 'smashystream':
+            testUrl = `https://embed.smashystream.com/playere.php?tmdb=${contentId}&season=1&episode=1`;
+            break;
+          case 'flixhq':
+            testUrl = `https://flixhq.to/ajax/v2/episode/seasons/${contentId}?s=1&e=1`;
+            break;
+          case 'movieshd':
+            testUrl = `https://movieshd.watch/embed/${contentId}/1/1`;
             break;
         }
       } else if (mediaTypeParam === 'anime') {
         // For anime, we'll test episode 1
         switch(sourceId) {
-          case 'upcloud':
-            testUrl = `https://dokicloud.one/embed/${contentId}/1/1?autoplay=1&loop=1`;
-            break;
           case 'vidcloud':
-            testUrl = `https://vidembed.io/videos/watch-${contentId}-season-1-episode-1`;
+            testUrl = `https://vidembed.io/videos/watch-${contentId}-season-1-episode-1?anime=true`;
             break;
           case 'embedsu':
             // Ensure anime uses TV endpoint, not movie
@@ -588,11 +653,17 @@ const Watch: React.FC = () => {
           case 'vidsrcto':
             testUrl = `https://vidsrc.to/embed/tv/${contentId}/1/1`;
             break;
-          case 'lulustreams':
-            testUrl = `https://lulu-streams.com/anime/watch/${contentId}/episode-1`;
+          case 'superembed':
+            testUrl = `https://multiembed.mov/directstream.php?video_id=${contentId}&tmdb=1&s=1&e=1`;
             break;
-          case 'krakenfiles':
-            testUrl = `https://krakenfiles.com/embed/anime/${contentId}/episode/1`;
+          case 'smashystream':
+            testUrl = `https://embed.smashystream.com/playere.php?tmdb=${contentId}&season=1&episode=1`;
+            break;
+          case 'flixhq':
+            testUrl = `https://flixhq.to/ajax/v2/episode/seasons/${contentId}?s=1&e=1`;
+            break;
+          case 'movieshd':
+            testUrl = `https://movieshd.watch/embed/${contentId}/1/1`;
             break;
         }
       }
@@ -619,12 +690,12 @@ const Watch: React.FC = () => {
   // Check all sources on component mount
   useEffect(() => {
     if (id) {
-      const checkSources = async () => {
-        const sourceChecks = await Promise.all(
-          sources
-            .filter(source => ['embedsu', 'vidsrcto', 'lulustreams', 'krakenfiles'].includes(source.id))
-            .map(source => validateSourceAvailability(source.id, actualMediaType, id))
-        );
+          const checkSources = async () => {
+      const sourceChecks = await Promise.all(
+        sources
+          .filter(source => source.isActive)
+          .map(source => validateSourceAvailability(source.id, actualMediaType, id))
+      );
         
         // Log availability results
         console.log('Source availability results:', sourceChecks);
@@ -642,6 +713,183 @@ const Watch: React.FC = () => {
       checkSources();
     }
   }, [id, actualMediaType]);
+  
+  // Update handleIframeError to handle all sources
+  const handleIframeError = (e: any) => {
+    console.error('Iframe error:', e);
+    console.error(`Iframe error details - mediaType: ${actualMediaType}, ID: ${id}, Season: ${seasonNumber || 'N/A'}, Episode: ${episodeNumber || 'N/A'}, Source: ${activeSource}`);
+    console.error(`URL that caused error: ${sourceUrl}`);
+    
+    // Generic error
+    setError(`Failed to load content from ${activeSource}. Trying another source...`);
+    
+    // Auto-switch to another source after delay
+    setTimeout(() => {
+      // Get available sources excluding the current one
+      const availableSources = sources
+        .filter(source => source.isActive && source.id !== activeSource)
+        .map(source => source.id);
+      
+      // Pick a random alternative source
+      const newSource = availableSources.length > 0 
+        ? availableSources[Math.floor(Math.random() * availableSources.length)] 
+        : 'embedsu'; // Fallback
+      
+      handleSourceChange(newSource);
+    }, 3000);
+  };
+
+  // Update the handle404Error function to handle all sources
+  const handle404Error = (sourceId: string) => {
+    console.error(`404 Error detected for source: ${sourceId}, URL: ${sourceUrl}`);
+    console.error(`404 Error details - mediaType: ${actualMediaType}, ID: ${id}, Season: ${seasonNumber || 'N/A'}, Episode: ${episodeNumber || 'N/A'}`);
+    
+    setError(`Content not found on ${sourceId}. Trying another source...`);
+    
+    // Automatically switch to another source after 3 seconds
+    setTimeout(() => {
+      // Get available sources excluding the current one
+      const availableSources = sources
+        .filter(source => source.isActive && source.id !== sourceId)
+        .map(source => source.id);
+      
+      // Pick a random alternative source
+      const newSource = availableSources.length > 0 
+        ? availableSources[Math.floor(Math.random() * availableSources.length)] 
+        : 'embedsu'; // Fallback
+      
+      handleSourceChange(newSource);
+    }, 3000);
+  };
+
+  // Update useEffect to add event listener for error messages
+  useEffect(() => {
+    // Listen for error messages from the iframe (especially from VidSrc.to)
+    const handleMessageEvent = (event: MessageEvent) => {
+      // Check if the message contains error information
+      if (typeof event.data === 'string' && event.data.includes('error')) {
+        console.log('Received error message from iframe:', event.data);
+        
+        // Check for specific VidSrc.to errors
+        if (event.data.includes('ManifestLoadError') || event.data.includes('networkError')) {
+          console.log('VidSrc.to manifest or network error detected');
+          setVidsrcNetworkError(true);
+          
+          // Show helpful error and offer to try another source
+          setError(`Network error loading content from ${activeSource}. This may be due to region restrictions or server issues.`);
+          
+          // Auto-switch to another source after a short delay
+          setTimeout(() => {
+            // Get available sources excluding the current one
+            const availableSources = sources
+              .filter(source => source.isActive && source.id !== activeSource)
+              .map(source => source.id);
+            
+            // Pick a random alternative source
+            const alternativeSource = availableSources.length > 0 
+              ? availableSources[Math.floor(Math.random() * availableSources.length)] 
+              : 'embedsu'; // Fallback
+            
+            toast({
+              title: "Trying alternative source",
+              description: `Switching to ${alternativeSource} due to network error`,
+              variant: "default",
+            });
+            handleSourceChange(alternativeSource);
+          }, 3000);
+        }
+      }
+    };
+    
+    window.addEventListener('message', handleMessageEvent);
+    return () => window.removeEventListener('message', handleMessageEvent);
+  }, [activeSource]);
+  
+  // Update handleIframeLoad function to look for VidSrc.to error indicators
+  const handleIframeLoad = () => {
+    console.log('Iframe loaded successfully');
+    
+    // Reset the VidSrc.to network error state
+    setVidsrcNetworkError(false);
+    
+    // Try to communicate with the iframe to detect video events
+    try {
+      const iframe = document.querySelector('iframe');
+      if (iframe && iframe.contentWindow) {
+        // Send a message to the iframe asking for video events
+        // This won't work with all players due to CORS, but worth trying
+        iframe.contentWindow.postMessage({ 
+          action: 'listenForVideoEvents',
+          requestProgress: true 
+        }, '*');
+        
+        // Add a timeout to ensure loading state is cleared even if the iframe doesn't fully load
+        setTimeout(() => {
+          if (isLoading) {
+            console.log('Forcing loading state to complete after timeout');
+            setIsLoading(false);
+          }
+        }, 5000);
+      }
+    } catch (error) {
+      console.log('Error communicating with iframe:', error);
+      // Ensure loading state is cleared even if there's an error
+      setIsLoading(false);
+    }
+    
+    setIsLoading(false);
+  };
+  
+  // Add effect to isolate Vite HMR connection issues from the iframe
+  useEffect(() => {
+    // Handle Vite HMR reconnection issues when using iframes
+    const handleViteHMRMessage = (event: MessageEvent) => {
+      // Check if the message is from Vite HMR
+      if (typeof event.data === 'string' && 
+         (event.data.includes('[vite] connecting') || event.data.includes('[vite] connected'))) {
+        console.log('Vite HMR connection message received:', event.data);
+        
+        // If we're seeing connection issues with the iframe loaded, try to prevent interference
+        if (!isLoading && document.querySelector('iframe')) {
+          console.log('Isolating Vite HMR from iframe content');
+          // No action needed, just log the event for debugging
+        }
+      }
+    };
+    
+    window.addEventListener('message', handleViteHMRMessage);
+    return () => window.removeEventListener('message', handleViteHMRMessage);
+  }, [isLoading]);
+  
+  // Add a new effect to get anime title from local storage or fetch it if needed
+  useEffect(() => {
+    // For anime, we need to ensure we have the title stored for URL generation
+    if (actualMediaType === 'anime' && id) {
+      // Check if we have an anime title in local storage
+      const storedTitle = localStorage.getItem(`anime_title_${id}`);
+      
+      // If we don't have the title, try to fetch it
+      if (!storedTitle && id) {
+        const fetchAnimeTitle = async () => {
+          try {
+            const { data } = await jikanApi.getAnimeDetails(parseInt(id));
+            if (data && data.data && data.data.title) {
+              // Store the title for future use
+              localStorage.setItem(`anime_title_${id}`, data.data.title);
+              setTitle(data.data.title);
+            }
+          } catch (error) {
+            console.error('Error fetching anime title:', error);
+          }
+        };
+        
+        fetchAnimeTitle();
+      } else if (storedTitle) {
+        // Use the stored title if available
+        setTitle(storedTitle);
+      }
+    }
+  }, [actualMediaType, id]);
   
   return (
     <div className="flex flex-col h-screen bg-black text-white">
@@ -701,14 +949,14 @@ const Watch: React.FC = () => {
       
       {/* Season and Episode Selection - Moved above the video player */}
       {(actualMediaType === 'tv' || actualMediaType === 'anime') && (
-        <div className="bg-wolzi-bg/90 backdrop-blur-md px-4 py-3 border-b border-wolzi-border">
-          <div className="flex flex-wrap items-center gap-3 max-w-5xl mx-auto">
+        <div className="bg-black/70 backdrop-blur-lg px-4 py-4 border-b border-green-500/20 shadow-md">
+          <div className="flex flex-wrap items-center gap-4 max-w-5xl mx-auto">
             {actualMediaType === 'tv' && (
               <div className="flex items-center space-x-2">
-                <label className="text-wolzi-light-gray font-medium text-sm">Season:</label>
+                <label className="text-white font-medium text-sm">Season:</label>
                 <div className="relative">
                   <select 
-                    className="px-3 py-1.5 rounded-md bg-wolzi-dark-gray/70 border border-wolzi-border text-white appearance-none cursor-pointer pr-10 focus:ring-1 focus:ring-wolzi-accent focus:border-wolzi-accent"
+                    className="px-4 py-2 rounded-md bg-black/60 backdrop-blur-md border border-green-500/40 text-white appearance-none cursor-pointer pr-10 focus:ring-2 focus:ring-green-500/60 focus:border-green-500 transition-all duration-200 hover:bg-black/80 min-w-[120px]"
                     value={seasonNumber || '1'}
                     onChange={(e) => {
                       setError(null);
@@ -726,8 +974,8 @@ const Watch: React.FC = () => {
                       ))
                     )}
                   </select>
-                  <div className="absolute right-3 top-2.5 pointer-events-none text-wolzi-light-gray">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <div className="absolute right-3 top-2.5 pointer-events-none text-green-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="m6 9 6 6 6-6"/>
                     </svg>
                   </div>
@@ -736,10 +984,10 @@ const Watch: React.FC = () => {
             )}
             
             <div className="flex items-center space-x-2">
-              <label className="text-wolzi-light-gray font-medium text-sm">Episode:</label>
+              <label className="text-white font-medium text-sm">Episode:</label>
               <div className="relative">
                 <select 
-                  className="px-3 py-1.5 rounded-md bg-wolzi-dark-gray/70 border border-wolzi-border text-white appearance-none cursor-pointer pr-10 focus:ring-1 focus:ring-wolzi-accent focus:border-wolzi-accent"
+                  className="px-4 py-2 rounded-md bg-black/60 backdrop-blur-md border border-green-500/40 text-white appearance-none cursor-pointer pr-10 focus:ring-2 focus:ring-green-500/60 focus:border-green-500 transition-all duration-200 hover:bg-black/80 min-w-[120px]"
                   value={episodeNumber || '1'}
                   onChange={(e) => {
                     setError(null);
@@ -755,8 +1003,8 @@ const Watch: React.FC = () => {
                     <option key={epNum} value={epNum}>Episode {epNum}</option>
                   ))}
                 </select>
-                <div className="absolute right-3 top-2.5 pointer-events-none text-wolzi-light-gray">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <div className="absolute right-3 top-2.5 pointer-events-none text-green-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m6 9 6 6 6-6"/>
                   </svg>
                 </div>
@@ -766,10 +1014,10 @@ const Watch: React.FC = () => {
             <div className="flex-grow"></div>
             
             <div className="flex items-center space-x-2">
-              <label className="text-wolzi-light-gray font-medium text-sm">Server:</label>
+              <label className="text-white font-medium text-sm">Server:</label>
               <div className="relative">
                 <select 
-                  className="px-3 py-1.5 rounded-md bg-wolzi-dark-gray/70 border border-wolzi-border text-white appearance-none cursor-pointer pr-10 focus:ring-1 focus:ring-wolzi-accent focus:border-wolzi-accent"
+                  className="px-4 py-2 rounded-md bg-black/60 backdrop-blur-md border border-green-500/40 text-white appearance-none cursor-pointer pr-10 focus:ring-2 focus:ring-green-500/60 focus:border-green-500 transition-all duration-200 hover:bg-black/80 min-w-[130px]"
                   value={activeSource}
                   onChange={(e) => {
                     setError(null);
@@ -778,14 +1026,14 @@ const Watch: React.FC = () => {
                   }}
                 >
                   {sources
-                    .filter(source => ['upcloud', 'vidcloud', 'embedsu', 'vidsrcto', 'lulustreams', 'krakenfiles'].includes(source.id))
-                    .map(source => (
+                    .filter(source => source.isActive)
+                    .map((source) => (
                       <option key={source.id} value={source.id}>{source.name}</option>
                     ))
                   }
                 </select>
-                <div className="absolute right-3 top-2.5 pointer-events-none text-wolzi-light-gray">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <div className="absolute right-3 top-2.5 pointer-events-none text-green-500">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="m6 9 6 6 6-6"/>
                   </svg>
                 </div>
@@ -795,7 +1043,7 @@ const Watch: React.FC = () => {
             <Button
               size="sm"
               variant="outline"
-              className="text-xs"
+              className="text-xs bg-black/40 border-green-500/60 hover:bg-black/80 transition-all duration-200 text-white hover:text-green-400"
               onClick={() => setShowSettings(!showSettings)}
             >
               <Settings size={14} className="mr-1" />
@@ -804,11 +1052,11 @@ const Watch: React.FC = () => {
           </div>
           
           {/* Episode Navigation Quick Access Buttons */}
-          <div className="flex items-center gap-2 mt-3 max-w-5xl mx-auto">
+          <div className="flex items-center gap-2 mt-4 max-w-5xl mx-auto">
             <Button
               variant="ghost"
               size="sm"
-              className="text-wolzi-light-gray hover:text-white"
+              className="text-white hover:text-green-400 hover:bg-green-500/10 flex items-center"
               disabled={parseInt(episodeNumber || '1') <= 1}
               onClick={() => {
                 const prevEp = parseInt(episodeNumber || '1') - 1;
@@ -823,15 +1071,26 @@ const Watch: React.FC = () => {
                 }
               }}
             >
-              Previous Episode
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                <path d="m15 18-6-6 6-6"/>
+              </svg>
+              Previous
             </Button>
             
-            <div className="flex-grow"></div>
+            <div className="flex-grow flex justify-center">
+              <div className="px-3 py-1 rounded-full bg-black/40 backdrop-blur-md text-sm text-white flex items-center border border-green-500/30">
+                {actualMediaType === 'tv' ? (
+                  <span>S{seasonNumber || '1'} · E{episodeNumber || '1'}</span>
+                ) : (
+                  <span>Episode {episodeNumber || '1'}</span>
+                )}
+              </div>
+            </div>
             
             <Button
               variant="ghost"
               size="sm"
-              className="text-wolzi-light-gray hover:text-white"
+              className="text-white hover:text-green-400 hover:bg-green-500/10 flex items-center"
               disabled={parseInt(episodeNumber || '1') >= episodeCount}
               onClick={() => {
                 const nextEp = parseInt(episodeNumber || '1') + 1;
@@ -846,7 +1105,10 @@ const Watch: React.FC = () => {
                 }
               }}
             >
-              Next Episode
+              Next
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-1">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
             </Button>
           </div>
         </div>
@@ -885,16 +1147,21 @@ const Watch: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }}
               exit={{ opacity: 0, y: 20 }}
-              className="absolute top-4 right-4 z-30 bg-wolzi-bg border border-wolzi-border rounded-lg shadow-lg p-4 w-64"
+              className="absolute top-4 right-4 z-30 bg-black/80 border border-green-500/30 rounded-lg shadow-lg p-5 w-80"
             >
-              <h3 className="text-sm font-medium mb-3">Player Settings</h3>
-              <div className="space-y-3">
+              <h3 className="text-sm font-medium mb-4 text-white">Player Settings</h3>
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm">Disable Sandbox Mode</label>
+                  <div>
+                    <label className="text-sm text-white font-medium">Sandbox Mode</label>
+                    <p className="text-xs text-white/70 mt-1">
+                      Enables secure playback (recommended). Disable only if videos don't load.
+                    </p>
+                  </div>
                   <Switch 
-                    checked={disableSandbox}
+                    checked={!disableSandbox}
                     onCheckedChange={(value) => {
-                      setDisableSandbox(value);
+                      setDisableSandbox(!value);
                       setIsLoading(true);
                       // Force reload with new settings
                       const currentUrl = sourceUrl;
@@ -903,9 +1170,93 @@ const Watch: React.FC = () => {
                     }}
                   />
                 </div>
-                <p className="text-xs text-wolzi-light-gray mt-1">
-                  Try this if videos show "Sandbox not allowed" errors
-                </p>
+                
+                {/* Add auto next episode setting */}
+                {(actualMediaType === 'tv' || actualMediaType === 'anime') && (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-sm text-white font-medium">Auto-Play Next Episode</label>
+                      <p className="text-xs text-white/70 mt-1">
+                        Automatically play the next episode when the current one ends.
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={autoNextEnabled}
+                      onCheckedChange={(value) => {
+                        setAutoNextEnabled(value);
+                        if (value && showNextEpisodeOverlay && !hasNextEpisode) {
+                          setShowNextEpisodeOverlay(false);
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+                
+                {/* Source selection */}
+                <div className="space-y-3 pt-3 border-t border-green-500/20">
+                  <h4 className="text-sm text-white font-medium">Streaming Source</h4>
+                  
+                  <div className="bg-black/50 rounded p-3 border border-green-500/20">
+                    <p className="text-xs text-white/90 mb-2">Available sources:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {sources.filter(source => source.isActive).map(source => (
+                        <Button 
+                          key={source.id} 
+                          size="sm"
+                          variant={activeSource === source.id ? "default" : "outline"}
+                          className={`text-xs ${activeSource === source.id ? 'bg-green-500 hover:bg-green-600' : 'border-green-500/30 hover:bg-green-500/10'}`}
+                          onClick={() => {
+                            handleSourceChange(source.id);
+                            setShowSettings(false);
+                          }}
+                        >
+                          {source.name}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                
+                  {/* Source-specific options */}
+                  {activeSource === 'vidsrcto' && (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="text-sm text-white font-medium">VidSrc.to Options</label>
+                        <p className="text-xs text-white/70 mt-1">
+                          If experiencing network errors, try reloading or using a different source.
+                        </p>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-xs border-green-500/40 hover:bg-green-500/10 text-white"
+                        onClick={() => {
+                          setIsLoading(true);
+                          // Force reload the iframe
+                          const currentUrl = sourceUrl;
+                          setSourceUrl('');
+                          setTimeout(() => setSourceUrl(currentUrl), 50);
+                        }}
+                      >
+                        Retry
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="pt-3 border-t border-green-500/20">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-white/70">Current Server: <span className="text-green-400 font-medium">{activeSource}</span></p>
+                      <p className="text-xs text-white/70 mt-1">Sandbox Mode: <span className={disableSandbox ? "text-red-400" : "text-green-400"}>{disableSandbox ? "Disabled" : "Enabled"}</span></p>
+                      {(actualMediaType === 'tv' || actualMediaType === 'anime') && (
+                        <p className="text-xs text-white/70 mt-1">Auto-Play: <span className={autoNextEnabled ? "text-green-400" : "text-red-400"}>{autoNextEnabled ? "Enabled" : "Disabled"}</span></p>
+                      )}
+                    </div>
+                    <Button variant="outline" size="sm" className="text-xs border-green-500/40 hover:bg-green-500/10 text-white" onClick={() => setShowSettings(false)}>
+                      Close
+                    </Button>
+                  </div>
+                </div>
               </div>
             </motion.div>
           )}
@@ -919,7 +1270,38 @@ const Watch: React.FC = () => {
           >
             <h3 className="text-xl font-bold mb-4">Error</h3>
             <p className="text-wolzi-light-gray mb-6">{error}</p>
-            <Button onClick={goBack}>Go Back</Button>
+            
+            {activeSource === 'vidsrcto' && vidsrcNetworkError && (
+              <div className="mb-4 p-3 bg-black/50 rounded-lg border border-red-500/30">
+                <p className="text-sm text-red-400">VidSrc.to is experiencing network issues. This may be due to:</p>
+                <ul className="text-sm text-white/80 list-disc list-inside mt-2">
+                  <li>Region restrictions</li>
+                  <li>Server maintenance</li>
+                  <li>Content not available</li>
+                </ul>
+              </div>
+            )}
+            
+            <div className="flex flex-wrap gap-2 justify-center">
+              <Button onClick={goBack} variant="outline" className="border-green-500/40">Go Back</Button>
+              
+              {activeSource === 'vidsrcto' && vidsrcNetworkError && (
+                <Button 
+                  onClick={() => {
+                    const alternativeSources = sources
+                      .filter(s => s.id !== activeSource && ['embedsu', 'vidcloud'].includes(s.id));
+                      
+                    if (alternativeSources.length > 0) {
+                      handleSourceChange(alternativeSources[0].id);
+                    }
+                  }}
+                  variant="default"
+                  className="bg-green-500 hover:bg-green-600"
+                >
+                  Try Different Source
+                </Button>
+              )}
+            </div>
           </motion.div>
         ) : (
           <AnimatePresence mode="wait">
@@ -945,7 +1327,10 @@ const Watch: React.FC = () => {
                     {...(!disableSandbox ? {
                       sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups"
                     } : {})}
-                    allow="fullscreen; web-share"
+                    allow="fullscreen; autoplay; web-share; picture-in-picture; encrypted-media; clipboard-write"
+                    referrerPolicy="no-referrer"
+                    loading="eager"
+                    importance="high"
                     style={{ 
                       position: 'absolute', 
                       top: 0, 
@@ -953,7 +1338,8 @@ const Watch: React.FC = () => {
                       width: '100%', 
                       height: '100%', 
                       objectFit: 'cover',
-                      minHeight: '75vh'
+                      minHeight: '75vh',
+                      backgroundColor: '#000'
                     }}
                   ></iframe>
                 ) : (
@@ -965,7 +1351,9 @@ const Watch: React.FC = () => {
                     controls
                     playsinline
                     onProgress={handleProgress}
-                    progressInterval={5000}
+                    onDuration={handleDuration}
+                    onEnded={handleEnded}
+                    progressInterval={1000} // More frequent updates to better detect end
                     onPlay={() => setIsPlaying(true)}
                     onPause={() => setIsPlaying(false)}
                     onStart={() => setIsLoading(false)}
@@ -1000,6 +1388,79 @@ const Watch: React.FC = () => {
                 >
                   {activeSource.toUpperCase()}
                 </motion.div>
+                
+                {/* Next Episode Overlay */}
+                <AnimatePresence>
+                  {showNextEpisodeOverlay && hasNextEpisode && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 100 }}
+                      animate={{ opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 25 } }}
+                      exit={{ opacity: 0, y: 100 }}
+                      className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-8 z-30"
+                    >
+                      <div className="max-w-3xl mx-auto">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-xl font-semibold text-white">Up Next</h3>
+                            <p className="text-green-400 mt-1">
+                              {actualMediaType === 'tv' 
+                                ? `S${seasonNumber || '1'} · E${parseInt(episodeNumber || '1') + 1}` 
+                                : `Episode ${parseInt(episodeNumber || '1') + 1}`
+                              }
+                            </p>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            <div className="bg-black/60 backdrop-blur-md border border-green-500/30 px-4 py-2 rounded-full flex items-center">
+                              <svg viewBox="0 0 36 36" className="w-5 h-5">
+                                <path
+                                  d="M18 2.0845 
+                                    a 15.9155 15.9155 0 0 1 0 31.831 
+                                    a 15.9155 15.9155 0 0 1 0 -31.831"
+                                  fill="none"
+                                  stroke="rgba(255, 255, 255, 0.2)"
+                                  strokeWidth="2"
+                                />
+                                <path
+                                  d="M18 2.0845 
+                                    a 15.9155 15.9155 0 0 1 0 31.831 
+                                    a 15.9155 15.9155 0 0 1 0 -31.831"
+                                  fill="none"
+                                  stroke="#22c55e"
+                                  strokeWidth="2"
+                                  strokeDasharray="100"
+                                  strokeDashoffset={100 - ((10 - countdownTime) / 10 * 100)}
+                                />
+                              </svg>
+                              <span className="ml-2 text-lg font-medium">{countdownTime}</span>
+                            </div>
+                            
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="border-white/20 hover:bg-white/10 text-white"
+                              onClick={() => setShowNextEpisodeOverlay(false)}
+                            >
+                              Cancel
+                            </Button>
+                            
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="bg-green-500 hover:bg-green-600 text-white"
+                              onClick={() => {
+                                setShowNextEpisodeOverlay(false);
+                                goToNextEpisode();
+                              }}
+                            >
+                              Watch Now
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1011,98 +1472,72 @@ const Watch: React.FC = () => {
         <h2 className="text-lg font-medium mb-4">Video Sources</h2>
         <p className="text-sm text-wolzi-light-gray mb-4">Select your preferred streaming source</p>
         
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-w-4xl">
-          {sources
-            .filter(source => ['upcloud', 'vidcloud', 'embedsu', 'vidsrcto', 'lulustreams', 'krakenfiles'].includes(source.id))
-            .map((source) => (
-            <motion.div
-              key={source.id}
-              whileHover={{ y: -4, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)" }}
-              whileTap={{ scale: 0.98 }}
-              className={`
-                p-4 rounded-lg cursor-pointer border transition-all 
-                ${source.isActive 
-                  ? 'bg-gradient-to-br from-wolzi-accent to-wolzi-accent/80 text-white border-wolzi-accent shadow-lg shadow-wolzi-accent/20' 
-                  : 'bg-wolzi-dark-gray/70 backdrop-blur-sm border-wolzi-gray/30 hover:bg-wolzi-dark-gray text-white'
-                }
-              `}
-              onClick={() => handleSourceChange(source.id)}
-            >
-              <div className="flex justify-between items-start mb-1">
-                <h3 className="font-semibold">{source.name}</h3>
-                <div className="flex items-center">
-                  {source.isActive && (
-                    <span className="bg-white/30 text-white text-xs px-2 py-0.5 rounded-full mr-1">
-                      Active
-                    </span>
-                  )}
-                  {actualMediaType === 'anime' && source.id === 'lulustreams' && (
-                    <span className="bg-purple-500/80 text-white text-xs px-1.5 py-0.5 rounded-full">
-                      Best
-                    </span>
-                  )}
-                  {actualMediaType === 'movie' && source.id === 'krakenfiles' && (
-                    <span className="bg-yellow-500/80 text-white text-xs px-1.5 py-0.5 rounded-full">
-                      4K
-                    </span>
-                  )}
-                  {actualMediaType === 'tv' && source.id === 'upcloud' && (
-                    <span className="bg-blue-500/80 text-white text-xs px-1.5 py-0.5 rounded-full">
-                      HD
-                    </span>
-                  )}
-                  {actualMediaType === 'tv' && source.id === 'vidcloud' && (
-                    <span className="bg-green-500/80 text-white text-xs px-1.5 py-0.5 rounded-full">
-                      Fast
-                    </span>
-                  )}
-                </div>
-              </div>
-              
-              {source.description && (
-                <p className="text-xs opacity-90">{source.description}</p>
-              )}
-              
-              <div className="mt-2 text-xs">
-                {source.id === 'upcloud' && (
-                  <div className="flex items-center">
-                    <span className="inline-block w-2 h-2 rounded-full bg-blue-400 mr-1.5"></span>
-                    Full HD Library
-                  </div>
-                )}
-                {source.id === 'vidcloud' && (
-                  <div className="flex items-center">
-                    <span className="inline-block w-2 h-2 rounded-full bg-green-400 mr-1.5"></span>
-                    Extensive TV Series
-                  </div>
-                )}
-                {source.id === 'embedsu' && (
-                  <div className="flex items-center">
-                    <span className="inline-block w-2 h-2 rounded-full bg-gray-400 mr-1.5"></span>
-                    All content
-                  </div>
-                )}
-                {source.id === 'vidsrcto' && (
-                  <div className="flex items-center">
-                    <span className="inline-block w-2 h-2 rounded-full bg-indigo-400 mr-1.5"></span>
-                    Movies & TV
-                  </div>
-                )}
-                {source.id === 'lulustreams' && (
-                  <div className="flex items-center">
-                    <span className="inline-block w-2 h-2 rounded-full bg-purple-400 mr-1.5"></span>
-                    Anime & Series
-                  </div>
-                )}
-                {source.id === 'krakenfiles' && (
-                  <div className="flex items-center">
-                    <span className="inline-block w-2 h-2 rounded-full bg-yellow-400 mr-1.5"></span>
-                    Premium 4K
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          ))}
+        <div className="space-y-6">
+          {/* Primary Sources */}
+          <div>
+            <h3 className="text-sm font-medium mb-2 text-wolzi-light-gray">Available Sources</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {sources
+                .filter(source => source.isActive)
+                .map((source) => (
+                  <motion.div
+                    key={source.id}
+                    whileHover={{ y: -4, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)" }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`
+                      p-4 rounded-lg cursor-pointer border transition-all 
+                      ${source.isActive 
+                        ? 'bg-gradient-to-br from-wolzi-accent to-wolzi-accent/80 text-white border-wolzi-accent shadow-lg shadow-wolzi-accent/20' 
+                        : 'bg-wolzi-dark-gray/70 backdrop-blur-sm border-wolzi-gray/30 hover:bg-wolzi-dark-gray text-white'
+                      }
+                    `}
+                    onClick={() => handleSourceChange(source.id)}
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <h3 className="font-semibold">{source.name}</h3>
+                      <div className="flex items-center">
+                        {source.isActive && (
+                          <span className="bg-white/30 text-white text-xs px-2 py-0.5 rounded-full mr-1">
+                            Active
+                          </span>
+                        )}
+                        {source.quality && (
+                          <span className={`
+                            ${source.id === 'embedsu' ? 'bg-blue-500/80' : ''}
+                            ${source.id === 'vidsrcto' ? 'bg-green-500/80' : ''}
+                            ${source.id === 'superembed' ? 'bg-purple-500/80' : ''}
+                            ${source.id === 'smashystream' ? 'bg-yellow-500/80' : ''}
+                            ${source.id === 'flixhq' ? 'bg-red-500/80' : ''}
+                            ${source.id === 'movieshd' ? 'bg-orange-500/80' : ''}
+                            text-white text-xs px-1.5 py-0.5 rounded-full
+                          `}>
+                            {source.quality}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {source.description && (
+                      <p className="text-xs opacity-90">{source.description}</p>
+                    )}
+                    
+                    <div className="mt-2 text-xs">
+                      <div className="flex items-center">
+                        <span className="inline-block w-2 h-2 rounded-full 
+                          ${source.id === 'embedsu' ? 'bg-blue-400' : ''}
+                          ${source.id === 'vidsrcto' ? 'bg-green-400' : ''}
+                          ${source.id === 'superembed' ? 'bg-purple-400' : ''}
+                          ${source.id === 'smashystream' ? 'bg-yellow-400' : ''}
+                          ${source.id === 'flixhq' ? 'bg-red-400' : ''}
+                          ${source.id === 'movieshd' ? 'bg-orange-400' : ''}
+                          mr-1.5"></span>
+                        {source.description?.split(' ')[0] || 'Quality'} streams
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+            </div>
+          </div>
         </div>
         
         {/* Source compatibility note */}
@@ -1110,23 +1545,18 @@ const Watch: React.FC = () => {
           <div className="mb-3 px-3 py-2 bg-wolzi-dark-gray rounded-md border border-wolzi-border/50">
             <p className="font-medium text-sm flex items-center">
               <span className="inline-block w-2 h-2 rounded-full bg-green-400 mr-2"></span>
-              {actualMediaType === 'anime' 
-                ? <span>LuluStreams is recommended for anime content</span>
-                : actualMediaType === 'movie'
-                ? <span>Kraken Files offers the best quality for movies</span>
-                : <span>UpCloud and VidCloud work best for TV series</span>
-              }
+              <span>All sources offer high quality streaming for movies, TV series, and anime</span>
             </p>
           </div>
           
           <p className="mb-1 font-medium">Source compatibility:</p>
           <ul className="list-disc list-inside space-y-1 opacity-80">
-            <li><span className="font-medium text-blue-400">UpCloud</span>: Large HD library of TV series with excellent streaming quality</li>
-            <li><span className="font-medium text-green-400">VidCloud</span>: Fast servers with extensive TV show collection and subtitles</li>
-            <li><span className="font-medium text-gray-400">Embed.su</span>: Good for movies and TV shows, reliable overall</li>
-            <li><span className="font-medium text-indigo-400">VidSrc.to</span>: Reliable for TV series and movies with good quality options</li>
-            <li><span className="font-medium text-purple-400">LuluStreams</span>: Best for anime content with wide selection and subtitles</li>
-            <li><span className="font-medium text-yellow-400">Kraken Files</span>: High-quality 4K streams for premium content</li>
+            <li><span className="font-medium text-blue-400">Embed.su</span>: Premium quality streams with reliable HD playback</li>
+            <li><span className="font-medium text-green-400">VidSrc.to</span>: Fast loading streams with good quality and minimal buffering</li>
+            <li><span className="font-medium text-purple-400">SuperEmbed</span>: High quality streams with fast servers</li>
+            <li><span className="font-medium text-yellow-400">SmashyStream</span>: Wide collection of movies and TV shows</li>
+            <li><span className="font-medium text-red-400">FlixHQ</span>: Premium streams with multiple quality options</li>
+            <li><span className="font-medium text-orange-400">MoviesHD</span>: High-definition streams for movies and TV shows</li>
           </ul>
         </div>
       </div>

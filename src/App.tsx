@@ -16,11 +16,32 @@ import Anime from "./pages/Anime";
 import WatchHistory from "./pages/WatchHistory";
 import SearchResults from "./pages/SearchResults";
 import Watch from "./pages/Watch";
-import ViewAllPage, { MediaItem } from "./pages/ViewAllPage";
+import ViewAllPage from "./pages/ViewAllPage";
 import tmdbApi, { getPosterUrl } from "./integrations/api/tmdb";
-import { jikanApi } from "./integrations/api/jikan";
+import jikanApi from "./integrations/api/jikan";
+import axios from 'axios';
 
 const queryClient = new QueryClient();
+
+// Create a TMDB API client for anime queries
+const TMDB_API_KEY = '2545dfe546bd75d5de4657e85942ecb2';
+const animeApi = axios.create({
+  baseURL: 'https://api.themoviedb.org/3',
+  params: {
+    api_key: TMDB_API_KEY,
+  },
+});
+
+// Define MediaItem interface to match what's used in ViewAllPage
+interface MediaItem {
+  id: string;
+  title: string;
+  posterUrl: string;
+  rating?: number;
+  year?: string;
+  mediaType: 'movie' | 'tv' | 'anime';
+  overview?: string;
+}
 
 // --- Mappers ---
 const tmdbMovieToMediaItem = (movie: any): MediaItem => ({
@@ -52,16 +73,6 @@ const tmdbTrendingToMediaItem = (item: any): MediaItem | null => {
   }
   return null;
 };
-
-const jikanAnimeToMediaItem = (anime: any): MediaItem => ({
-  id: anime.mal_id.toString(),
-  title: anime.title,
-  posterUrl: anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || "https://via.placeholder.com/500x750?text=No+Image",
-  rating: anime.score || 0,
-  year: (anime.aired?.from || "").substring(0, 4),
-  mediaType: 'anime',
-  overview: anime.synopsis,
-});
 
 // --- Fetch Data Functions ---
 const fetchPopularMoviesPage = async (page: number) => {
@@ -120,33 +131,59 @@ const fetchTrendingAllPage = async (page: number) => {
 };
 
 const fetchPopularAnimePage = async (page: number) => {
-  const { data } = await jikanApi.getTopAnime(page, 24, 'bypopularity');
+  const { data } = await animeApi.get('/discover/tv', { 
+    params: { 
+      with_genres: '16', // Animation genre
+      with_original_language: 'ja', // Japanese language
+      sort_by: 'popularity.desc',
+      page
+    } 
+  });
+  
   return {
-    items: data.data.map(jikanAnimeToMediaItem),
-    totalPages: data.pagination?.last_visible_page || page, // Jikan provides last_visible_page
-    totalResults: data.pagination?.items?.total || data.data.length, // And total items
+    items: data.results.map(tmdbTvShowToMediaItem), // Use TV show mapper since we're treating anime as TV
+    totalPages: data.total_pages,
+    totalResults: data.total_results,
   };
 };
 
-const fetchAiringAnimePage = async (page: number) => {
-  const { data } = await jikanApi.getAiringAnime(page, 24);
+const fetchTopRatedAnimePage = async (page: number) => {
+  const { data } = await animeApi.get('/discover/tv', { 
+    params: { 
+      with_genres: '16', // Animation genre
+      with_original_language: 'ja', // Japanese language
+      sort_by: 'vote_average.desc',
+      'vote_count.gte': 100, // Ensure we get anime with significant votes
+      page
+    } 
+  });
+  
   return {
-    items: data.data.map(jikanAnimeToMediaItem),
-    totalPages: data.pagination?.last_visible_page || page,
-    totalResults: data.pagination?.items?.total || data.data.length,
+    items: data.results.map(tmdbTvShowToMediaItem),
+    totalPages: data.total_pages,
+    totalResults: data.total_results,
   };
 };
 
-const fetchUpcomingAnimePage = async (page: number) => {
-  const { data } = await jikanApi.getUpcomingAnime(page, 24);
+const fetchOnAirAnimePage = async (page: number) => {
+  const { data } = await animeApi.get('/discover/tv', { 
+    params: { 
+      with_genres: '16', // Animation genre
+      with_original_language: 'ja', // Japanese language
+      with_status: 'Returning Series', // Currently airing
+      sort_by: 'first_air_date.desc', // Sort by newest first
+      'air_date.gte': new Date().toISOString().split('T')[0], // Current or future air date
+      page
+    } 
+  });
+  
   return {
-    items: data.data.map(jikanAnimeToMediaItem),
-    totalPages: data.pagination?.last_visible_page || page,
-    totalResults: data.pagination?.items?.total || data.data.length,
+    items: data.results.map(tmdbTvShowToMediaItem),
+    totalPages: data.total_pages,
+    totalResults: data.total_results,
   };
 };
 
-// Fetch search results for View All functionality
 const fetchSearchResultsPage = async (page: number, query: string, type: string) => {
   console.log(`Fetching search results page ${page} for type ${type}, query: ${query}`);
   try {
@@ -167,11 +204,21 @@ const fetchSearchResultsPage = async (page: number, query: string, type: string)
         totalResults: data.total_results || 0,
       };
     } else if (type === 'anime') {
-      const { data } = await jikanApi.searchAnime(query, page);
+      // For anime search, use TMDB's TV search with anime filters
+      const { data } = await tmdbApi.searchByType('tv', query, page);
+      // Filter results to only include Japanese animation
+      const animeResults = data.results.filter((item: any) => {
+        // Check if it has the animation genre (16)
+        const hasAnimationGenre = item.genre_ids?.includes(16);
+        // Check if it's Japanese (can expand this check if needed)
+        const isJapanese = item.original_language === 'ja';
+        return hasAnimationGenre && isJapanese;
+      });
+      
       return {
-        items: data.data.map(jikanAnimeToMediaItem),
-        totalPages: data.pagination?.last_visible_page || page,
-        totalResults: data.pagination?.items?.total || data.data.length,
+        items: animeResults.map(tmdbTvShowToMediaItem),
+        totalPages: data.total_pages || 1,
+        totalResults: animeResults.length, // Use filtered length
       };
     }
     
@@ -268,16 +315,16 @@ const App = () => (
               element={<ViewAllPage title="Top Rated TV Series" fetchDataFunction={fetchTopRatedTVShowsPage} />} 
             />
             <Route 
-              path="/anime/popular" 
+              path="/view-all/anime/popular" 
               element={<ViewAllPage title="Popular Anime" fetchDataFunction={fetchPopularAnimePage} />} 
             />
             <Route 
-              path="/anime/airing" 
-              element={<ViewAllPage title="Currently Airing Anime" fetchDataFunction={fetchAiringAnimePage} />} 
+              path="/view-all/anime/top-rated" 
+              element={<ViewAllPage title="Top Rated Anime" fetchDataFunction={fetchTopRatedAnimePage} />} 
             />
             <Route 
-              path="/anime/upcoming" 
-              element={<ViewAllPage title="Upcoming Anime" fetchDataFunction={fetchUpcomingAnimePage} />} 
+              path="/view-all/anime/on-air" 
+              element={<ViewAllPage title="Currently Airing Anime" fetchDataFunction={fetchOnAirAnimePage} />} 
             />
             
             {/* View All Search Results */}

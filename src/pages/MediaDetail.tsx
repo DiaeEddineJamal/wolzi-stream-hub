@@ -7,14 +7,13 @@ import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import tmdbApi, { getBackdropUrl, getPosterUrl } from '@/integrations/api/tmdb';
-import jikanApi from '@/integrations/api/jikan';
-import gogoAnimeApi from '@/integrations/api/gogoanime';
-import { streamingSources as availableStreamingSources, getStreamingUrl } from '@/integrations/api/streamingSources';
+import { streamingSources as availableStreamingSources, getStreamingUrl, storeAnimeTitle } from '@/integrations/api/streamingSources';
 import ReactPlayer from 'react-player';
 import MainLayout from '@/layouts/MainLayout';
 import { Tables } from '@/types/supabase';
 import YouTube from 'react-youtube';
 import { Play, PlayCircle, ArrowUpRight } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 
 type MediaType = 'movie' | 'tv' | 'anime';
 
@@ -30,6 +29,7 @@ interface MediaDetails {
   vote_average: number;
   runtime?: number;
   episode_run_time?: number[];
+  number_of_episodes?: number;
   genres: { id: number; name: string }[];
   videos: {
     results: {
@@ -131,8 +131,6 @@ const MediaDetail: React.FC = () => {
   
   const [loading, setLoading] = useState(true);
   const [mediaDetails, setMediaDetails] = useState<MediaDetails | null>(null);
-  const [animeDetails, setAnimeDetails] = useState<AnimeDetails | null>(null);
-  const [gogoAnimeInfo, setGogoAnimeInfo] = useState<GogoAnimeInfo | null>(null);
   const [seasonDetails, setSeasonDetails] = useState<SeasonDetails | null>(null);
   const [activeTab, setActiveTab] = useState('stream');
   const [selectedSeason, setSelectedSeason] = useState<number | null>(seasonNumber ? parseInt(seasonNumber) : 1);
@@ -147,6 +145,7 @@ const MediaDetail: React.FC = () => {
   const [watchId, setWatchId] = useState<string | null>(null);
   const [streamingLinks, setStreamingLinks] = useState<any[]>([]);
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
+  const [disableSandbox, setDisableSandbox] = useState<boolean>(false);
 
   // Determine media type from URL path instead of parameter
   // Extract media type from the path: /movie/... or /tv/... or /anime/...
@@ -161,7 +160,7 @@ const MediaDetail: React.FC = () => {
   const actualMediaType = determineMediaType();
   console.log("Resolved media type:", actualMediaType);
   
-  const title = mediaDetails?.title || mediaDetails?.name || animeDetails?.title || '';
+  const title = mediaDetails?.title || mediaDetails?.name || '';
 
   useEffect(() => {
     const fetchMediaDetails = async () => {
@@ -170,69 +169,48 @@ const MediaDetail: React.FC = () => {
       try {
         setLoading(true);
         
-        if (actualMediaType === 'anime') {
-          // Fetch anime details from Jikan API
-          const { data } = await jikanApi.getAnimeDetails(parseInt(id));
-          setAnimeDetails(data.data);
+        // Fetch all content types from TMDB (treating anime as TV shows)
+        const { data } = actualMediaType === 'movie'
+          ? await tmdbApi.getMovieDetails(parseInt(id))
+          : await tmdbApi.getTVShowDetails(parseInt(id));
+        
+        setMediaDetails(data);
+        
+        // If it's anime, store the title for backward compatibility
+        if (actualMediaType === 'anime' && data.name) {
+          storeAnimeTitle(parseInt(id), data.name);
+        }
+        
+        // Extract trailer key from videos
+        if (data.videos && data.videos.results && data.videos.results.length > 0) {
+          // Find official trailers first
+          const officialTrailer = data.videos.results.find(
+            (video: any) => video.type === 'Trailer' && video.site === 'YouTube' && video.official === true
+          );
           
-          // Fetch characters
-          const charactersResponse = await jikanApi.getAnimeCharacters(parseInt(id));
-          const animeWithCharacters = {
-            ...data.data,
-            characters: charactersResponse.data.data
-          };
-          setAnimeDetails(animeWithCharacters);
+          // If no official trailer, try any trailer
+          const anyTrailer = data.videos.results.find(
+            (video: any) => video.type === 'Trailer' && video.site === 'YouTube'
+          );
           
-          // Try to find trailer for anime
-          if (data.data.trailer && data.data.trailer.youtube_id) {
-            setTrailerKey(data.data.trailer.youtube_id);
+          // If still nothing, try any video
+          const anyVideo = data.videos.results.find(
+            (video: any) => video.site === 'YouTube'
+          );
+          
+          if (officialTrailer) {
+            setTrailerKey(officialTrailer.key);
+          } else if (anyTrailer) {
+            setTrailerKey(anyTrailer.key);
+          } else if (anyVideo) {
+            setTrailerKey(anyVideo.key);
           }
-          
-          // Try to find this anime on GogoAnime for streaming
-          const gogoId = await gogoAnimeApi.findGogoAnimeId(data.data.title);
-          if (gogoId) {
-            const gogoResponse = await gogoAnimeApi.getAnimeInfo(gogoId);
-            setGogoAnimeInfo(gogoResponse.data);
-          }
-        } else {
-          // Fetch movie/TV details from TMDB
-          const { data } = actualMediaType === 'movie'
-            ? await tmdbApi.getMovieDetails(parseInt(id))
-            : await tmdbApi.getTVShowDetails(parseInt(id));
-          
-          setMediaDetails(data);
-          
-          // Extract trailer key from videos
-          if (data.videos && data.videos.results && data.videos.results.length > 0) {
-            // Find official trailers first
-            const officialTrailer = data.videos.results.find(
-              (video: any) => video.type === 'Trailer' && video.site === 'YouTube' && video.official === true
-            );
-            
-            // If no official trailer, try any trailer
-            const anyTrailer = data.videos.results.find(
-              (video: any) => video.type === 'Trailer' && video.site === 'YouTube'
-            );
-            
-            // If still nothing, try any video
-            const anyVideo = data.videos.results.find(
-              (video: any) => video.site === 'YouTube'
-            );
-            
-            if (officialTrailer) {
-              setTrailerKey(officialTrailer.key);
-            } else if (anyTrailer) {
-              setTrailerKey(anyTrailer.key);
-            } else if (anyVideo) {
-              setTrailerKey(anyVideo.key);
-            }
-          }
-          
-          // If it's a TV show and has seasons, fetch first season details
-          if (actualMediaType === 'tv' && data.seasons && data.seasons.length > 0) {
-            const initialSeason = selectedSeason || 1;
-            fetchSeasonDetails(parseInt(id), initialSeason);
-          }
+        }
+        
+        // If it's a TV show or anime and has seasons, fetch first season details
+        if ((actualMediaType === 'tv' || actualMediaType === 'anime') && data.seasons && data.seasons.length > 0) {
+          const initialSeason = selectedSeason || 1;
+          fetchSeasonDetails(parseInt(id), initialSeason);
         }
       } catch (error) {
         console.error('Error fetching media details:', error);
@@ -342,14 +320,29 @@ const MediaDetail: React.FC = () => {
   useEffect(() => {
     // Fetch streaming links when anime episode is selected
     const fetchAnimeStreamingLinks = async () => {
-      if (actualMediaType !== 'anime' || !gogoAnimeInfo || !selectedEpisode) return;
+      if (actualMediaType !== 'anime' || !mediaDetails || !selectedEpisode) return;
       
       try {
-        const episode = gogoAnimeInfo.episodes.find(ep => ep.number === selectedEpisode);
-        if (episode) {
-          const response = await gogoAnimeApi.getStreamingLinks(episode.id);
-          setStreamingLinks(response.data.sources || []);
+        const response = await fetch(
+          `https://api.themoviedb.org/3/tv/${mediaDetails.id}/season/${selectedSeason}/episode/${selectedEpisode}?api_key=2545dfe546bd75d5de4657e85942ecb2&append_to_response=credits`
+        );
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch streaming links');
         }
+        
+        const data = await response.json();
+        setStreamingLinks(data.credits.cast.map((castMember: any) => ({
+          id: castMember.id.toString(),
+          name: castMember.name,
+          character: castMember.character,
+          profile_path: castMember.profile_path,
+          role: castMember.role,
+          url: `https://www.youtube.com/watch?v=${data.videos.results.find(
+            (video: any) => video.type === 'Trailer' && video.site === 'YouTube'
+          )?.key}`,
+          quality: '720p'
+        })));
       } catch (error) {
         console.error('Error fetching anime streaming links:', error);
         toast({
@@ -361,7 +354,7 @@ const MediaDetail: React.FC = () => {
     };
     
     fetchAnimeStreamingLinks();
-  }, [gogoAnimeInfo, selectedEpisode, actualMediaType, toast]);
+  }, [mediaDetails, selectedSeason, selectedEpisode, actualMediaType, toast]);
 
   const fetchSeasonDetails = async (showId: number, season: number) => {
     try {
@@ -419,12 +412,10 @@ const MediaDetail: React.FC = () => {
   };
 
   const updateWatchHistory = async (seconds: number) => {
-    if (!user || !id || (!mediaDetails && !animeDetails)) return;
+    if (!user || !id || (!mediaDetails)) return;
     
     try {
-      const posterPath = actualMediaType === 'anime' 
-        ? animeDetails?.images.jpg.large_image_url 
-        : getPosterUrl(mediaDetails?.poster_path || '');
+      const posterPath = mediaDetails?.poster_path ? getPosterUrl(mediaDetails.poster_path) : '';
 
       const watchData = {
         user_id: user.id,
@@ -476,16 +467,6 @@ const MediaDetail: React.FC = () => {
   };
 
   const getStreamUrl = () => {
-    if (actualMediaType === 'anime' && streamingLinks.length > 0) {
-      // Return highest quality link
-      const sortedLinks = [...streamingLinks].sort((a, b) => {
-        const qualityA = parseInt(a.quality.replace('p', '')) || 0;
-        const qualityB = parseInt(b.quality.replace('p', '')) || 0;
-        return qualityB - qualityA;
-      });
-      return sortedLinks[0].url;
-    }
-    
     const activeSourceId = streamingSources.find(source => source.isActive)?.id || 'vidjoy';
     
     return getStreamingUrl(
@@ -498,65 +479,158 @@ const MediaDetail: React.FC = () => {
   };
 
   const renderAnimeEpisodes = () => {
-    if (!gogoAnimeInfo || !gogoAnimeInfo.episodes || gogoAnimeInfo.episodes.length === 0) {
-      return <p>No episodes available for streaming.</p>;
+    if (!seasonDetails || !seasonDetails.episodes || seasonDetails.episodes.length === 0) {
+      return <p className="text-center py-8 text-white/80">No episodes available for streaming.</p>;
     }
     
+    // Create a UI structure similar to TV series episodes
+    const totalEpisodes = seasonDetails.episodes.length;
+    
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 mt-4">
-        {gogoAnimeInfo.episodes.map((episode) => (
+      <div className="space-y-6 mt-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-xl font-semibold text-white">Episodes</h2>
+            <p className="text-sm text-gray-400">Total {totalEpisodes} episodes</p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <div className="rounded-md bg-black/40 px-3 py-1 text-sm border border-green-500/30">
+              <span className="text-white font-medium">Season {selectedSeason || 1}</span>
+            </div>
+          </div>
+        </div>
+        
+        {/* Episodes Grid - Match the TV series layout */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+          {seasonDetails.episodes.map((episode) => (
+            <div
+              key={episode.id}
+              className={`
+                relative overflow-hidden rounded-md cursor-pointer transition-all duration-200
+                ${selectedEpisode === episode.episode_number 
+                  ? 'bg-green-500/10 border border-green-500/60 shadow-md shadow-green-500/20' 
+                  : 'bg-black/40 border border-green-500/20 hover:border-green-500/40 hover:bg-black/60'}
+                group
+              `}
+              onClick={() => setSelectedEpisode(episode.episode_number)}
+            >
+              <div className="aspect-video bg-black/70 flex items-center justify-center relative overflow-hidden">
+                {episode.still_path ? (
+                  <img 
+                    src={`https://image.tmdb.org/t/p/w300${episode.still_path}`} 
+                    alt={`Episode ${episode.episode_number}`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className={`text-xl font-bold ${
+                    selectedEpisode === episode.episode_number ? 'text-green-400' : 'text-white/80 group-hover:text-green-400/80'
+                  }`}>{episode.episode_number}</span>
+                )}
+                
+                {/* Hover Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-2">
+                  <Play className="h-8 w-8 text-green-400" />
+                </div>
+              </div>
+              
+              <div className="p-2">
+                <div className="flex justify-between items-center">
+                  <p className="text-xs font-medium truncate text-white">Episode {episode.episode_number}</p>
+                  {selectedEpisode === episode.episode_number && (
+                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Selected Indicator */}
+              {selectedEpisode === episode.episode_number && (
+                <div className="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
+              )}
+            </div>
+          ))}
+        </div>
+        
+        {/* Watch button */}
+        <div className="flex justify-center mt-2 pb-4">
           <Button
-            key={episode.id}
-            variant={selectedEpisode === episode.number ? "default" : "outline"}
-            className="w-full"
-            onClick={() => setSelectedEpisode(episode.number)}
+            onClick={() => handleWatchNow()}
+            className="px-8 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-md hover:shadow-lg shadow-green-500/20 transition-all duration-200"
           >
-            Episode {episode.number}
+            <Play className="mr-2 h-4 w-4" />
+            Watch Episode {selectedEpisode || 1}
           </Button>
-        ))}
+        </div>
+        
+        {/* Streaming Sources Section */}
+        <div className="mt-6 pt-4 border-t border-green-500/20">
+          <h3 className="text-lg font-medium mb-3">Available Streaming Sources</h3>
+          <div className="flex flex-wrap gap-2">
+            {streamingSources
+              .filter(source => ['embedsu', 'vidsrcto'].includes(source.id))
+              .map(source => (
+                <div 
+                  key={source.id} 
+                  className={`
+                    px-3 py-1.5 rounded-md cursor-pointer text-sm font-medium transition-all 
+                    ${getActiveSource() === source.id 
+                      ? 'bg-green-500 text-white shadow-md shadow-green-500/20' 
+                      : 'bg-black/40 text-white/80 border border-green-500/30 hover:border-green-500/50 hover:bg-black/60'}
+                  `}
+                  onClick={() => handleSourceChange(source.id)}
+                >
+                  {source.name}
+                </div>
+              ))
+            }
+          </div>
+        </div>
       </div>
     );
   };
 
   const renderAnimeDetails = () => {
-    if (!animeDetails) return null;
+    if (!mediaDetails) return null;
     
     return (
       <div className="mt-4 space-y-6">
         <div>
           <h3 className="text-lg font-medium mb-2">Synopsis</h3>
-          <p className="text-wolzi-text">{animeDetails.synopsis}</p>
+          <p className="text-wolzi-text">{mediaDetails.overview}</p>
         </div>
         
         <div>
           <h3 className="text-lg font-medium mb-2">Details</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p><span className="font-medium">Japanese Title:</span> {animeDetails.title_japanese}</p>
-              <p><span className="font-medium">Episodes:</span> {animeDetails.episodes}</p>
-              <p><span className="font-medium">Score:</span> {animeDetails.score}/10</p>
+              <p><span className="font-medium">Episodes:</span> {mediaDetails.number_of_episodes || 'Unknown'}</p>
+              <p><span className="font-medium">Score:</span> {mediaDetails.vote_average ? `${mediaDetails.vote_average}/10` : 'Not rated'}</p>
             </div>
             <div>
-              <p><span className="font-medium">Studios:</span> {animeDetails.studios?.map(s => s.name).join(', ')}</p>
-              <p><span className="font-medium">Genres:</span> {animeDetails.genres?.map(g => g.name).join(', ')}</p>
-              <p><span className="font-medium">Aired:</span> {new Date(animeDetails.aired?.from).toLocaleDateString()}</p>
+              <p><span className="font-medium">Genres:</span> {mediaDetails.genres?.map(g => g.name).join(', ')}</p>
+              <p><span className="font-medium">First Aired:</span> {mediaDetails.first_air_date ? new Date(mediaDetails.first_air_date).toLocaleDateString() : 'Unknown'}</p>
             </div>
           </div>
         </div>
         
-        {animeDetails.characters && animeDetails.characters.length > 0 && (
+        {mediaDetails.credits && mediaDetails.credits.cast && mediaDetails.credits.cast.length > 0 && (
           <div>
-            <h3 className="text-lg font-medium mb-2">Characters</h3>
+            <h3 className="text-lg font-medium mb-2">Cast</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {animeDetails.characters.slice(0, 12).map((character) => (
-                <div key={character.character.mal_id} className="text-center">
-                  <img 
-                    src={character.character.images.jpg.image_url} 
-                    alt={character.character.name}
-                    className="rounded-md w-full h-40 object-cover mb-2"
-                  />
-                  <p className="font-medium text-sm">{character.character.name}</p>
-                  <p className="text-xs text-wolzi-light-gray">{character.role}</p>
+              {mediaDetails.credits.cast.slice(0, 12).map((actor) => (
+                <div key={actor.id} className="text-center">
+                  {actor.profile_path ? (
+                    <img 
+                      src={`https://image.tmdb.org/t/p/w200${actor.profile_path}`} 
+                      alt={actor.name}
+                      className="rounded-md w-full h-40 object-cover mb-2"
+                    />
+                  ) : (
+                    <div className="rounded-md w-full h-40 bg-black/50 flex items-center justify-center mb-2">
+                      <span className="text-white/60 text-sm">No Image</span>
+                    </div>
+                  )}
+                  <p className="font-medium text-sm">{actor.name}</p>
+                  <p className="text-xs text-wolzi-light-gray">{actor.character}</p>
                 </div>
               ))}
             </div>
@@ -600,7 +674,7 @@ const MediaDetail: React.FC = () => {
     );
   }
 
-  if (!mediaDetails && !animeDetails) {
+  if (!mediaDetails) {
     return (
       <MainLayout>
         <div className="container mx-auto py-12 px-4 text-center">
@@ -618,9 +692,9 @@ const MediaDetail: React.FC = () => {
     <MainLayout>
       {/* Hero Banner */}
       <div className="hero-banner">
-        {actualMediaType === 'anime' && animeDetails?.images.jpg.large_image_url ? (
+        {actualMediaType === 'anime' && mediaDetails?.backdrop_path ? (
           <img 
-            src={animeDetails.images.jpg.large_image_url} 
+            src={getBackdropUrl(mediaDetails.backdrop_path)} 
             alt={title}
             className="hero-banner-image"
           />
@@ -640,12 +714,10 @@ const MediaDetail: React.FC = () => {
               <h1 className="text-4xl font-bold mb-2">{title}</h1>
               
               <div className="flex items-center mb-4 text-wolzi-light-gray">
-                <span className="mr-3 text-yellow-400">★ {actualMediaType === 'anime' ? animeDetails?.score || 'N/A' : mediaDetails?.vote_average?.toFixed(1)}</span>
+                <span className="mr-3 text-yellow-400">★ {mediaDetails?.vote_average?.toFixed(1)}</span>
                 <span className="mr-3">
-                  {actualMediaType === 'anime' 
-                    ? new Date(animeDetails?.aired?.from || '').getFullYear() 
-                    : mediaDetails?.release_date ? new Date(mediaDetails.release_date).getFullYear() : 
-                     mediaDetails?.first_air_date ? new Date(mediaDetails.first_air_date).getFullYear() : 'Unknown'}
+                  {mediaDetails?.release_date ? new Date(mediaDetails.release_date).getFullYear() : 
+                   mediaDetails?.first_air_date ? new Date(mediaDetails.first_air_date).getFullYear() : 'Unknown'}
                 </span>
                 {mediaDetails?.runtime && (
                   <span className="mr-3">{Math.floor(mediaDetails.runtime / 60)}h {mediaDetails.runtime % 60}m</span>
@@ -655,7 +727,7 @@ const MediaDetail: React.FC = () => {
                 )}
               </div>
               
-              <p className="text-wolzi-text mb-6">{actualMediaType === 'anime' ? animeDetails?.synopsis : mediaDetails?.overview}</p>
+              <p className="text-wolzi-text mb-6">{mediaDetails?.overview}</p>
               
               <div className="flex flex-wrap items-center gap-2">
                 <Button 
@@ -754,7 +826,9 @@ const MediaDetail: React.FC = () => {
                     frameBorder="0"
                     allowFullScreen
                     title={`${title} stream`}
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups"
+                    {...(!disableSandbox ? {
+                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups"
+                    } : {})}
                     allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share"
                   ></iframe>
                 )}
@@ -766,21 +840,23 @@ const MediaDetail: React.FC = () => {
                     frameBorder="0"
                     allowFullScreen
                     title={`${title} S${selectedSeason}E${selectedEpisode} stream`}
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups"
+                    {...(!disableSandbox ? {
+                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups"
+                    } : {})}
                     allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share"
                   ></iframe>
                 )}
                 
-                {actualMediaType === 'anime' && selectedEpisode && gogoAnimeInfo && (
+                {actualMediaType === 'anime' && selectedEpisode && streamingLinks.length > 0 && (
                   <iframe
-                    src={gogoAnimeInfo 
-                      ? `https://gogoanimehd.io/streaming.php?id=${gogoAnimeInfo.id}&ep=${selectedEpisode}`
-                      : getStreamingUrl(actualMediaType, id, undefined, selectedEpisode, 'embedsu')}
+                    src={streamingLinks[0].url}
                     className="w-full h-full"
                     frameBorder="0"
                     allowFullScreen
                     title={`${title} episode ${selectedEpisode} stream`}
-                    sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups"
+                    {...(!disableSandbox ? {
+                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups"
+                    } : {})}
                     allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share"
                   ></iframe>
                 )}
@@ -794,6 +870,42 @@ const MediaDetail: React.FC = () => {
                   <Play className="mr-2 h-5 w-5" />
                   Open Full Player
                 </Button>
+              </div>
+              
+              {/* Player Settings */}
+              <div className="mt-6 bg-black/30 backdrop-blur-sm border border-green-500/20 rounded-md p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-white">Player Settings</h3>
+                    <p className="text-xs text-white/70 mt-1">
+                      Configure your stream playback options
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-white/80">Sandbox Mode:</label>
+                      <Switch 
+                        checked={!disableSandbox}
+                        onCheckedChange={(value) => {
+                          setDisableSandbox(!value);
+                          // Force iframe reload
+                          const tempActiveTab = activeTab;
+                          setActiveTab('details');
+                          setTimeout(() => setActiveTab(tempActiveTab), 50);
+                        }}
+                      />
+                      <span className={`text-xs ${!disableSandbox ? "text-green-400" : "text-red-400"}`}>
+                        {!disableSandbox ? "Enabled" : "Disabled"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <p className="text-xs text-white/60">
+                    <span className="text-white/80">Sandbox Mode</span>: Provides secure playback (recommended). 
+                    If you experience issues with certain servers, try disabling this feature temporarily.
+                  </p>
+                </div>
               </div>
               
               {/* TV Show Episode Navigation */}
@@ -812,44 +924,97 @@ const MediaDetail: React.FC = () => {
                     ))}
                   </div>
                   
-                  {seasonDetails && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-4">
-                      {seasonDetails.episodes.map((episode) => (
-                        <div 
-                          key={episode.id}
-                          className={`p-2 rounded-md cursor-pointer transition-colors ${
-                            selectedEpisode === episode.episode_number 
-                              ? 'bg-wolzi-accent/20 border border-wolzi-accent'
-                              : 'bg-wolzi-dark-gray/50 hover:bg-wolzi-dark-gray'
-                          }`}
-                          onClick={() => handleEpisodeSelect(episode.episode_number)}
-                        >
-                          <div className="relative aspect-video mb-2 overflow-hidden rounded">
-                            {episode.still_path ? (
-                              <img 
-                                src={`https://image.tmdb.org/t/p/w300${episode.still_path}`} 
-                                alt={episode.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full bg-wolzi-dark-gray flex items-center justify-center">
-                                <span className="text-wolzi-light-gray">No Preview</span>
+                  {seasonDetails ? (
+                    <div className="space-y-4">
+                      <div className="mb-6 p-4 rounded-md bg-black/20 backdrop-blur-sm border border-green-500/30">
+                        <h2 className="text-xl font-bold text-white">{seasonDetails.name}</h2>
+                        {seasonDetails.episodes && (
+                          <div className="flex items-center mt-1">
+                            <p className="text-white/90">{seasonDetails.episodes.length} Episodes</p>
+                            <div className="mx-2 w-1 h-1 rounded-full bg-white/40"></div>
+                            <p className="text-white/80 text-sm">{seasonDetails.episodes[0]?.air_date ? new Date(seasonDetails.episodes[0].air_date).getFullYear() : ''}</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {seasonDetails.episodes?.map((episode) => (
+                          <div 
+                            key={episode.id}
+                            className={`p-4 rounded-lg transition-all duration-200 ${
+                              selectedEpisode === episode.episode_number 
+                                ? 'bg-green-500/10 border border-green-500/60 shadow-md shadow-green-500/20' 
+                                : 'bg-black/30 backdrop-blur-sm hover:bg-black/40 border border-green-500/20 hover:border-green-500/40'
+                            } cursor-pointer relative group`}
+                            onClick={() => {
+                              handleEpisodeSelect(episode.episode_number);
+                              setActiveTab('stream');
+                              setIsPlaying(true);
+                            }}
+                          >
+                            <div className="flex flex-col md:flex-row gap-4">
+                              <div className="md:w-1/4 lg:w-1/5 relative rounded-md overflow-hidden">
+                                {episode.still_path ? (
+                                  <img 
+                                    src={`https://image.tmdb.org/t/p/w300${episode.still_path}`}
+                                    alt={episode.name}
+                                    className="w-full h-auto rounded-md object-cover transition-transform duration-500 group-hover:scale-105"
+                                  />
+                                ) : (
+                                  <div className="w-full aspect-video bg-black/50 rounded-md flex items-center justify-center">
+                                    <span className="text-white/70">No Preview</span>
+                                  </div>
+                                )}
+                                <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
+                                  Episode {episode.episode_number}
+                                </div>
+                                {episode.runtime && (
+                                  <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
+                                    {episode.runtime} min
+                                  </div>
+                                )}
                               </div>
+                              
+                              <div className="md:w-3/4 lg:w-4/5">
+                                <div className="flex justify-between mb-2">
+                                  <h3 className="text-lg font-medium group-hover:text-green-400 transition-colors">
+                                    {episode.name}
+                                  </h3>
+                                </div>
+                                
+                                <div className="text-sm text-white/80 mb-2">
+                                  {episode.air_date ? new Date(episode.air_date).toLocaleDateString() : 'TBA'}
+                                </div>
+                                
+                                <p className="text-white/70 text-sm line-clamp-2 md:line-clamp-none">{episode.overview || 'No description available.'}</p>
+                                
+                                <div className="mt-3 flex justify-end">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    className="text-xs text-white hover:text-green-400 hover:bg-green-500/10 group-hover:text-green-400 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEpisodeSelect(episode.episode_number);
+                                      handleWatchNow();
+                                    }}
+                                  >
+                                    <Play className="w-3 h-3 mr-1" /> Watch Now
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {selectedEpisode === episode.episode_number && (
+                              <div className="absolute top-0 left-0 w-1 h-full bg-green-500 rounded-l-lg"></div>
                             )}
-                            <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1 rounded">
-                              {episode.runtime ? `${episode.runtime} min` : '--'}
-                            </div>
                           </div>
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="font-medium text-sm">{episode.episode_number}. {episode.name}</p>
-                              <p className="text-xs text-wolzi-light-gray truncate">
-                                {episode.air_date ? new Date(episode.air_date).toLocaleDateString() : 'TBA'}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-center p-12">
+                      <div className="loading-spinner"></div>
                     </div>
                   )}
                 </div>
@@ -859,73 +1024,9 @@ const MediaDetail: React.FC = () => {
           
           {/* Details Tab */}
           <TabsContent value="details" className="mt-6">
-            {actualMediaType === 'anime' ? (
-              <Card className="p-6 frosted-glass">
-                {renderAnimeDetails()}
-              </Card>
-            ) : (
-              <Card className="p-6 frosted-glass">
-                <div className="flex flex-col md:flex-row gap-6">
-                  <div className="md:w-1/3 lg:w-1/4">
-                    {mediaDetails?.poster_path ? (
-                      <img 
-                        src={getPosterUrl(mediaDetails.poster_path)} 
-                        alt={title}
-                        className="w-full h-auto rounded-md shadow-lg"
-                      />
-                    ) : (
-                      <div className="w-full aspect-[2/3] bg-wolzi-dark-gray rounded-md flex items-center justify-center">
-                        <span className="text-wolzi-light-gray">No Poster</span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="md:w-2/3 lg:w-3/4">
-                    <h2 className="text-2xl font-bold mb-4">{title}</h2>
-                    
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-lg font-medium mb-2">Overview</h3>
-                        <p className="text-wolzi-light-gray">{mediaDetails?.overview}</p>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <h3 className="text-lg font-medium mb-2">Details</h3>
-                          <ul className="space-y-2 text-wolzi-light-gray">
-                            <li>
-                              <span className="font-medium text-wolzi-text">Released:</span>{' '}
-                              {mediaDetails?.release_date ? new Date(mediaDetails.release_date).toLocaleDateString() : 
-                               mediaDetails?.first_air_date ? new Date(mediaDetails.first_air_date).toLocaleDateString() : 'Unknown'}
-                            </li>
-                            {actualMediaType === 'movie' && mediaDetails?.runtime && (
-                              <li>
-                                <span className="font-medium text-wolzi-text">Runtime:</span>{' '}
-                                {Math.floor(mediaDetails.runtime / 60)}h {mediaDetails.runtime % 60}m
-                              </li>
-                            )}
-                          </ul>
-                        </div>
-                        
-                        {mediaDetails?.credits?.cast && mediaDetails.credits.cast.length > 0 && (
-                          <div>
-                            <h3 className="text-lg font-medium mb-2">Cast</h3>
-                            <ul className="space-y-2 text-wolzi-light-gray">
-                              {mediaDetails.credits.cast.slice(0, 6).map((actor) => (
-                                <li key={actor.id}>
-                                  <span className="font-medium text-wolzi-text">{actor.name}</span>{' '}
-                                  {actor.character && `as ${actor.character}`}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            )}
+            <Card className="p-6 frosted-glass">
+              {renderAnimeDetails()}
+            </Card>
           </TabsContent>
           
           {/* Episodes Tab (TV only) */}
@@ -947,22 +1048,26 @@ const MediaDetail: React.FC = () => {
                 
                 {seasonDetails ? (
                   <div className="space-y-4">
-                    <div className="mb-4">
-                      <h2 className="text-xl font-bold">{seasonDetails.name}</h2>
+                    <div className="mb-6 p-4 rounded-md bg-black/20 backdrop-blur-sm border border-green-500/30">
+                      <h2 className="text-xl font-bold text-white">{seasonDetails.name}</h2>
                       {seasonDetails.episodes && (
-                        <p className="text-wolzi-light-gray">{seasonDetails.episodes.length} Episodes</p>
+                        <div className="flex items-center mt-1">
+                          <p className="text-white/90">{seasonDetails.episodes.length} Episodes</p>
+                          <div className="mx-2 w-1 h-1 rounded-full bg-white/40"></div>
+                          <p className="text-white/80 text-sm">{seasonDetails.episodes[0]?.air_date ? new Date(seasonDetails.episodes[0].air_date).getFullYear() : ''}</p>
+                        </div>
                       )}
                     </div>
                     
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {seasonDetails.episodes?.map((episode) => (
                         <div 
                           key={episode.id}
-                          className={`p-4 rounded-md ${
+                          className={`p-4 rounded-lg transition-all duration-200 ${
                             selectedEpisode === episode.episode_number 
-                              ? 'bg-wolzi-accent/20 border border-wolzi-accent'
-                              : 'bg-wolzi-dark-gray/50 hover:bg-wolzi-dark-gray'
-                          } cursor-pointer`}
+                              ? 'bg-green-500/10 border border-green-500/60 shadow-md shadow-green-500/20' 
+                              : 'bg-black/30 backdrop-blur-sm hover:bg-black/40 border border-green-500/20 hover:border-green-500/40'
+                          } cursor-pointer relative group`}
                           onClick={() => {
                             handleEpisodeSelect(episode.episode_number);
                             setActiveTab('stream');
@@ -970,37 +1075,61 @@ const MediaDetail: React.FC = () => {
                           }}
                         >
                           <div className="flex flex-col md:flex-row gap-4">
-                            <div className="md:w-1/4 lg:w-1/5">
+                            <div className="md:w-1/4 lg:w-1/5 relative rounded-md overflow-hidden">
                               {episode.still_path ? (
                                 <img 
                                   src={`https://image.tmdb.org/t/p/w300${episode.still_path}`}
                                   alt={episode.name}
-                                  className="w-full h-auto rounded-md object-cover"
+                                  className="w-full h-auto rounded-md object-cover transition-transform duration-500 group-hover:scale-105"
                                 />
                               ) : (
-                                <div className="w-full aspect-video bg-wolzi-dark-gray rounded-md flex items-center justify-center">
-                                  <span className="text-wolzi-light-gray">No Preview</span>
+                                <div className="w-full aspect-video bg-black/50 rounded-md flex items-center justify-center">
+                                  <span className="text-white/70">No Preview</span>
+                                </div>
+                              )}
+                              <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
+                                Episode {episode.episode_number}
+                              </div>
+                              {episode.runtime && (
+                                <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
+                                  {episode.runtime} min
                                 </div>
                               )}
                             </div>
                             
                             <div className="md:w-3/4 lg:w-4/5">
                               <div className="flex justify-between mb-2">
-                                <h3 className="text-lg font-medium">
-                                  {episode.episode_number}. {episode.name}
+                                <h3 className="text-lg font-medium group-hover:text-green-400 transition-colors">
+                                  {episode.name}
                                 </h3>
-                                <div className="text-sm text-wolzi-light-gray">
-                                  {episode.runtime ? `${episode.runtime} min` : '--'}
-                                </div>
                               </div>
                               
-                              <div className="text-sm text-wolzi-light-gray mb-2">
+                              <div className="text-sm text-white/80 mb-2">
                                 {episode.air_date ? new Date(episode.air_date).toLocaleDateString() : 'TBA'}
                               </div>
                               
-                              <p className="text-wolzi-light-gray">{episode.overview || 'No description available.'}</p>
+                              <p className="text-white/70 text-sm line-clamp-2 md:line-clamp-none">{episode.overview || 'No description available.'}</p>
+                              
+                              <div className="mt-3 flex justify-end">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  className="text-xs text-white hover:text-green-400 hover:bg-green-500/10 group-hover:text-green-400 transition-colors"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEpisodeSelect(episode.episode_number);
+                                    handleWatchNow();
+                                  }}
+                                >
+                                  <Play className="w-3 h-3 mr-1" /> Watch Now
+                                </Button>
+                              </div>
                             </div>
                           </div>
+                          
+                          {selectedEpisode === episode.episode_number && (
+                            <div className="absolute top-0 left-0 w-1 h-full bg-green-500 rounded-l-lg"></div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1029,12 +1158,9 @@ const MediaDetail: React.FC = () => {
               <h2 className="text-xl font-bold mb-6">Video Sources</h2>
               <p className="mb-6 text-wolzi-light-gray">Select your preferred streaming source</p>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {streamingSources
-                  .filter(source => {
-                    // Show the most reliable sources
-                    return ['upcloud', 'vidcloud', 'embedsu', 'vidsrcto', 'lulustreams', 'krakenfiles'].includes(source.id);
-                  })
+                  .filter(source => ['embedsu', 'vidsrcto'].includes(source.id))
                   .map((source) => (
                   <div 
                     key={source.id}
@@ -1051,24 +1177,14 @@ const MediaDetail: React.FC = () => {
                     )}
                     <div className="flex justify-between mt-2">
                       <div className="text-xs">
-                        {source.id === 'upcloud' && (
+                        {source.id === 'embedsu' && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-500/30 text-blue-200">
-                            HD TV Shows
+                            Premium Quality
                           </span>
                         )}
-                        {source.id === 'vidcloud' && (
+                        {source.id === 'vidsrcto' && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/30 text-green-200">
                             Fast Streaming
-                          </span>
-                        )}
-                        {source.id === 'lulustreams' && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-500/30 text-purple-200">
-                            Anime
-                          </span>
-                        )}
-                        {source.id === 'krakenfiles' && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/30 text-yellow-200">
-                            4K
                           </span>
                         )}
                       </div>
@@ -1082,10 +1198,8 @@ const MediaDetail: React.FC = () => {
               
               <div className="mt-8 pt-4 border-t border-wolzi-border">
                 <p className="text-sm text-wolzi-light-gray">
-                  Recommended sources: 
-                  {actualMediaType === 'tv' && <span className="font-medium text-blue-400 ml-1">UpCloud</span>} 
-                  {actualMediaType === 'anime' && <span className="font-medium text-purple-400 ml-1">LuluStreams</span>}
-                  {actualMediaType === 'movie' && <span className="font-medium text-yellow-400 ml-1">Kraken Files</span>}
+                  Recommended source: 
+                  <span className="font-medium text-blue-400 ml-1">Embed.su</span> for premium quality streams
                 </p>
               </div>
             </Card>

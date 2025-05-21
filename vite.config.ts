@@ -8,6 +8,16 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    hmr: {
+      // Configure HMR to work properly with iframes
+      clientPort: 8080,
+      // Increase timeout to prevent frequent reconnection attempts
+      timeout: 5000,
+      // Add overlay to show HMR connection status
+      overlay: true
+    },
+    // Properly handle iframes and CORS
+    cors: true,
   },
   plugins: [
     react(),

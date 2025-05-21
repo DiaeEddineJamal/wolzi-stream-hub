@@ -7,6 +7,16 @@ import tmdbApi, { getPosterUrl, getBackdropUrl } from "@/integrations/api/tmdb";
 import jikanApi from "@/integrations/api/jikan";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import axios from 'axios';
+
+// Add the axios instance for anime similar to Anime.tsx
+const TMDB_API_KEY = '2545dfe546bd75d5de4657e85942ecb2';
+const api = axios.create({
+  baseURL: 'https://api.themoviedb.org/3',
+  params: {
+    api_key: TMDB_API_KEY,
+  },
+});
 
 interface MediaItem {
   id: string;
@@ -139,18 +149,24 @@ const Index: React.FC = () => {
         
         setTopRatedTVShows(processedTopRatedTV);
         
-        // Fetch anime shows from Jikan API
-        const animeResponse = await jikanApi.getTopAnime(1, 20, 'bypopularity');
-        const animeData = animeResponse.data.data;
+        // Fetch anime shows from TMDB API (TV shows with animation genre and Japanese language)
+        const animeResponse = await api.get('/discover/tv', { 
+          params: { 
+            with_genres: '16', // Animation genre
+            with_original_language: 'ja', // Japanese language
+            sort_by: 'popularity.desc',
+            page: 1
+          } 
+        });
         
-        const processedAnime = animeData.map((anime: any) => ({
-          id: anime.mal_id.toString(),
-          title: anime.title,
-          posterUrl: anime.images.jpg.large_image_url || anime.images.jpg.image_url,
-          rating: anime.score || 0,
-          year: (anime.aired.from || "").substring(0, 4),
-          mediaType: 'anime',
-          overview: anime.synopsis
+        const processedAnime = animeResponse.data.results.map((anime: any) => ({
+          id: anime.id.toString(),
+          title: anime.name,
+          posterUrl: getPosterUrl(anime.poster_path) || "https://via.placeholder.com/500x750?text=No+Image",
+          rating: anime.vote_average || 0,
+          year: (anime.first_air_date || "").substring(0, 4),
+          mediaType: 'tv', // Change from 'anime' to 'tv'
+          overview: anime.overview
         }));
         
         setAnimeShows(processedAnime);
@@ -249,13 +265,15 @@ const Index: React.FC = () => {
           className="mt-12"
         />
             
-        <ContentSection
-          title="Popular Anime" // Changed from "Anime Shows" for clarity
-          items={animeShows.slice(0, 12)}
-          viewMoreLink="/anime/popular"
-          showViewMore={true}
-          className="mt-12"
-        />
+        {animeShows.length > 0 && (
+          <ContentSection
+            title="Popular Anime"
+            items={animeShows.slice(0, 12)}
+            viewMoreLink="/anime"
+            showViewMore={true}
+            className="mb-12"
+          />
+        )}
         
         <ContentSection
           title="Upcoming Movies"

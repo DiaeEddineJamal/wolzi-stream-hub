@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, User, Heart, History, LogIn, Menu, X } from "lucide-react";
+import { Search, User, Heart, History, LogIn, Menu, X, Home, Film, Tv, TrendingUp, LogOut, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import UserMenu from "@/components/auth/UserMenu";
@@ -58,6 +58,11 @@ const NavBar: React.FC = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [scrolled]);
 
+  useEffect(() => {
+    // Close mobile menu when route changes
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
@@ -80,74 +85,134 @@ const NavBar: React.FC = () => {
     }
   };
 
-  const navItems = [
-    { title: "Home", path: "/" },
-    { title: "Movies", path: "/movies" },
-    { title: "TV Series", path: "/tv-series" },
-    { title: "Anime", path: "/anime" }
+  const mainNavItems = [
+    { title: "Home", path: "/", icon: <Home className="h-4 w-4" /> },
+    { title: "Movies", path: "/movies", icon: <Film className="h-4 w-4" /> },
+    { title: "TV Series", path: "/tv-series", icon: <Tv className="h-4 w-4" /> },
+    { title: "Anime", path: "/anime", icon: <TrendingUp className="h-4 w-4" /> }
   ];
 
   // Get active link status
   const isActivePath = (path: string) => {
-    return location.pathname === path;
+    if (path === "/" && location.pathname === "/") return true;
+    if (path !== "/" && location.pathname.startsWith(path)) return true;
+    return false;
+  };
+
+  // Navigation menu items with dropdown content
+  const categories = {
+    movies: [
+      { title: "Popular", path: "/view-all/movies/popular" },
+      { title: "Top Rated", path: "/view-all/movies/top-rated" },
+      { title: "Upcoming", path: "/view-all/movies/upcoming" },
+    ],
+    tvSeries: [
+      { title: "Popular", path: "/view-all/tv/popular" },
+      { title: "Top Rated", path: "/view-all/tv/top-rated" },
+      { title: "On Air", path: "/view-all/tv/on-air" },
+    ],
+    anime: [
+      { title: "Popular", path: "/view-all/anime/popular" },
+      { title: "Top Rated", path: "/view-all/anime/top-rated" },
+      { title: "On Air", path: "/view-all/anime/on-air" },
+    ],
   };
 
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-500 py-3",
         scrolled 
-          ? "bg-black/75 backdrop-blur-md shadow-lg py-2" 
-          : "bg-gradient-to-b from-black/80 to-transparent py-4"
+          ? "bg-black/85 backdrop-blur-md shadow-lg border-b border-wolzi-accent/20" 
+          : "bg-gradient-to-b from-black/90 to-transparent"
       )}
     >
       <div className="container mx-auto px-4 flex items-center justify-between">
+        {/* Logo and Main Navigation */}
         <div className="flex items-center">
-          <Link to="/" className="flex items-center">
-            <h1 className="text-2xl font-bold">
-              <span className="bg-gradient-to-r from-wolzi-accent to-wolzi-accent-hover bg-clip-text text-transparent">Wolzi</span>
-              <span className="text-white">Flix</span>
-            </h1>
-          </Link>
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Link to="/" className="flex items-center group">
+              <h1 className="text-2xl font-bold mr-2">
+                <motion.span 
+                  className="inline-block text-wolzi-accent"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 10 }}
+                >
+                  Wolzi
+                </motion.span>
+                <motion.span 
+                  className="inline-block text-white"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 10 }}
+                >
+                  Flix
+                </motion.span>
+              </h1>
+            </Link>
+          </motion.div>
           
-          <NavigationMenu className="hidden md:flex ml-8">
-            <NavigationMenuList>
-              {navItems.map((item) => (
-                <NavigationMenuItem key={item.title}>
-                  <Link 
+          <div className="hidden lg:flex ml-8">
+            <ul className="flex space-x-1">
+              {mainNavItems.map((item, index) => (
+                <motion.li
+                  key={item.title}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 + 0.2, duration: 0.3 }}
+                >
+                  <Link
                     to={item.path}
                     className={cn(
-                      "group inline-flex h-9 w-max items-center justify-center px-4 py-2 text-sm font-medium transition-colors relative overflow-hidden",
-                      isActivePath(item.path) 
+                      "relative px-4 py-2 rounded-md font-medium text-sm flex items-center gap-1.5 overflow-hidden group",
+                      isActivePath(item.path)
                         ? "text-wolzi-accent" 
-                        : "text-white/80 hover:text-white"
+                        : "text-white/85 hover:text-white"
                     )}
                   >
+                    {/* Icon with glow effect */}
                     <motion.span
-                      initial={{ y: 0 }}
-                      whileHover={{ y: -20 }}
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      className={cn(
+                        "transition-all duration-300 ease-in-out",
+                        isActivePath(item.path) 
+                          ? "text-wolzi-accent" 
+                          : "text-white/90 group-hover:text-wolzi-accent"
+                      )}
+                      whileHover={{ 
+                        scale: 1.2,
+                        textShadow: "0 0 8px rgba(29, 185, 84, 0.8)"
+                      }}
+                    >
+                      {item.icon}
+                    </motion.span>
+
+                    {/* Text with glow effect */}
+                    <motion.span
+                      className={cn(
+                        "transition-all duration-300 ease-in-out",
+                        isActivePath(item.path)
+                          ? "text-wolzi-accent" 
+                          : "group-hover:text-wolzi-accent"
+                      )}
+                      whileHover={{ 
+                        textShadow: "0 0 8px rgba(29, 185, 84, 0.8)"
+                      }}
                     >
                       {item.title}
                     </motion.span>
                     
-                    <motion.span
-                      initial={{ y: 20, opacity: 0 }}
-                      whileHover={{ y: 0, opacity: 1 }}
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
-                      className="absolute left-0 right-0 text-center text-wolzi-accent"
-                  >
-                    {item.title}
-                    </motion.span>
-                    
+                    {/* Active indicator dot */}
                     {isActivePath(item.path) && (
                       <motion.div
-                        className="absolute -bottom-1 left-1/2 w-[5px] h-[5px] rounded-full bg-wolzi-accent"
-                        layoutId="navbar-dot-indicator"
+                        className="absolute -bottom-1 left-1/2 w-1 h-1 rounded-full bg-wolzi-accent"
+                        layoutId="activeNavIndicator"
                         initial={{ x: "-50%" }}
                         animate={{ 
                           x: "-50%",
-                          boxShadow: ["0 0 0px 0px rgba(255,130,130,0.0)", "0 0 5px 2px rgba(255,130,130,0.5)", "0 0 0px 0px rgba(255,130,130,0.0)"]
+                          boxShadow: ["0 0 0px 0px rgba(29, 185, 84, 0.0)", "0 0 5px 2px rgba(29, 185, 84, 0.5)", "0 0 0px 0px rgba(29, 185, 84, 0.0)"]
                         }}
                         transition={{ 
                           boxShadow: { 
@@ -159,43 +224,45 @@ const NavBar: React.FC = () => {
                       />
                     )}
                     
+                    {/* Hover underline effect */}
                     <motion.div
-                      className="absolute bottom-0 left-0 right-0 h-[2px] bg-wolzi-accent/70"
-                      initial={{ scaleX: 0, originX: "left" }}
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-wolzi-accent/70"
+                      initial={{ scaleX: 0, originX: 0 }}
                       whileHover={{ scaleX: 1 }}
-                      transition={{ duration: 0.3, ease: "easeInOut" }}
+                      transition={{ duration: 0.3 }}
                     />
                   </Link>
-                </NavigationMenuItem>
+                </motion.li>
               ))}
-            </NavigationMenuList>
-          </NavigationMenu>
+            </ul>
+          </div>
         </div>
 
-        <div className="hidden md:flex items-center space-x-4">
-          <AnimatePresence>
+        {/* Right side: Search, Login, User */}
+        <div className="hidden md:flex items-center space-x-2">
+          <AnimatePresence mode="wait">
             {showSearch ? (
               <motion.form
                 initial={{ width: 0, opacity: 0 }}
                 animate={{ width: 250, opacity: 1 }}
                 exit={{ width: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
                 className="relative"
                 onSubmit={handleSearchSubmit}
               >
                 <Input
                   id="search-input"
                   type="text"
-                  placeholder="Search..."
+                  placeholder="Search for movies, shows..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-8 bg-wolzi-dark-blue/50 border-wolzi-gray/30 focus:border-wolzi-accent"
+                  className="pr-10 bg-black/30 border-wolzi-accent/30 focus:border-wolzi-accent focus-visible:ring-1 focus-visible:ring-wolzi-accent/50 rounded-full text-sm"
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-0 top-0 h-full"
+                  className="absolute right-0 top-0 h-full text-white/70 hover:text-white"
                   onClick={toggleSearch}
                 >
                   <X className="h-4 w-4" />
@@ -206,8 +273,15 @@ const NavBar: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <Button variant="ghost" size="icon" onClick={toggleSearch}>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={toggleSearch}
+                  className="text-white/70 hover:text-white hover:bg-wolzi-accent/10 transition-colors rounded-full"
+                >
                   <Search className="h-5 w-5" />
                 </Button>
               </motion.div>
@@ -218,34 +292,51 @@ const NavBar: React.FC = () => {
             <UserMenu />
           ) : (
             <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={goToLogin}
-                className="hover:bg-wolzi-dark-blue/30"
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                Log In
-              </Button>
-              <Button 
-                variant="default" 
-                size="sm" 
-                onClick={goToSignup}
-                className="bg-wolzi-accent hover:bg-wolzi-accent-hover"
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={goToLogin}
+                  className="hover:bg-wolzi-accent/10 text-white/80 hover:text-white transition-colors rounded-lg"
+                >
+                  Log In
+                </Button>
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                Sign Up
-              </Button>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={goToSignup}
+                  className="bg-wolzi-accent hover:bg-wolzi-accent text-white rounded-lg transition-colors"
+                >
+                  Sign Up
+                </Button>
+              </motion.div>
             </div>
           )}
         </div>
 
-        <Button
-          variant="ghost"
-          size="icon"
+        {/* Mobile menu button */}
+        <motion.div
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
           className="md:hidden"
-          onClick={toggleMobileMenu}
         >
-          {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleMobileMenu}
+            className="text-white/70 hover:text-white hover:bg-wolzi-accent/10 transition-colors"
+          >
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </Button>
+        </motion.div>
       </div>
 
       {/* Mobile search */}
@@ -255,7 +346,7 @@ const NavBar: React.FC = () => {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="md:hidden px-4 py-2 bg-wolzi-dark-blue/80 border-t border-wolzi-gray/20"
+            className="md:hidden px-4 py-2 bg-black/80 backdrop-blur-md border-t border-wolzi-accent/20"
           >
             <form onSubmit={handleSearchSubmit} className="relative">
               <Input
@@ -264,13 +355,13 @@ const NavBar: React.FC = () => {
                 placeholder="Search movies, shows, anime..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pr-8 bg-wolzi-dark-blue/50 border-wolzi-gray/30 focus:border-wolzi-accent"
+                className="pr-10 bg-black/50 border-wolzi-accent/30 focus:border-wolzi-accent rounded-lg text-sm"
               />
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                className="absolute right-0 top-0 h-full"
+                className="absolute right-0 top-0 h-full text-white/70 hover:text-white"
                 onClick={toggleSearch}
               >
                 <X className="h-4 w-4" />
@@ -288,95 +379,122 @@ const NavBar: React.FC = () => {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="md:hidden bg-black/95 backdrop-blur-lg absolute top-full left-0 right-0 py-4 shadow-lg border-t border-wolzi-gray/20"
+            className="md:hidden bg-black/95 backdrop-blur-lg absolute top-full left-0 right-0 py-4 shadow-lg border-t border-wolzi-accent/20 overflow-hidden"
           >
             <nav className="flex flex-col space-y-1 px-6">
               {!showSearch && (
-                <Button 
-                  variant="ghost" 
-                  className="justify-start py-3 -ml-2 mb-2 w-full text-left" 
-                  onClick={() => {
-                    toggleSearch();
-                    toggleMobileMenu(); // Close mobile menu when opening search
-                  }}
+                <motion.div
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.1 }}
                 >
-                  <Search className="h-4 w-4 mr-2" />
-                  Search Movies, TV Shows & Anime
-                </Button>
+                  <Button 
+                    variant="ghost" 
+                    className="justify-start py-3 -ml-2 mb-2 w-full text-left text-white/80 hover:text-white hover:bg-wolzi-accent/10" 
+                    onClick={() => {
+                      toggleSearch();
+                      toggleMobileMenu();
+                    }}
+                  >
+                    <Search className="h-4 w-4 mr-2" />
+                    Search Movies, TV Shows & Anime
+                  </Button>
+                </motion.div>
               )}
               
-              {navItems.map((item) => (
-                <Link
+              {mainNavItems.map((item, index) => (
+                <motion.div
                   key={item.title}
-                  to={item.path}
-                  className={cn(
-                    "py-3 px-2 rounded-md transition-colors",
-                    isActivePath(item.path)
-                      ? "bg-wolzi-accent/20 text-wolzi-accent"
-                      : "hover:bg-wolzi-dark-blue/30"
-                  )}
-                  onClick={toggleMobileMenu}
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  transition={{ delay: 0.1 * (index + 1) }}
                 >
-                  {item.title}
-                </Link>
+                  <Link
+                    to={item.path}
+                    className={cn(
+                      "flex items-center py-3 px-2 rounded-md transition-all duration-300",
+                      isActivePath(item.path)
+                        ? "bg-wolzi-accent/20 text-wolzi-accent"
+                        : "hover:bg-wolzi-accent/10 text-white/80 hover:text-wolzi-accent hover:shadow-[0_0_10px_rgba(29,185,84,0.3)]"
+                    )}
+                    onClick={toggleMobileMenu}
+                  >
+                    <span className="mr-2">{item.icon}</span>
+                    {item.title}
+                  </Link>
+                </motion.div>
               ))}
               
-              <div className="pt-4 border-t border-gray-700 mt-2">
-                {isLoggedIn ? (
-                  <>
-                    <Link to="/profile" className="flex items-center gap-2 py-3 px-2 hover:bg-wolzi-dark-blue/30 rounded-md" onClick={toggleMobileMenu}>
-                      <User className="h-4 w-4" />
-                      Profile
-                    </Link>
-                    <Link to="/favorites" className="flex items-center gap-2 py-3 px-2 hover:bg-wolzi-dark-blue/30 rounded-md" onClick={toggleMobileMenu}>
-                      <Heart className="h-4 w-4" />
-                      Favorites
-                    </Link>
-                    <Link to="/watch-history" className="flex items-center gap-2 py-3 px-2 hover:bg-wolzi-dark-blue/30 rounded-md" onClick={toggleMobileMenu}>
-                      <History className="h-4 w-4" />
-                      Watch History
-                    </Link>
-                    <Button 
-                      variant="ghost" 
-                      className="justify-start text-red-400 hover:text-red-500 hover:bg-red-500/10 w-full py-3 px-2 mt-2" 
-                      onClick={() => {
-                        logout();
-                        toggleMobileMenu();
-                      }}
-                    >
-                      Log out
-                    </Button>
-                  </>
-                ) : (
-                  <div className="flex flex-col gap-2 mt-2">
-                    <Button 
-                      variant="outline" 
-                      className="w-full flex items-center justify-center gap-2"
-                      onClick={() => {
-                        goToLogin();
-                        toggleMobileMenu();
-                      }}
-                    >
-                      <LogIn className="h-4 w-4" />
-                      Log In
-                    </Button>
-                    <Button 
-                      variant="default" 
-                      className="w-full bg-wolzi-accent hover:bg-wolzi-accent-hover"
-                      onClick={() => {
-                        goToSignup();
-                        toggleMobileMenu();
-                      }}
-                    >
-                      Sign Up
-                    </Button>
-                  </div>
-                )}
-              </div>
+              <motion.div
+                initial={{ x: -20, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                <div className="pt-4 border-t border-wolzi-accent/20 mt-2">
+                  {isLoggedIn ? (
+                    <>
+                      <Link to="/profile" className="flex items-center gap-2 py-3 px-2 hover:bg-wolzi-accent/10 rounded-md text-white/80 hover:text-white" onClick={toggleMobileMenu}>
+                        <User className="h-4 w-4" />
+                        Profile
+                      </Link>
+                      <Link to="/favorites" className="flex items-center gap-2 py-3 px-2 hover:bg-wolzi-accent/10 rounded-md text-white/80 hover:text-white" onClick={toggleMobileMenu}>
+                        <Heart className="h-4 w-4" />
+                        Favorites
+                      </Link>
+                      <Link to="/watch-history" className="flex items-center gap-2 py-3 px-2 hover:bg-wolzi-accent/10 rounded-md text-white/80 hover:text-white" onClick={toggleMobileMenu}>
+                        <History className="h-4 w-4" />
+                        Watch History
+                      </Link>
+                      <Button 
+                        variant="ghost" 
+                        className="justify-start text-red-400 hover:text-red-500 hover:bg-red-500/10 w-full py-3 px-2 mt-2" 
+                        onClick={() => {
+                          logout();
+                          toggleMobileMenu();
+                        }}
+                      >
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Log out
+                      </Button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col gap-2 mt-2">
+                      <Button 
+                        variant="outline" 
+                        className="w-full flex items-center justify-center gap-2 border-wolzi-accent/30 text-white/80 hover:text-white hover:bg-wolzi-accent/10"
+                        onClick={() => {
+                          goToLogin();
+                          toggleMobileMenu();
+                        }}
+                      >
+                        <LogIn className="h-4 w-4" />
+                        Log In
+                      </Button>
+                      <Button 
+                        variant="default" 
+                        className="w-full bg-wolzi-accent hover:bg-wolzi-accent text-white"
+                        onClick={() => {
+                          goToSignup();
+                          toggleMobileMenu();
+                        }}
+                      >
+                        Sign Up
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
             </nav>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Apply the consistent green accent */}
+      <style jsx global>{`
+        .green-glow {
+          text-shadow: 0 0 8px rgba(29, 185, 84, 0.6);
+        }
+      `}</style>
     </header>
   );
 };
