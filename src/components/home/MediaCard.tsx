@@ -31,9 +31,9 @@ const MediaCard: React.FC<MediaCardProps> = ({
   description,
 }) => {
   const sizeClasses = {
-    small: "w-full h-[300px]",
-    medium: "w-full h-[300px]",
-    large: "w-full h-[300px]",
+    small: "w-full h-[160px] sm:h-[200px] md:h-[220px]",
+    medium: "w-full h-[200px] sm:h-[240px] md:h-[280px]",
+    large: "w-full h-[240px] sm:h-[280px] md:h-[300px]",
   };
 
   const getMediaIcon = () => {
@@ -81,7 +81,7 @@ const MediaCard: React.FC<MediaCardProps> = ({
     return `/${mediaType}/${id}`;
   };
 
-  // Card hover animations - updated for consistency in all directions
+  // Enhanced card hover animations
   const cardVariants = {
     initial: {
       scale: 1,
@@ -97,6 +97,12 @@ const MediaCard: React.FC<MediaCardProps> = ({
         ease: "easeOut",
       },
     },
+    tap: {
+      scale: 0.98,
+      transition: {
+        duration: 0.1,
+      }
+    }
   };
 
   // Overlay hover animations
@@ -151,8 +157,9 @@ const MediaCard: React.FC<MediaCardProps> = ({
         <motion.div 
           initial="initial" 
           whileHover="hover" 
+          whileTap="tap"
           variants={cardVariants}
-          className="overflow-hidden rounded-lg"
+          className="overflow-hidden rounded-lg touch-manipulation"
         >
           <Link
             to={getDetailsUrl()}
@@ -162,8 +169,11 @@ const MediaCard: React.FC<MediaCardProps> = ({
               className
             )}
           >
-            <div className="absolute inset-0 bg-cover bg-center h-full transform transition-transform duration-700 hover:scale-110" 
-                style={{ backgroundImage: `url(${posterUrl})` }} />
+            <div 
+              className="absolute inset-0 bg-cover bg-center h-full transform transition-transform duration-700 hover:scale-110" 
+              style={{ backgroundImage: `url(${posterUrl})` }} 
+              loading="lazy"
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80" />
             
             {showHover && (
@@ -173,9 +183,9 @@ const MediaCard: React.FC<MediaCardProps> = ({
               >
                 <motion.div 
                   variants={playIconVariants}
-                  className="rounded-full bg-wolzi-accent p-3 mb-3 shadow-lg shadow-wolzi-accent/20"
+                  className="rounded-full bg-wolzi-accent p-2 sm:p-3 mb-2 sm:mb-3 shadow-lg shadow-wolzi-accent/20"
                 >
-                  <Play className="h-8 w-8 fill-white" />
+                  <Play className="h-6 w-6 sm:h-8 sm:w-8 fill-white" />
                 </motion.div>
                 <motion.span 
                   variants={buttonVariants}
@@ -186,12 +196,12 @@ const MediaCard: React.FC<MediaCardProps> = ({
               </motion.div>
             )}
             
-            <div className="absolute bottom-0 left-0 right-0 p-3 flex flex-col items-start z-10">
-              <h3 className="text-sm sm:text-base font-medium text-white line-clamp-2 group-hover:text-wolzi-accent transition-colors duration-300">
+            <div className="absolute bottom-0 left-0 right-0 p-2 sm:p-3 flex flex-col items-start z-10">
+              <h3 className="text-sm sm:text-base font-medium text-white line-clamp-2 mb-1 group-hover:text-wolzi-accent transition-colors duration-300">
                 {title}
               </h3>
               
-              <div className="flex items-center gap-2 mt-1 text-xs sm:text-sm">
+              <div className="flex items-center gap-2 mt-0.5 text-xs sm:text-sm">
                 {rating !== undefined && rating > 0 && (
                   <div className="flex items-center text-yellow-400">
                     <Star className="h-3 w-3 fill-yellow-400 mr-0.5" />
@@ -212,11 +222,11 @@ const MediaCard: React.FC<MediaCardProps> = ({
         </motion.div>
       </HoverCardTrigger>
       
-      <HoverCardContent className="bg-wolzi-dark-blue/80 backdrop-blur-lg border-wolzi-gray/30 w-80 p-4 animate-slide-up">
+      <HoverCardContent className="bg-wolzi-dark-blue/90 backdrop-blur-xl border-wolzi-gray/30 w-[90vw] max-w-[350px] sm:w-80 p-3 sm:p-4 animate-slide-up">
         <div className="space-y-2">
-          <h4 className="text-lg font-semibold">{title}</h4>
+          <h4 className="text-base sm:text-lg font-semibold">{title}</h4>
           
-          <div className="flex items-center gap-3 text-sm">
+          <div className="flex items-center gap-3 text-xs sm:text-sm flex-wrap">
             {rating !== undefined && rating > 0 && (
               <div className="flex items-center">
                 <Star className="h-3.5 w-3.5 fill-yellow-400 mr-1" />
@@ -238,7 +248,7 @@ const MediaCard: React.FC<MediaCardProps> = ({
           </div>
           
           {description && (
-            <p className="text-sm text-wolzi-light-gray line-clamp-3">
+            <p className="text-xs sm:text-sm text-wolzi-light-gray line-clamp-3">
               {description || "No description available."}
             </p>
           )}
@@ -246,13 +256,13 @@ const MediaCard: React.FC<MediaCardProps> = ({
           <div className="flex gap-2 pt-2">
             <Link
               to={getWatchUrl()}
-              className="bg-wolzi-accent hover:bg-wolzi-accent-hover text-white rounded px-3 py-1 text-sm flex items-center transition-colors duration-300"
+              className="bg-wolzi-accent hover:bg-wolzi-accent-hover text-white rounded px-3 py-2 text-sm flex items-center justify-center flex-1 transition-colors duration-300"
             >
               <Play className="h-3.5 w-3.5 mr-1" /> Watch Now
             </Link>
             <Link
               to={getDetailsUrl()}
-              className="bg-wolzi-gray hover:bg-opacity-80 text-white rounded px-3 py-1 text-sm transition-colors duration-300"
+              className="bg-wolzi-gray hover:bg-opacity-80 text-white rounded px-3 py-2 text-sm flex-1 text-center transition-colors duration-300"
             >
               Details
             </Link>

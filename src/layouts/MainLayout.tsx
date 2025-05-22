@@ -21,7 +21,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       {/* Global NavBar - appears on all pages */}
       <NavBar />
       
-      {/* Main content with top padding to account for fixed navbar */}
+      {/* Main content with responsive padding that adjusts for mobile */}
       <AnimatePresence mode="wait">
         <motion.main 
           key={location.pathname}
@@ -29,7 +29,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="flex-grow pt-16 md:pt-16 transition-all duration-300"
+          className="flex-grow pt-14 sm:pt-16 transition-all duration-300 overflow-x-hidden"
         >
           {children}
         </motion.main>

@@ -40,16 +40,16 @@ const ContentSection: React.FC<ContentSectionProps> = ({
 }) => {
   return (
     <motion.section 
-      className={cn("py-8", className)}
+      className={cn("py-4 sm:py-6 md:py-8", className)}
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.6 }}
     >
-      <div className="container px-4 mx-auto">
-        <div className="flex items-center justify-between mb-6">
+      <div className="container px-3 sm:px-4 mx-auto">
+        <div className="flex items-center justify-between mb-3 sm:mb-6">
           <motion.h2 
-            className="text-xl md:text-2xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent"
+            className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent"
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
@@ -68,12 +68,12 @@ const ContentSection: React.FC<ContentSectionProps> = ({
               <Button
                 asChild
                 variant="ghost"
-                className="text-wolzi-light-gray hover:text-white hover:bg-wolzi-dark-blue/40 flex items-center gap-1 group"
+                className="text-wolzi-light-gray hover:text-white hover:bg-wolzi-dark-blue/40 flex items-center gap-1 group text-sm sm:text-base py-1 h-auto"
                 size="sm"
               >
                 <Link to={viewMoreLink}>
                   <span>View All</span>
-                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
+                  <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 group-hover:translate-x-1 transition-transform duration-300" />
                 </Link>
               </Button>
             </motion.div>
@@ -109,8 +109,10 @@ const ContentSection: React.FC<ContentSectionProps> = ({
               </CarouselItem>
             ))}
           </CarouselContent>
-          <CarouselPrevious className="left-1 bg-wolzi-dark-blue/70 hover:bg-wolzi-dark-blue/90 border-wolzi-gray/30" />
-          <CarouselNext className="right-1 bg-wolzi-dark-blue/70 hover:bg-wolzi-dark-blue/90 border-wolzi-gray/30" />
+          
+          {/* Optimized carousel controls for better touch targets on mobile */}
+          <CarouselPrevious className="left-0 sm:left-1 bg-wolzi-dark-blue/80 hover:bg-wolzi-dark-blue/90 border-wolzi-gray/30 h-8 w-8 sm:h-10 sm:w-10 mobile-touch-target" />
+          <CarouselNext className="right-0 sm:right-1 bg-wolzi-dark-blue/80 hover:bg-wolzi-dark-blue/90 border-wolzi-gray/30 h-8 w-8 sm:h-10 sm:w-10 mobile-touch-target" />
         </Carousel>
       </div>
     </motion.section>

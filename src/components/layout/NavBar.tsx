@@ -147,7 +147,7 @@ const NavBar: React.FC = () => {
           ? "navbar-glass-scrolled shadow-[0_4px_30px_rgba(0,0,0,0.3)]" 
           : "shadow-none",
         hidden ? "-translate-y-full" : "translate-y-0",
-        mobileMenuOpen ? "bg-black/60" : ""
+        mobileMenuOpen ? "bg-black/80 h-auto" : ""
       )}
     >
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
@@ -159,7 +159,7 @@ const NavBar: React.FC = () => {
             transition={{ duration: 0.3 }}
           >
             <Link to="/" className="flex items-center group">
-              <h1 className="text-2xl font-bold mr-2">
+              <h1 className="text-xl sm:text-2xl font-bold mr-2">
                 <motion.span 
                   className="inline-block text-wolzi-accent"
                   whileHover={{ scale: 1.05 }}
@@ -262,137 +262,54 @@ const NavBar: React.FC = () => {
         </div>
 
         {/* Right side: Search, Login, User */}
-        <div className="hidden md:flex items-center space-x-2">
-          <AnimatePresence mode="wait">
-            {showSearch ? (
-              <motion.form
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: 250, opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
-                className="relative"
-                onSubmit={handleSearchSubmit}
-              >
-                <Input
-                  id="search-input"
-                  type="text"
-                  placeholder="Search for movies, shows..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-10 bg-black/20 border-wolzi-accent/30 focus:border-wolzi-accent focus-visible:ring-1 focus-visible:ring-wolzi-accent/50 rounded-full text-sm"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full text-white/70 hover:text-white"
-                  onClick={toggleSearch}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </motion.form>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={toggleSearch}
-                  className="text-white/70 hover:text-white hover:bg-wolzi-accent/10 transition-colors rounded-full"
-                >
-                  <Search className="h-5 w-5" />
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        <div className="flex items-center space-x-1">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={toggleSearch}
+            className="text-wolzi-light-gray hover:text-white transition-colors"
+            aria-label="Toggle search"
+          >
+            <Search className="h-[1.2rem] w-[1.2rem]" />
+          </Button>
           
-          {isLoggedIn ? (
-            <UserMenu />
-          ) : (
-            <div className="flex items-center gap-2">
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
+          <div className="hidden sm:block">
+            {isLoggedIn ? (
+              <UserMenu />
+            ) : (
+              <div className="flex items-center space-x-2">
                 <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={goToLogin}
-                  className="hover:bg-wolzi-accent/10 text-white/80 hover:text-white transition-colors rounded-lg"
+                  onClick={goToLogin} 
+                  variant="ghost"
+                  className="text-sm text-wolzi-light-gray hover:text-white"
                 >
-                  Log In
+                  Login
                 </Button>
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
                 <Button 
-                  variant="default" 
-                  size="sm" 
                   onClick={goToSignup}
-                  className="bg-wolzi-accent hover:bg-wolzi-accent text-white rounded-lg transition-colors"
+                  className="bg-wolzi-accent hover:bg-wolzi-accent-hover text-white text-sm py-1 px-3"
                 >
                   Sign Up
                 </Button>
-              </motion.div>
-            </div>
-          )}
-        </div>
-
-        {/* Mobile menu button */}
-        <motion.div
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          className="md:hidden"
-        >
-          <Button
-            variant="ghost"
+              </div>
+            )}
+          </div>
+          
+          <Button 
+            variant="ghost" 
             size="icon"
             onClick={toggleMobileMenu}
-            className="text-white/70 hover:text-white hover:bg-wolzi-accent/10 transition-colors"
+            className="lg:hidden text-wolzi-light-gray hover:text-white transition-colors"
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
           >
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {mobileMenuOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
           </Button>
-        </motion.div>
+        </div>
       </div>
-
-      {/* Mobile search */}
-      <AnimatePresence>
-        {showSearch && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="md:hidden px-4 py-2 frosted-glass border-t border-wolzi-accent/20"
-          >
-            <form onSubmit={handleSearchSubmit} className="relative">
-              <Input
-                id="mobile-search-input"
-                type="text"
-                placeholder="Search movies, shows, anime..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pr-10 bg-black/30 border-wolzi-accent/30 focus:border-wolzi-accent rounded-lg text-sm"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-full text-white/70 hover:text-white"
-                onClick={toggleSearch}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Mobile menu */}
       <AnimatePresence>
@@ -401,114 +318,148 @@ const NavBar: React.FC = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="md:hidden frosted-glass-dark absolute top-full left-0 right-0 py-4 shadow-lg border-t border-wolzi-accent/20 overflow-hidden"
+            transition={{ duration: 0.3 }}
+            className="lg:hidden frosted-glass border-t border-wolzi-accent/10 overflow-hidden"
           >
-            <nav className="flex flex-col space-y-1 px-6">
-              {!showSearch && (
-                <motion.div
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  <Button 
-                    variant="ghost" 
-                    className="justify-start py-3 -ml-2 mb-2 w-full text-left text-white/80 hover:text-white hover:bg-wolzi-accent/10" 
-                    onClick={() => {
-                      toggleSearch();
-                      toggleMobileMenu();
-                    }}
+            <div className="container mx-auto px-4 py-4">
+              <nav className="space-y-4 mb-6">
+                {mainNavItems.map((item) => (
+                  <motion.div
+                    key={item.title}
+                    whileTap={{ scale: 0.98 }}
                   >
-                    <Search className="h-4 w-4 mr-2" />
-                    Search Movies, TV Shows & Anime
-                  </Button>
-                </motion.div>
-              )}
+                    <Link
+                      to={item.path}
+                      className={cn(
+                        "flex items-center py-3 px-4 rounded-lg transition-all gap-3",
+                        isActivePath(item.path)
+                          ? "bg-wolzi-accent/20 text-wolzi-accent" 
+                          : "hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white"
+                      )}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <span className="text-xl">{item.icon}</span>
+                      <span className="font-medium">{item.title}</span>
+                    </Link>
+                  </motion.div>
+                ))}
+              </nav>
               
-              {mainNavItems.map((item, index) => (
-                <motion.div
-                  key={item.title}
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.1 * (index + 1) }}
-                >
-                  <Link
-                    to={item.path}
-                    className={cn(
-                      "flex items-center py-3 px-2 rounded-md transition-all duration-300",
-                      isActivePath(item.path)
-                        ? "bg-wolzi-accent/20 text-wolzi-accent"
-                        : "hover:bg-wolzi-accent/10 text-white/80 hover:text-wolzi-accent hover:shadow-[0_0_10px_rgba(29,185,84,0.3)]"
-                    )}
-                    onClick={toggleMobileMenu}
-                  >
-                    <span className="mr-2">{item.icon}</span>
-                    {item.title}
-                  </Link>
-                </motion.div>
-              ))}
-              
-              <motion.div
-                initial={{ x: -20, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: 0.5 }}
-              >
-                <div className="pt-4 border-t border-wolzi-accent/20 mt-2">
-                  {isLoggedIn ? (
-                    <>
-                      <Link to="/profile" className="flex items-center gap-2 py-3 px-2 hover:bg-wolzi-accent/10 rounded-md text-white/80 hover:text-white" onClick={toggleMobileMenu}>
-                        <User className="h-4 w-4" />
-                        Profile
+              <div className="py-4 border-t border-wolzi-accent/10">
+                <h3 className="text-sm uppercase text-wolzi-light-gray mb-4">Account</h3>
+                
+                {isLoggedIn ? (
+                  <div className="space-y-4">
+                    <motion.div whileTap={{ scale: 0.98 }}>
+                      <Link
+                        to="/profile"
+                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <User className="h-5 w-5" />
+                        <span className="font-medium">Profile</span>
                       </Link>
-                      <Link to="/favorites" className="flex items-center gap-2 py-3 px-2 hover:bg-wolzi-accent/10 rounded-md text-white/80 hover:text-white" onClick={toggleMobileMenu}>
-                        <Heart className="h-4 w-4" />
-                        Favorites
+                    </motion.div>
+                    
+                    <motion.div whileTap={{ scale: 0.98 }}>
+                      <Link
+                        to="/favorites"
+                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <Heart className="h-5 w-5" />
+                        <span className="font-medium">Favorites</span>
                       </Link>
-                      <Link to="/watch-history" className="flex items-center gap-2 py-3 px-2 hover:bg-wolzi-accent/10 rounded-md text-white/80 hover:text-white" onClick={toggleMobileMenu}>
-                        <History className="h-4 w-4" />
-                        Watch History
+                    </motion.div>
+                    
+                    <motion.div whileTap={{ scale: 0.98 }}>
+                      <Link
+                        to="/watch-history"
+                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <History className="h-5 w-5" />
+                        <span className="font-medium">History</span>
                       </Link>
-                      <Button 
-                        variant="ghost" 
-                        className="justify-start text-red-400 hover:text-red-500 hover:bg-red-500/10 w-full py-3 px-2 mt-2" 
+                    </motion.div>
+                    
+                    <motion.div whileTap={{ scale: 0.98 }}>
+                      <button
                         onClick={() => {
                           logout();
-                          toggleMobileMenu();
+                          setMobileMenuOpen(false);
                         }}
+                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 w-full text-left"
                       >
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Log out
-                      </Button>
-                    </>
-                  ) : (
-                    <div className="flex flex-col gap-2 mt-2">
-                      <Button 
-                        variant="outline" 
-                        className="w-full flex items-center justify-center gap-2 border-wolzi-accent/30 text-white/80 hover:text-white hover:bg-wolzi-accent/10"
+                        <LogOut className="h-5 w-5" />
+                        <span className="font-medium">Log Out</span>
+                      </button>
+                    </motion.div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <motion.div whileTap={{ scale: 0.98 }}>
+                      <button
                         onClick={() => {
                           goToLogin();
-                          toggleMobileMenu();
+                          setMobileMenuOpen(false);
                         }}
+                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 w-full text-left"
                       >
-                        <LogIn className="h-4 w-4" />
-                        Log In
-                      </Button>
-                      <Button 
-                        variant="default" 
-                        className="w-full bg-wolzi-accent hover:bg-wolzi-accent text-white"
+                        <LogIn className="h-5 w-5" />
+                        <span className="font-medium">Login</span>
+                      </button>
+                    </motion.div>
+                    
+                    <motion.div whileTap={{ scale: 0.98 }}>
+                      <button
                         onClick={() => {
                           goToSignup();
-                          toggleMobileMenu();
+                          setMobileMenuOpen(false);
                         }}
+                        className="flex items-center py-3 px-4 rounded-lg bg-wolzi-accent hover:bg-wolzi-accent-hover text-white gap-3 w-full text-left"
                       >
-                        Sign Up
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            </nav>
+                        <User className="h-5 w-5" />
+                        <span className="font-medium">Sign Up</span>
+                      </button>
+                    </motion.div>
+                  </div>
+                )}
+              </div>
+            </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Search overlay */}
+      <AnimatePresence>
+        {showSearch && (
+          <motion.form
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 250, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
+            className="relative"
+            onSubmit={handleSearchSubmit}
+          >
+            <Input
+              id="search-input"
+              type="text"
+              placeholder="Search for movies, shows..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pr-10 bg-black/20 border-wolzi-accent/30 focus:border-wolzi-accent focus-visible:ring-1 focus-visible:ring-wolzi-accent/50 rounded-full text-sm"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-0 top-0 h-full text-white/70 hover:text-white"
+              onClick={toggleSearch}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </motion.form>
         )}
       </AnimatePresence>
 

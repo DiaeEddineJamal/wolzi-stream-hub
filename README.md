@@ -1,8 +1,8 @@
-# Welcome to your Lovable project
+# WolziFlix - Stream Movies, TV Shows & Anime
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/24647a90-c3ac-4613-911d-838c07dcad2f
+WolziFlix is your premier destination for streaming movies, TV series, and anime. The platform offers a vast library of content that you can enjoy anytime, anywhere.
 
 ## Environment Variables
 
@@ -29,68 +29,78 @@ You'll need to register at [TMDB](https://www.themoviedb.org/) to get an API key
 
 ## How can I edit this code?
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/24647a90-c3ac-4613-911d-838c07dcad2f) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
+There are several ways of editing this application:
 
 **Use your preferred IDE**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+To work locally using your own IDE, follow these steps:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# Step 1: Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Step 2: Navigate to the project directory
+cd wolzi-stream-hub
 
-# Step 3: Install the necessary dependencies.
+# Step 3: Install the necessary dependencies
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Start the development server with auto-reloading and an instant preview
 npm run dev
 ```
 
 **Edit a file directly in GitHub**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- Navigate to the desired file(s)
+- Click the "Edit" button (pencil icon) at the top right of the file view
+- Make your changes and commit the changes
 
 **Use GitHub Codespaces**
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- Navigate to the main page of your repository
+- Click on the "Code" button (green button) near the top right
+- Select the "Codespaces" tab
+- Click on "New codespace" to launch a new Codespace environment
+- Edit files directly within the Codespace and commit and push your changes once you're done
 
 ## What technologies are used for this project?
 
-This project is built with:
+WolziFlix is built with modern web technologies:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- Vite - for fast development and optimized builds
+- TypeScript - for type safety and better developer experience
+- React - for building the user interface
+- shadcn-ui - for beautiful UI components
+- Tailwind CSS - for responsive and customizable styling
+- Supabase - for backend and authentication
+- Framer Motion - for smooth animations
 
-## How can I deploy this project?
+## How to deploy
 
-Simply open [Lovable](https://lovable.dev/projects/24647a90-c3ac-4613-911d-838c07dcad2f) and click on Share -> Publish.
+To deploy WolziFlix, you can use any hosting service that supports static websites like:
 
-## Can I connect a custom domain to my Lovable project?
+- Vercel
+- Netlify
+- GitHub Pages
+- AWS Amplify
 
-Yes, you can!
+For the backend, ensure your Supabase project is properly configured.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Setting up a custom domain
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+To use a custom domain:
+
+1. Purchase a domain from a domain registrar (e.g., Namecheap, GoDaddy)
+2. Configure DNS settings to point to your hosting provider
+3. Set up SSL certificates for secure HTTPS connections
+4. Configure your hosting provider to use your custom domain
+
+## Features
+
+- Streaming movies, TV shows, and anime
+- User authentication and profiles
+- Responsive design for mobile and desktop
+- Search functionality
+- Content recommendations
+- Watchlist and favorites
+- Recently watched history

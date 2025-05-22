@@ -3,7 +3,13 @@
 @tailwind components;
 @tailwind utilities;
 
-  :root {
+/* Add responsive helper classes for mobile optimization */
+.mobile-touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+:root {
   --background: 0 0% 3.9%;
   --foreground: 0 0% 98%;
 

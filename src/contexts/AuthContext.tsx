@@ -22,6 +22,37 @@ interface AuthContextType {
   loading: boolean;
 }
 
+// Helper functions for localStorage
+const PROFILE_STORAGE_KEY = 'wolziflix_user_profile';
+
+const saveProfileToStorage = (profile: UserProfile | null) => {
+  if (profile) {
+    try {
+      localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+    } catch (error) {
+      console.error('Error saving profile to localStorage:', error);
+    }
+  }
+};
+
+const getProfileFromStorage = (): UserProfile | null => {
+  try {
+    const profileData = localStorage.getItem(PROFILE_STORAGE_KEY);
+    return profileData ? JSON.parse(profileData) : null;
+  } catch (error) {
+    console.error('Error reading profile from localStorage:', error);
+    return null;
+  }
+};
+
+const clearProfileFromStorage = () => {
+  try {
+    localStorage.removeItem(PROFILE_STORAGE_KEY);
+  } catch (error) {
+    console.error('Error clearing profile from localStorage:', error);
+  }
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -30,6 +61,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
+
+  // Wrapped setProfile function to also save to localStorage
+  const updateProfileState = (newProfile: UserProfile | null) => {
+    setProfile(newProfile);
+    if (newProfile) {
+      saveProfileToStorage(newProfile);
+    } else {
+      clearProfileFromStorage();
+    }
+  };
 
   // Get user profile function
   const fetchProfile = async (userId: string) => {
@@ -47,6 +88,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       console.log('Profile data fetched:', data);
+      // Save the fetched profile to localStorage
+      if (data) {
+        saveProfileToStorage(data as UserProfile);
+      }
       return data as UserProfile;
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -58,6 +103,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initializeAuth = async () => {
       try {
+        // Try to get cached profile first
+        const cachedProfile = getProfileFromStorage();
+        if (cachedProfile) {
+          console.log('Using cached profile data from localStorage');
+          updateProfileState(cachedProfile);
+          
+          // Immediately set loading to false if we have a cached profile
+          // This ensures the UI shows user data right away
+          setLoading(false);
+        }
+
         // Get the current session
         const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
         
@@ -70,15 +126,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(currentSession.user);
           setIsLoggedIn(true);
 
-          // Fetch profile data
-          const profileData = await fetchProfile(currentSession.user.id);
-          if (profileData) {
-            setProfile(profileData);
+          // If we don't have a cached profile or the user ID doesn't match,
+          // fetch fresh profile data from the database
+          if (!cachedProfile || cachedProfile.id !== currentSession.user.id) {
+            console.log('Fetching fresh profile data from database');
+            const profileData = await fetchProfile(currentSession.user.id);
+            if (profileData) {
+              updateProfileState(profileData);
+            }
+          } else {
+            // Background refresh of profile data for next time
+            // This doesn't block the UI since we've already set loading=false
+            fetchProfile(currentSession.user.id).then(freshProfile => {
+              if (freshProfile) {
+                updateProfileState(freshProfile);
+              }
+            });
           }
+        } else {
+          // No valid session, clear any cached profile
+          clearProfileFromStorage();
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
+        clearProfileFromStorage();
       } finally {
+        // Always ensure loading is false at the end of initialization
         setLoading(false);
       }
     };
@@ -95,12 +168,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoggedIn(!!currentSession);
 
         if (currentSession?.user) {
+          // Try using cached profile if it exists and the ID matches
+          const cachedProfile = getProfileFromStorage();
+          if (cachedProfile && cachedProfile.id === currentSession.user.id) {
+            updateProfileState(cachedProfile);
+            // Set loading to false as soon as we have a profile
+            setLoading(false);
+          }
+          
+          // Always fetch fresh profile data to ensure it's up to date
+          // But don't block the UI if we already have cached data
           const profileData = await fetchProfile(currentSession.user.id);
           if (profileData) {
-            setProfile(profileData);
+            updateProfileState(profileData);
           }
+          
+          // Always ensure loading is false after auth state change
+          setLoading(false);
         } else {
-          setProfile(null);
+          updateProfileState(null);
+          clearProfileFromStorage();
+          setLoading(false);
         }
       }
     );
@@ -126,7 +214,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data.user) {
         const profileData = await fetchProfile(data.user.id);
-        setProfile(profileData);
+        if (profileData) {
+          updateProfileState(profileData);
+        }
       }
     } catch (error) {
       console.error('Error during login:', error);
@@ -172,7 +262,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoggedIn(!!data.session);
 
       const profileData = await fetchProfile(data.user.id);
-      setProfile(profileData);
+      if (profileData) {
+        updateProfileState(profileData);
+      }
 
     } catch (error) {
       console.error('Error during signup:', error);
@@ -188,9 +280,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) throw error;
 
       setUser(null);
-      setProfile(null);
+      updateProfileState(null);
       setSession(null);
       setIsLoggedIn(false);
+      clearProfileFromStorage();
     } catch (error) {
       console.error('Error during logout:', error);
       throw error;
@@ -220,7 +313,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
-      setProfile(prev => prev ? { ...prev, ...data } : data);
+      const updatedProfile = { ...(profile || {}), ...data } as UserProfile;
+      updateProfileState(updatedProfile);
 
       return data;
     } catch (error) {
