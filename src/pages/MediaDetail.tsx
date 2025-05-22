@@ -827,9 +827,9 @@ const MediaDetail: React.FC = () => {
                     allowFullScreen
                     title={`${title} stream`}
                     {...(!disableSandbox ? {
-                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups allow-popups-to-escape-sandbox"
+                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups allow-popups-to-escape-sandbox allow-fullscreen allow-pointer-lock"
                     } : {})}
-                    allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share"
+                    allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share; pointer-lock"
                   ></iframe>
                 )}
                 
@@ -841,9 +841,9 @@ const MediaDetail: React.FC = () => {
                     allowFullScreen
                     title={`${title} S${selectedSeason}E${selectedEpisode} stream`}
                     {...(!disableSandbox ? {
-                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups allow-popups-to-escape-sandbox"
+                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups allow-popups-to-escape-sandbox allow-fullscreen allow-pointer-lock"
                     } : {})}
-                    allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share"
+                    allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share; pointer-lock"
                   ></iframe>
                 )}
                 
@@ -855,9 +855,9 @@ const MediaDetail: React.FC = () => {
                     allowFullScreen
                     title={`${title} episode ${selectedEpisode} stream`}
                     {...(!disableSandbox ? {
-                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups allow-popups-to-escape-sandbox"
+                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups allow-popups-to-escape-sandbox allow-fullscreen allow-pointer-lock"
                     } : {})}
-                    allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share"
+                    allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share; pointer-lock"
                   ></iframe>
                 )}
               </div>

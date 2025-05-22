@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import tmdbApi, { getPosterUrl } from '@/integrations/api/tmdb';
 import { streamingSources, getStreamingUrl } from '@/integrations/api/streamingSources';
+import jikanApi from '@/integrations/api/jikan';
 import ReactPlayer from 'react-player';
 import { ArrowLeft, Info, Bookmark, Heart, Share2, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,6 +20,8 @@ interface SourceItem {
   name: string;
   description?: string;
   isActive: boolean;
+  quality?: string;
+  subtitles?: boolean;
 }
 
 interface SeasonInfo {
@@ -368,7 +371,9 @@ const Watch: React.FC = () => {
     setUseIframe(true);
     
     // Automatically disable sandbox for providers known to reject it
-    if (['vidsrcto', 'vidcloud'].includes(activeSource)) {
+    // Add SuperEmbed and SmashyStream to the list of providers that need sandbox disabled
+    if (['vidsrcto', 'vidcloud', 'superembed', 'smashystream'].includes(activeSource)) {
+      console.log(`Detected ${activeSource} - disabling sandbox for better compatibility`);
       setDisableSandbox(true);
     }
     
@@ -468,7 +473,7 @@ const Watch: React.FC = () => {
       toast({
         title: "Source not available",
         description: "This streaming source is not available",
-        variant: "warning",
+        variant: "destructive",
       });
       return;
     }
@@ -788,7 +793,47 @@ const Watch: React.FC = () => {
     return () => window.removeEventListener('message', handleMessageEvent);
   }, [activeSource]);
   
-  // Update handleIframeLoad function to look for VidSrc.to error indicators
+  // Add a fullscreen helper function
+  const requestFullscreen = () => {
+    try {
+      // Get the iframe element
+      const iframe = document.querySelector('iframe');
+      if (iframe) {
+        // Try to access the iframe content directly (will work only for same-origin content)
+        try {
+          if (iframe.contentDocument && iframe.contentDocument.documentElement) {
+            const iframeDoc = iframe.contentDocument.documentElement;
+            if (iframeDoc.requestFullscreen) {
+              iframeDoc.requestFullscreen();
+            } else if ((iframeDoc as any).webkitRequestFullscreen) {
+              (iframeDoc as any).webkitRequestFullscreen();
+            } else if ((iframeDoc as any).mozRequestFullScreen) {
+              (iframeDoc as any).mozRequestFullScreen();
+            } else if ((iframeDoc as any).msRequestFullscreen) {
+              (iframeDoc as any).msRequestFullscreen();
+            }
+          }
+        } catch (error) {
+          console.log('Direct access to iframe content failed, trying iframe element', error);
+        }
+        
+        // If direct access fails, try the iframe element itself
+        if (iframe.requestFullscreen) {
+          iframe.requestFullscreen();
+        } else if ((iframe as any).webkitRequestFullscreen) {
+          (iframe as any).webkitRequestFullscreen();
+        } else if ((iframe as any).mozRequestFullScreen) {
+          (iframe as any).mozRequestFullScreen();
+        } else if ((iframe as any).msRequestFullscreen) {
+          (iframe as any).msRequestFullscreen();
+        }
+      }
+    } catch (error) {
+      console.error('Error requesting fullscreen:', error);
+    }
+  };
+
+  // Improved handleIframeLoad function to better handle fullscreen
   const handleIframeLoad = () => {
     console.log('Iframe loaded successfully');
     
@@ -805,6 +850,11 @@ const Watch: React.FC = () => {
           action: 'listenForVideoEvents',
           requestProgress: true 
         }, '*');
+        
+        // For SuperEmbed and SmashyStream, ensure we update disableSandbox
+        if ((activeSource === 'superembed' || activeSource === 'smashystream') && !disableSandbox) {
+          console.log('SuperEmbed or SmashyStream detected, ensuring sandbox is properly configured for fullscreen');
+        }
         
         // Add a timeout to ensure loading state is cleared even if the iframe doesn't fully load
         setTimeout(() => {
@@ -873,6 +923,52 @@ const Watch: React.FC = () => {
       }
     }
   }, [actualMediaType, id]);
+  
+  // Add event listener for fullscreen-related messages from the iframe
+  useEffect(() => {
+    const handleFullscreenMessages = (event: MessageEvent) => {
+      // Check if the message might be related to fullscreen requests
+      try {
+        // Some players send 'requestFullscreen' messages
+        if (typeof event.data === 'string' && (
+            event.data.includes('fullscreen') || 
+            event.data.includes('Fullscreen')
+        )) {
+          console.log('Received fullscreen-related message:', event.data);
+          // Try to trigger fullscreen
+          requestFullscreen();
+        } else if (typeof event.data === 'object' && event.data !== null) {
+          // Some players use objects for their messages
+          const data = event.data;
+          if (data.type === 'fullscreen' || 
+              data.action === 'fullscreen' || 
+              data.command === 'fullscreen') {
+            console.log('Received fullscreen request via object:', data);
+            requestFullscreen();
+          }
+        }
+      } catch (error) {
+        console.error('Error processing fullscreen message:', error);
+      }
+    };
+    
+    window.addEventListener('message', handleFullscreenMessages);
+    return () => window.removeEventListener('message', handleFullscreenMessages);
+  }, []);
+  
+  // Add a separate effect to handle keyboard shortcuts for fullscreen (F key)
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // F key for fullscreen
+      if (e.key === 'f' || e.key === 'F') {
+        console.log('F key pressed, attempting fullscreen');
+        requestFullscreen();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
   
   return (
     <div className="flex flex-col h-screen bg-black text-white">
@@ -1233,6 +1329,18 @@ const Watch: React.FC = () => {
                       {(actualMediaType === 'tv' || actualMediaType === 'anime') && (
                         <p className="text-xs text-white/70 mt-1">Auto-Play: <span className={autoNextEnabled ? "text-green-400" : "text-red-400"}>{autoNextEnabled ? "Enabled" : "Disabled"}</span></p>
                       )}
+                      
+                      {/* Special fullscreen help message for problematic sources */}
+                      {(activeSource === 'superembed' || activeSource === 'smashystream') && (
+                        <div className="mt-2 p-2 bg-black/40 rounded-md border border-green-500/30 text-xs text-white/80">
+                          <p className="font-medium text-yellow-400">Fullscreen Tips:</p>
+                          <ul className="list-disc list-inside mt-1 space-y-1">
+                            <li>Use the fullscreen button in the corner</li>
+                            <li>Press F key on your keyboard</li>
+                            <li>Try right-clicking the player</li>
+                          </ul>
+                        </div>
+                      )}
                     </div>
                     <Button variant="outline" size="sm" className="text-xs border-green-500/40 hover:bg-green-500/10 text-white" onClick={() => setShowSettings(false)}>
                       Close
@@ -1307,12 +1415,11 @@ const Watch: React.FC = () => {
                     onError={handleIframeError}
                     title={`${title} player`}
                     {...(!disableSandbox ? {
-                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups allow-popups-to-escape-sandbox"
+                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups allow-popups-to-escape-sandbox allow-fullscreen allow-pointer-lock"
                     } : {})}
-                    allow="fullscreen; autoplay; web-share; picture-in-picture; encrypted-media; clipboard-write"
+                    allow="fullscreen; autoplay; web-share; picture-in-picture; encrypted-media; clipboard-write; pointer-lock"
                     referrerPolicy="no-referrer"
                     loading="eager"
-                    importance="high"
                     style={{ 
                       position: 'absolute', 
                       top: 0, 
@@ -1362,6 +1469,7 @@ const Watch: React.FC = () => {
                     style={{ backgroundColor: '#000', minHeight: '75vh' }}
                   />
                 )}
+                
                 <motion.div 
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0, transition: { delay: 0.5 } }}
@@ -1370,6 +1478,22 @@ const Watch: React.FC = () => {
                 >
                   {activeSource.toUpperCase()}
                 </motion.div>
+                
+                {/* Full Screen Button Override for SuperEmbed and SmashyStream */}
+                {useIframe && (activeSource === 'superembed' || activeSource === 'smashystream') && !isLoading && (
+                  <div 
+                    className="absolute bottom-10 right-10 z-20 bg-black/60 backdrop-blur-sm rounded-full p-2 cursor-pointer hover:bg-black/80 transition-all duration-200"
+                    onClick={requestFullscreen}
+                    title="Enter Fullscreen Mode"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+                      <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
+                      <path d="M21 8V5a2 2 0 0 0-2-2h-3"></path>
+                      <path d="M3 16v3a2 2 0 0 0 2 2h3"></path>
+                      <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+                    </svg>
+                  </div>
+                )}
                 
                 {/* Next Episode Overlay */}
                 <AnimatePresence>
