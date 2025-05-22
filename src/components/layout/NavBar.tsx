@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, User, Heart, History, LogIn, Menu, X, Home, Film, Tv, TrendingUp, LogOut, ChevronDown } from "lucide-react";
+import { Search, User, Heart, History, LogIn, Menu, X, Home, Film, Tv, TrendingUp, LogOut, ChevronDown, Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import UserMenu from "@/components/auth/UserMenu";
@@ -316,6 +316,23 @@ const NavBar: React.FC = () => {
             </AnimatePresence>
           </div>
           
+          {/* GitHub Icon */}
+          <a 
+            href="https://github.com/DiaeEddineJamal" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center"
+          >
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="text-wolzi-light-gray hover:text-white transition-colors"
+              aria-label="GitHub Profile"
+            >
+              <Github className="h-[1.2rem] w-[1.2rem]" />
+            </Button>
+          </a>
+          
           <div className="hidden sm:block">
             {isLoggedIn ? (
               <UserMenu />
@@ -427,6 +444,19 @@ const NavBar: React.FC = () => {
                     </motion.div>
                     
                     <motion.div whileTap={{ scale: 0.98 }}>
+                      <a
+                        href="https://github.com/DiaeEddineJamal"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 w-full"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <Github className="h-5 w-5" />
+                        <span className="font-medium">GitHub</span>
+                      </a>
+                    </motion.div>
+                    
+                    <motion.div whileTap={{ scale: 0.98 }}>
                       <button
                         onClick={() => {
                           logout();
@@ -465,6 +495,19 @@ const NavBar: React.FC = () => {
                         <User className="h-5 w-5" />
                         <span className="font-medium">Sign Up</span>
                       </button>
+                    </motion.div>
+                    
+                    <motion.div whileTap={{ scale: 0.98 }}>
+                      <a
+                        href="https://github.com/DiaeEddineJamal"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 w-full"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <Github className="h-5 w-5" />
+                        <span className="font-medium">GitHub</span>
+                      </a>
                     </motion.div>
                     </div>
                   )}
