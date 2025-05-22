@@ -1,3 +1,4 @@
+@import "./styles/frosted-glass.css";  /* Import frosted glass styles */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

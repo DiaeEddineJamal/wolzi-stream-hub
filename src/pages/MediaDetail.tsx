@@ -1160,7 +1160,6 @@ const MediaDetail: React.FC = () => {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {streamingSources
-                  .filter(source => ['embedsu', 'vidsrcto'].includes(source.id))
                   .map((source) => (
                   <div 
                     key={source.id}
@@ -1185,6 +1184,16 @@ const MediaDetail: React.FC = () => {
                         {source.id === 'vidsrcto' && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/30 text-green-200">
                             Fast Streaming
+                          </span>
+                        )}
+                        {source.id === 'superembed' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-500/30 text-purple-200">
+                            High Quality
+                          </span>
+                        )}
+                        {source.id === 'smashystream' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/30 text-yellow-200">
+                            Wide Collection
                           </span>
                         )}
                       </div>

@@ -10,9 +10,9 @@ import { Link } from "react-router-dom";
 import axios from 'axios';
 
 // Add the axios instance for anime similar to Anime.tsx
-const TMDB_API_KEY = '2545dfe546bd75d5de4657e85942ecb2';
+const TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY;
 const api = axios.create({
-  baseURL: 'https://api.themoviedb.org/3',
+  baseURL: import.meta.env.VITE_TMDB_BASE_URL || 'https://api.themoviedb.org/3',
   params: {
     api_key: TMDB_API_KEY,
   },

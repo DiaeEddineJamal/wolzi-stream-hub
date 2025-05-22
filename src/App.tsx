@@ -24,9 +24,9 @@ import axios from 'axios';
 const queryClient = new QueryClient();
 
 // Create a TMDB API client for anime queries
-const TMDB_API_KEY = '2545dfe546bd75d5de4657e85942ecb2';
+const TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY;
 const animeApi = axios.create({
-  baseURL: 'https://api.themoviedb.org/3',
+  baseURL: import.meta.env.VITE_TMDB_BASE_URL || 'https://api.themoviedb.org/3',
   params: {
     api_key: TMDB_API_KEY,
   },

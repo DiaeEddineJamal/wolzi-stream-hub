@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Jikan API - Free Anime Database API
-const BASE_URL = 'https://api.jikan.moe/v4';
+const BASE_URL = import.meta.env.VITE_JIKAN_BASE_URL || 'https://api.jikan.moe/v4';
 
 // Create axios instance with base URL
 const api = axios.create({

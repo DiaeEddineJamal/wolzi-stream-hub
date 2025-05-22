@@ -44,22 +44,6 @@ export const streamingSources: StreamingSource[] = [
     isActive: true,
     quality: '1080p',
     subtitles: true
-  },
-  {
-    id: 'flixhq',
-    name: 'FlixHQ',
-    description: 'Premium streams with multiple quality options',
-    isActive: true,
-    quality: '1080p',
-    subtitles: true
-  },
-  {
-    id: 'movieshd',
-    name: 'MoviesHD',
-    description: 'High-definition streams for movies and TV shows',
-    isActive: true,
-    quality: '1080p',
-    subtitles: true
   }
 ];
 
@@ -119,22 +103,6 @@ export const getStreamingUrl = (
       } else {
         // For TV shows and anime
         return `https://embed.smashystream.com/playere.php?tmdb=${tmdbId}&season=${seasonParam}&episode=${episodeParam}`;
-      }
-    
-    case 'flixhq':
-      if (actualMediaType === 'movie') {
-        return `https://flixhq.to/ajax/movie/episodes/${tmdbId}`;
-      } else {
-        // For TV shows and anime
-        return `https://flixhq.to/ajax/v2/episode/seasons/${tmdbId}?s=${seasonParam}&e=${episodeParam}`;
-      }
-    
-    case 'movieshd':
-      if (actualMediaType === 'movie') {
-        return `https://movieshd.watch/embed/${tmdbId}`;
-      } else {
-        // For TV shows and anime
-        return `https://movieshd.watch/embed/${tmdbId}/${seasonParam}/${episodeParam}`;
       }
     
     default:

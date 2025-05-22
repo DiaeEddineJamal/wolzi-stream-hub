@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Search, User, Heart, History, LogIn, Menu, X, Home, Film, Tv, TrendingUp, LogOut, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,9 +30,11 @@ const NavBar: React.FC = () => {
   const location = useLocation();
   const { user, isLoggedIn, logout } = useAuth();
   const [scrolled, setScrolled] = useState(false);
+  const [hidden, setHidden] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
+  const lastScrollY = useRef(0);
   
   // Handle navigation to auth page
   const goToLogin = () => {
@@ -43,20 +45,36 @@ const NavBar: React.FC = () => {
     navigate("/auth?mode=signup");
   };
 
-  // Handle scroll effect with throttling for performance
+  // Enhanced scroll effect with direction detection
   const handleScroll = () => {
-    const scrollY = window.scrollY;
-    if (scrollY > 50) {
+    const currentScrollY = window.scrollY;
+    
+    // Apply scrolled class when scrolled down
+    if (currentScrollY > 50) {
       if (!scrolled) setScrolled(true);
     } else {
       if (scrolled) setScrolled(false);
     }
+    
+    // Hide navbar when scrolling down, show when scrolling up
+    if (currentScrollY > lastScrollY.current && currentScrollY > 400 && !mobileMenuOpen) {
+      setHidden(true);
+    } else {
+      setHidden(false);
+    }
+    
+    lastScrollY.current = currentScrollY;
   };
 
   useEffect(() => {
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [scrolled]);
+    const throttledHandleScroll = () => {
+      // Using requestAnimationFrame for better performance
+      window.requestAnimationFrame(handleScroll);
+    };
+    
+    window.addEventListener("scroll", throttledHandleScroll);
+    return () => window.removeEventListener("scroll", throttledHandleScroll);
+  }, [scrolled, mobileMenuOpen]);
 
   useEffect(() => {
     // Close mobile menu when route changes
@@ -65,6 +83,9 @@ const NavBar: React.FC = () => {
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
+    if (!mobileMenuOpen) {
+      setHidden(false); // Ensure navbar is visible when menu opens
+    }
   };
 
   const toggleSearch = () => {
@@ -121,13 +142,15 @@ const NavBar: React.FC = () => {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-500 py-3",
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-500 navbar-glass border-b border-wolzi-accent/20",
         scrolled 
-          ? "bg-black/85 backdrop-blur-md shadow-lg border-b border-wolzi-accent/20" 
-          : "bg-gradient-to-b from-black/90 to-transparent"
+          ? "navbar-glass-scrolled shadow-[0_4px_30px_rgba(0,0,0,0.3)]" 
+          : "shadow-none",
+        hidden ? "-translate-y-full" : "translate-y-0",
+        mobileMenuOpen ? "bg-black/60" : ""
       )}
     >
-      <div className="container mx-auto px-4 flex items-center justify-between">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         {/* Logo and Main Navigation */}
         <div className="flex items-center">
           <motion.div
@@ -256,7 +279,7 @@ const NavBar: React.FC = () => {
                   placeholder="Search for movies, shows..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-10 bg-black/30 border-wolzi-accent/30 focus:border-wolzi-accent focus-visible:ring-1 focus-visible:ring-wolzi-accent/50 rounded-full text-sm"
+                  className="pr-10 bg-black/20 border-wolzi-accent/30 focus:border-wolzi-accent focus-visible:ring-1 focus-visible:ring-wolzi-accent/50 rounded-full text-sm"
                 />
                 <Button
                   type="button"
@@ -346,7 +369,7 @@ const NavBar: React.FC = () => {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="md:hidden px-4 py-2 bg-black/80 backdrop-blur-md border-t border-wolzi-accent/20"
+            className="md:hidden px-4 py-2 frosted-glass border-t border-wolzi-accent/20"
           >
             <form onSubmit={handleSearchSubmit} className="relative">
               <Input
@@ -355,7 +378,7 @@ const NavBar: React.FC = () => {
                 placeholder="Search movies, shows, anime..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pr-10 bg-black/50 border-wolzi-accent/30 focus:border-wolzi-accent rounded-lg text-sm"
+                className="pr-10 bg-black/30 border-wolzi-accent/30 focus:border-wolzi-accent rounded-lg text-sm"
               />
               <Button
                 type="button"
@@ -379,7 +402,7 @@ const NavBar: React.FC = () => {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="md:hidden bg-black/95 backdrop-blur-lg absolute top-full left-0 right-0 py-4 shadow-lg border-t border-wolzi-accent/20 overflow-hidden"
+            className="md:hidden frosted-glass-dark absolute top-full left-0 right-0 py-4 shadow-lg border-t border-wolzi-accent/20 overflow-hidden"
           >
             <nav className="flex flex-col space-y-1 px-6">
               {!showSearch && (

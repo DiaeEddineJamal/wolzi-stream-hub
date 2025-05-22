@@ -1,0 +1,84 @@
+/* Frosted Glass effect utilities */
+.frosted-glass {
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: all 0.4s ease;
+}
+
+.frosted-glass-light {
+  background-color: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  transition: all 0.4s ease;
+}
+
+.frosted-glass-dark {
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  transition: all 0.4s ease;
+}
+
+/* Glassmorphism card styles */
+.glass-card {
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px 0 rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Navbar-specific glass styles */
+.navbar-glass {
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.navbar-glass-scrolled {
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* Add hover effect for more depth */
+.navbar-glass:hover {
+  background-color: rgba(0, 0, 0, 0.35);
+  transition-duration: 0.2s;
+}
+
+/* Animation classes */
+.slide-up {
+  transform: translateY(-100%);
+  transition: transform 0.3s ease;
+}
+
+.slide-down {
+  transform: translateY(0);
+  transition: transform 0.3s ease;
+}
+
+/* Add green accents for wolzi theme */
+.wolzi-accent-glow {
+  box-shadow: 0 0 15px rgba(29, 185, 84, 0.3);
+}
+
+.wolzi-text-glow {
+  text-shadow: 0 0 8px rgba(29, 185, 84, 0.6);
+} 

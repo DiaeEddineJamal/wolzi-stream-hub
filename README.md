@@ -4,6 +4,29 @@
 
 **URL**: https://lovable.dev/projects/24647a90-c3ac-4613-911d-838c07dcad2f
 
+## Environment Variables
+
+This project requires several environment variables to function properly. Create a `.env` file in the root directory with the following variables:
+
+```
+# Supabase Configuration
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# TMDB API Configuration
+VITE_TMDB_API_KEY=your_tmdb_api_key
+VITE_TMDB_BASE_URL=https://api.themoviedb.org/3
+VITE_TMDB_IMAGE_BASE_URL=https://image.tmdb.org/t/p
+
+# Jikan API Configuration
+VITE_JIKAN_BASE_URL=https://api.jikan.moe/v4
+
+# GogoAnime API Configuration
+VITE_GOGOANIME_BASE_URL=https://api.consumet.org/anime/gogoanime
+```
+
+You'll need to register at [TMDB](https://www.themoviedb.org/) to get an API key and create a Supabase project for the Supabase credentials.
+
 ## How can I edit this code?
 
 There are several ways of editing your application.

@@ -556,7 +556,8 @@ const Watch: React.FC = () => {
   };
   
   const goBack = () => {
-    navigate(-1);
+    // Always navigate back to the details page instead of browser history
+    navigate(`/${actualMediaType}/${id}`);
   };
   
   const goToDetails = () => {
@@ -608,12 +609,6 @@ const Watch: React.FC = () => {
           case 'smashystream':
             testUrl = `https://embed.smashystream.com/playere.php?tmdb=${contentId}`;
             break;
-          case 'flixhq':
-            testUrl = `https://flixhq.to/ajax/movie/episodes/${contentId}`;
-            break;
-          case 'movieshd':
-            testUrl = `https://movieshd.watch/embed/${contentId}`;
-            break;
         }
       } else if (mediaTypeParam === 'tv') {
         // For TV series, we'll test season 1 episode 1
@@ -632,12 +627,6 @@ const Watch: React.FC = () => {
             break;
           case 'smashystream':
             testUrl = `https://embed.smashystream.com/playere.php?tmdb=${contentId}&season=1&episode=1`;
-            break;
-          case 'flixhq':
-            testUrl = `https://flixhq.to/ajax/v2/episode/seasons/${contentId}?s=1&e=1`;
-            break;
-          case 'movieshd':
-            testUrl = `https://movieshd.watch/embed/${contentId}/1/1`;
             break;
         }
       } else if (mediaTypeParam === 'anime') {
@@ -658,12 +647,6 @@ const Watch: React.FC = () => {
             break;
           case 'smashystream':
             testUrl = `https://embed.smashystream.com/playere.php?tmdb=${contentId}&season=1&episode=1`;
-            break;
-          case 'flixhq':
-            testUrl = `https://flixhq.to/ajax/v2/episode/seasons/${contentId}?s=1&e=1`;
-            break;
-          case 'movieshd':
-            testUrl = `https://movieshd.watch/embed/${contentId}/1/1`;
             break;
         }
       }
@@ -896,11 +879,13 @@ const Watch: React.FC = () => {
       {/* Header */}
       <header className="bg-wolzi-bg/80 backdrop-blur-md py-3 px-4 flex items-center justify-between z-10">
         <div className="flex items-center">
+          {/* Back button - always returns to media details page */}
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={goBack}
             className="mr-3 text-wolzi-light-gray hover:text-white"
+            title="Return to details page"
           >
             <ArrowLeft size={20} />
           </Button>
@@ -1025,12 +1010,9 @@ const Watch: React.FC = () => {
                     handleSourceChange(e.target.value);
                   }}
                 >
-                  {sources
-                    .filter(source => source.isActive)
-                    .map((source) => (
-                      <option key={source.id} value={source.id}>{source.name}</option>
-                    ))
-                  }
+                  {sources.map(source => (
+                    <option key={source.id} value={source.id}>{source.name}</option>
+                  ))}
                 </select>
                 <div className="absolute right-3 top-2.5 pointer-events-none text-green-500">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1199,7 +1181,7 @@ const Watch: React.FC = () => {
                   <div className="bg-black/50 rounded p-3 border border-green-500/20">
                     <p className="text-xs text-white/90 mb-2">Available sources:</p>
                     <div className="flex flex-wrap gap-2">
-                      {sources.filter(source => source.isActive).map(source => (
+                      {sources.map(source => (
                         <Button 
                           key={source.id} 
                           size="sm"
@@ -1477,65 +1459,59 @@ const Watch: React.FC = () => {
           <div>
             <h3 className="text-sm font-medium mb-2 text-wolzi-light-gray">Available Sources</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {sources
-                .filter(source => source.isActive)
-                .map((source) => (
-                  <motion.div
-                    key={source.id}
-                    whileHover={{ y: -4, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)" }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`
-                      p-4 rounded-lg cursor-pointer border transition-all 
-                      ${source.isActive 
-                        ? 'bg-gradient-to-br from-wolzi-accent to-wolzi-accent/80 text-white border-wolzi-accent shadow-lg shadow-wolzi-accent/20' 
-                        : 'bg-wolzi-dark-gray/70 backdrop-blur-sm border-wolzi-gray/30 hover:bg-wolzi-dark-gray text-white'
-                      }
-                    `}
-                    onClick={() => handleSourceChange(source.id)}
-                  >
-                    <div className="flex justify-between items-start mb-1">
-                      <h3 className="font-semibold">{source.name}</h3>
-                      <div className="flex items-center">
-                        {source.isActive && (
-                          <span className="bg-white/30 text-white text-xs px-2 py-0.5 rounded-full mr-1">
-                            Active
-                          </span>
-                        )}
-                        {source.quality && (
-                          <span className={`
-                            ${source.id === 'embedsu' ? 'bg-blue-500/80' : ''}
-                            ${source.id === 'vidsrcto' ? 'bg-green-500/80' : ''}
-                            ${source.id === 'superembed' ? 'bg-purple-500/80' : ''}
-                            ${source.id === 'smashystream' ? 'bg-yellow-500/80' : ''}
-                            ${source.id === 'flixhq' ? 'bg-red-500/80' : ''}
-                            ${source.id === 'movieshd' ? 'bg-orange-500/80' : ''}
-                            text-white text-xs px-1.5 py-0.5 rounded-full
-                          `}>
-                            {source.quality}
-                          </span>
-                        )}
-                      </div>
+              {sources.map((source) => (
+                <motion.div
+                  key={source.id}
+                  whileHover={{ y: -4, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)" }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`
+                    p-4 rounded-lg cursor-pointer border transition-all 
+                    ${source.isActive 
+                      ? 'bg-gradient-to-br from-wolzi-accent to-wolzi-accent/80 text-white border-wolzi-accent shadow-lg shadow-wolzi-accent/20' 
+                      : 'bg-wolzi-dark-gray/70 backdrop-blur-sm border-wolzi-gray/30 hover:bg-wolzi-dark-gray text-white'
+                    }
+                  `}
+                  onClick={() => handleSourceChange(source.id)}
+                >
+                  <div className="flex justify-between items-start mb-1">
+                    <h3 className="font-semibold">{source.name}</h3>
+                    <div className="flex items-center">
+                      {source.isActive && (
+                        <span className="bg-white/30 text-white text-xs px-2 py-0.5 rounded-full mr-1">
+                          Active
+                        </span>
+                      )}
+                      {source.quality && (
+                        <span className={`
+                          ${source.id === 'embedsu' ? 'bg-blue-500/80' : ''}
+                          ${source.id === 'vidsrcto' ? 'bg-green-500/80' : ''}
+                          ${source.id === 'superembed' ? 'bg-purple-500/80' : ''}
+                          ${source.id === 'smashystream' ? 'bg-yellow-500/80' : ''}
+                          text-white text-xs px-1.5 py-0.5 rounded-full
+                        `}>
+                          {source.quality}
+                        </span>
+                      )}
                     </div>
-                    
-                    {source.description && (
-                      <p className="text-xs opacity-90">{source.description}</p>
-                    )}
-                    
-                    <div className="mt-2 text-xs">
-                      <div className="flex items-center">
-                        <span className="inline-block w-2 h-2 rounded-full 
-                          ${source.id === 'embedsu' ? 'bg-blue-400' : ''}
-                          ${source.id === 'vidsrcto' ? 'bg-green-400' : ''}
-                          ${source.id === 'superembed' ? 'bg-purple-400' : ''}
-                          ${source.id === 'smashystream' ? 'bg-yellow-400' : ''}
-                          ${source.id === 'flixhq' ? 'bg-red-400' : ''}
-                          ${source.id === 'movieshd' ? 'bg-orange-400' : ''}
-                          mr-1.5"></span>
-                        {source.description?.split(' ')[0] || 'Quality'} streams
-                      </div>
+                  </div>
+                  
+                  {source.description && (
+                    <p className="text-xs opacity-90">{source.description}</p>
+                  )}
+                  
+                  <div className="mt-2 text-xs">
+                    <div className="flex items-center">
+                      <span className="inline-block w-2 h-2 rounded-full 
+                        ${source.id === 'embedsu' ? 'bg-blue-400' : ''}
+                        ${source.id === 'vidsrcto' ? 'bg-green-400' : ''}
+                        ${source.id === 'superembed' ? 'bg-purple-400' : ''}
+                        ${source.id === 'smashystream' ? 'bg-yellow-400' : ''}
+                        mr-1.5"></span>
+                      {source.description?.split(' ')[0] || 'Quality'} streams
                     </div>
-                  </motion.div>
-                ))}
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </div>
         </div>
@@ -1555,8 +1531,6 @@ const Watch: React.FC = () => {
             <li><span className="font-medium text-green-400">VidSrc.to</span>: Fast loading streams with good quality and minimal buffering</li>
             <li><span className="font-medium text-purple-400">SuperEmbed</span>: High quality streams with fast servers</li>
             <li><span className="font-medium text-yellow-400">SmashyStream</span>: Wide collection of movies and TV shows</li>
-            <li><span className="font-medium text-red-400">FlixHQ</span>: Premium streams with multiple quality options</li>
-            <li><span className="font-medium text-orange-400">MoviesHD</span>: High-definition streams for movies and TV shows</li>
           </ul>
         </div>
       </div>

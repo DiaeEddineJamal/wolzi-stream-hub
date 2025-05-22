@@ -2,9 +2,9 @@ import axios from 'axios';
 
 // Using TMDB API as it's free with registration
 // You'll need to register at https://www.themoviedb.org/ to get an API key
-const TMDB_API_KEY = '2545dfe546bd75d5de4657e85942ecb2'; // Replace with environment variable in production
-const BASE_URL = 'https://api.themoviedb.org/3';
-const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
+const TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY;
+const BASE_URL = import.meta.env.VITE_TMDB_BASE_URL || 'https://api.themoviedb.org/3';
+const IMAGE_BASE_URL = import.meta.env.VITE_TMDB_IMAGE_BASE_URL || 'https://image.tmdb.org/t/p';
 
 // Image sizes
 export const posterSizes = {

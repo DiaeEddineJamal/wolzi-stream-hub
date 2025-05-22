@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // For simplicity, we'll use a free Gogoanime API proxy
 // In a production app, you might want to set up your own proxy or use a paid API
-const BASE_URL = 'https://api.consumet.org/anime/gogoanime';
+const BASE_URL = import.meta.env.VITE_GOGOANIME_BASE_URL || 'https://api.consumet.org/anime/gogoanime';
 
 // Create axios instance with base URL
 const api = axios.create({
