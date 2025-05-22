@@ -1307,7 +1307,7 @@ const Watch: React.FC = () => {
                     onError={handleIframeError}
                     title={`${title} player`}
                     {...(!disableSandbox ? {
-                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups"
+                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups allow-popups-to-escape-sandbox"
                     } : {})}
                     allow="fullscreen; autoplay; web-share; picture-in-picture; encrypted-media; clipboard-write"
                     referrerPolicy="no-referrer"

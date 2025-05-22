@@ -827,7 +827,7 @@ const MediaDetail: React.FC = () => {
                     allowFullScreen
                     title={`${title} stream`}
                     {...(!disableSandbox ? {
-                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups"
+                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups allow-popups-to-escape-sandbox"
                     } : {})}
                     allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share"
                   ></iframe>
@@ -841,7 +841,7 @@ const MediaDetail: React.FC = () => {
                     allowFullScreen
                     title={`${title} S${selectedSeason}E${selectedEpisode} stream`}
                     {...(!disableSandbox ? {
-                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups"
+                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups allow-popups-to-escape-sandbox"
                     } : {})}
                     allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share"
                   ></iframe>
@@ -855,7 +855,7 @@ const MediaDetail: React.FC = () => {
                     allowFullScreen
                     title={`${title} episode ${selectedEpisode} stream`}
                     {...(!disableSandbox ? {
-                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups"
+                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups allow-popups-to-escape-sandbox"
                     } : {})}
                     allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share"
                   ></iframe>

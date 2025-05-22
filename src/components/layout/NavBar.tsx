@@ -35,6 +35,7 @@ const NavBar: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const lastScrollY = useRef(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   
   // Handle navigation to auth page
   const goToLogin = () => {
@@ -91,9 +92,10 @@ const NavBar: React.FC = () => {
   const toggleSearch = () => {
     setShowSearch(!showSearch);
     if (!showSearch) {
+      // Focus the search input after the animation completes
       setTimeout(() => {
-        document.getElementById("search-input")?.focus();
-      }, 100);
+        searchInputRef.current?.focus();
+      }, 300);
     }
   };
 
@@ -142,7 +144,7 @@ const NavBar: React.FC = () => {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-500 navbar-glass border-b border-wolzi-accent/20",
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 navbar-glass border-b border-wolzi-accent/20",
         scrolled 
           ? "navbar-glass-scrolled shadow-[0_4px_30px_rgba(0,0,0,0.3)]" 
           : "shadow-none",
@@ -263,20 +265,61 @@ const NavBar: React.FC = () => {
 
         {/* Right side: Search, Login, User */}
         <div className="flex items-center space-x-1">
+          {/* Search Input and Icon */}
+          <div className="flex items-center relative">
+            <AnimatePresence>
+              {showSearch ? (
+                <motion.form
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: "240px", opacity: 1 }}
+                  exit={{ width: 0, opacity: 0 }}
+                  transition={{ 
+                    type: "spring", 
+                    stiffness: 400, 
+                    damping: 30,
+                    opacity: { duration: 0.2 }
+                  }}
+                  className="absolute right-0 top-1/2 transform -translate-y-1/2"
+                  onSubmit={handleSearchSubmit}
+                >
+                  <Input
+                    ref={searchInputRef}
+                    id="search-input"
+                    type="text"
+                    placeholder="Search for movies, TV shows..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pr-10 bg-black/30 border-wolzi-accent/30 focus:border-wolzi-accent 
+                              focus-visible:ring-1 focus-visible:ring-wolzi-accent/50 rounded-full text-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 text-white/70 hover:text-white"
+                    onClick={toggleSearch}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </motion.form>
+              ) : (
                 <Button 
                   variant="ghost" 
                   size="icon" 
                   onClick={toggleSearch}
-            className="text-wolzi-light-gray hover:text-white transition-colors"
-            aria-label="Toggle search"
+                  className="text-wolzi-light-gray hover:text-white transition-colors"
+                  aria-label="Toggle search"
                 >
-            <Search className="h-[1.2rem] w-[1.2rem]" />
+                  <Search className="h-[1.2rem] w-[1.2rem]" />
                 </Button>
+              )}
+            </AnimatePresence>
+          </div>
           
           <div className="hidden sm:block">
-          {isLoggedIn ? (
-            <UserMenu />
-          ) : (
+            {isLoggedIn ? (
+              <UserMenu />
+            ) : (
               <div className="flex items-center space-x-2">
                 <Button 
                   onClick={goToLogin} 
@@ -291,9 +334,9 @@ const NavBar: React.FC = () => {
                 >
                   Sign Up
                 </Button>
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
 
           <Button
             variant="ghost"
@@ -428,38 +471,6 @@ const NavBar: React.FC = () => {
                 </div>
             </div>
           </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Search overlay */}
-      <AnimatePresence>
-        {showSearch && (
-          <motion.form
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 250, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
-            className="relative"
-            onSubmit={handleSearchSubmit}
-          >
-            <Input
-              id="search-input"
-              type="text"
-              placeholder="Search for movies, shows..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pr-10 bg-black/20 border-wolzi-accent/30 focus:border-wolzi-accent focus-visible:ring-1 focus-visible:ring-wolzi-accent/50 rounded-full text-sm"
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute right-0 top-0 h-full text-white/70 hover:text-white"
-              onClick={toggleSearch}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </motion.form>
         )}
       </AnimatePresence>
 

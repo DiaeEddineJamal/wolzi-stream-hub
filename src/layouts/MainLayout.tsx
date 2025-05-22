@@ -17,18 +17,25 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   }, [location.pathname]);
   
   return (
-    <div className="flex flex-col min-h-screen bg-black text-white">
+    <div className="flex flex-col min-h-screen bg-black text-white overflow-hidden">
       {/* Global NavBar - appears on all pages */}
       <NavBar />
       
       {/* Main content with responsive padding that adjusts for mobile */}
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" initial={false}>
         <motion.main 
           key={location.pathname}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={{ 
+            duration: 0.15,
+            ease: "easeInOut"
+          }}
+          style={{ 
+            willChange: "opacity",
+            position: "relative" 
+          }}
           className="flex-grow pt-14 sm:pt-16 transition-all duration-300 overflow-x-hidden"
         >
           {children}
