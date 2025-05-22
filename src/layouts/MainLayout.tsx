@@ -29,7 +29,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="flex-grow pt-12 sm:pt-16 md:pt-20 transition-all duration-300 overflow-x-hidden"
+          className="flex-grow pt-14 sm:pt-16 transition-all duration-300 overflow-x-hidden"
         >
           {children}
         </motion.main>

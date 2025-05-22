@@ -710,28 +710,28 @@ const MediaDetail: React.FC = () => {
         
         <div className="hero-banner-overlay">
           <div className="container mx-auto px-4">
-            <div className="hero-banner-content md:max-w-[50%] max-w-full w-full px-2 md:px-4">
-              <h1 className="text-2xl md:text-4xl font-bold mb-2">{title}</h1>
+            <div className="hero-banner-content">
+              <h1 className="text-4xl font-bold mb-2">{title}</h1>
               
-              <div className="flex flex-wrap items-center mb-4 text-wolzi-light-gray text-sm md:text-base gap-2 md:gap-3">
-                <span className="text-yellow-400">★ {mediaDetails?.vote_average?.toFixed(1)}</span>
-                <span>
+              <div className="flex items-center mb-4 text-wolzi-light-gray">
+                <span className="mr-3 text-yellow-400">★ {mediaDetails?.vote_average?.toFixed(1)}</span>
+                <span className="mr-3">
                   {mediaDetails?.release_date ? new Date(mediaDetails.release_date).getFullYear() : 
                    mediaDetails?.first_air_date ? new Date(mediaDetails.first_air_date).getFullYear() : 'Unknown'}
                 </span>
                 {mediaDetails?.runtime && (
-                  <span>{Math.floor(mediaDetails.runtime / 60)}h {mediaDetails.runtime % 60}m</span>
+                  <span className="mr-3">{Math.floor(mediaDetails.runtime / 60)}h {mediaDetails.runtime % 60}m</span>
                 )}
                 {mediaDetails?.genres && (
-                  <span className="hidden md:inline">{mediaDetails.genres.slice(0, 3).map(g => g.name).join(', ')}</span>
+                  <span>{mediaDetails.genres.slice(0, 3).map(g => g.name).join(', ')}</span>
                 )}
               </div>
               
-              <p className="text-wolzi-text mb-6 text-sm md:text-base line-clamp-3 md:line-clamp-none">{mediaDetails?.overview}</p>
+              <p className="text-wolzi-text mb-6">{mediaDetails?.overview}</p>
               
               <div className="flex flex-wrap items-center gap-2">
                 <Button 
-                  className="glow-button text-sm md:text-base py-1 md:py-2" 
+                  className="glow-button" 
                   onClick={handleWatchNow}
                 >
                   <Play className="mr-2 h-4 w-4" />
@@ -741,7 +741,7 @@ const MediaDetail: React.FC = () => {
                 {trailerKey && (
                   <Button 
                     variant="outline" 
-                    className="flex items-center text-sm md:text-base py-1 md:py-2" 
+                    className="flex items-center" 
                     onClick={() => setActiveTab('trailer')}
                   >
                     <PlayCircle className="mr-2 h-4 w-4" />
@@ -749,7 +749,7 @@ const MediaDetail: React.FC = () => {
                   </Button>
                 )}
                 
-                <Button variant="outline" className="text-sm md:text-base py-1 md:py-2">
+                <Button variant="outline">
                   Add to List
                 </Button>
               </div>
@@ -759,19 +759,19 @@ const MediaDetail: React.FC = () => {
       </div>
       
       {/* Content Area */}
-      <div className="container mx-auto py-4 md:py-8 px-3 md:px-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 md:mt-6">
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 md:w-auto md:flex overflow-x-auto">
-            {trailerKey && <TabsTrigger value="trailer" className="text-xs md:text-sm py-1.5 md:py-2">Trailer</TabsTrigger>}
-            <TabsTrigger value="stream" className="text-xs md:text-sm py-1.5 md:py-2">Watch</TabsTrigger>
-            <TabsTrigger value="details" className="text-xs md:text-sm py-1.5 md:py-2">Details</TabsTrigger>
+      <div className="container mx-auto py-8 px-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
+          <TabsList className="grid w-full grid-cols-5 md:w-auto md:flex">
+            {trailerKey && <TabsTrigger value="trailer">Trailer</TabsTrigger>}
+            <TabsTrigger value="stream">Watch</TabsTrigger>
+            <TabsTrigger value="details">Details</TabsTrigger>
             {actualMediaType === 'tv' && (
-              <TabsTrigger value="episodes" className="text-xs md:text-sm py-1.5 md:py-2">Episodes</TabsTrigger>
+              <TabsTrigger value="episodes">Episodes</TabsTrigger>
             )}
             {actualMediaType === 'anime' && (
-              <TabsTrigger value="episodes" className="text-xs md:text-sm py-1.5 md:py-2">Episodes</TabsTrigger>
+              <TabsTrigger value="episodes">Episodes</TabsTrigger>
             )}
-            <TabsTrigger value="sources" className="text-xs md:text-sm py-1.5 md:py-2">Sources</TabsTrigger>
+            <TabsTrigger value="sources">Sources</TabsTrigger>
           </TabsList>
           
           {/* Trailer Tab */}
@@ -953,7 +953,7 @@ const MediaDetail: React.FC = () => {
                             }}
                           >
                             <div className="flex flex-col md:flex-row gap-4">
-                              <div className="w-full md:w-1/4 lg:w-1/5 relative rounded-md overflow-hidden">
+                              <div className="md:w-1/4 lg:w-1/5 relative rounded-md overflow-hidden">
                                 {episode.still_path ? (
                                   <img 
                                     src={`https://image.tmdb.org/t/p/w300${episode.still_path}`}
@@ -975,18 +975,18 @@ const MediaDetail: React.FC = () => {
                                 )}
                               </div>
                               
-                              <div className="w-full md:w-3/4 lg:w-4/5">
+                              <div className="md:w-3/4 lg:w-4/5">
                                 <div className="flex justify-between mb-2">
-                                  <h3 className="text-base md:text-lg font-medium group-hover:text-green-400 transition-colors">
+                                  <h3 className="text-lg font-medium group-hover:text-green-400 transition-colors">
                                     {episode.name}
                                   </h3>
                                 </div>
                                 
-                                <div className="text-xs md:text-sm text-white/80 mb-2">
+                                <div className="text-sm text-white/80 mb-2">
                                   {episode.air_date ? new Date(episode.air_date).toLocaleDateString() : 'TBA'}
                                 </div>
                                 
-                                <p className="text-white/70 text-xs md:text-sm line-clamp-2 md:line-clamp-none">{episode.overview || 'No description available.'}</p>
+                                <p className="text-white/70 text-sm line-clamp-2 md:line-clamp-none">{episode.overview || 'No description available.'}</p>
                                 
                                 <div className="mt-3 flex justify-end">
                                   <Button 
@@ -1075,7 +1075,7 @@ const MediaDetail: React.FC = () => {
                           }}
                         >
                           <div className="flex flex-col md:flex-row gap-4">
-                            <div className="w-full md:w-1/4 lg:w-1/5 relative rounded-md overflow-hidden">
+                            <div className="md:w-1/4 lg:w-1/5 relative rounded-md overflow-hidden">
                               {episode.still_path ? (
                                 <img 
                                   src={`https://image.tmdb.org/t/p/w300${episode.still_path}`}
@@ -1097,18 +1097,18 @@ const MediaDetail: React.FC = () => {
                               )}
                             </div>
                             
-                            <div className="w-full md:w-3/4 lg:w-4/5">
+                            <div className="md:w-3/4 lg:w-4/5">
                               <div className="flex justify-between mb-2">
-                                <h3 className="text-base md:text-lg font-medium group-hover:text-green-400 transition-colors">
+                                <h3 className="text-lg font-medium group-hover:text-green-400 transition-colors">
                                   {episode.name}
                                 </h3>
                               </div>
                               
-                              <div className="text-xs md:text-sm text-white/80 mb-2">
+                              <div className="text-sm text-white/80 mb-2">
                                 {episode.air_date ? new Date(episode.air_date).toLocaleDateString() : 'TBA'}
                               </div>
                               
-                              <p className="text-white/70 text-xs md:text-sm line-clamp-2 md:line-clamp-none">{episode.overview || 'No description available.'}</p>
+                              <p className="text-white/70 text-sm line-clamp-2 md:line-clamp-none">{episode.overview || 'No description available.'}</p>
                               
                               <div className="mt-3 flex justify-end">
                                 <Button 
@@ -1163,42 +1163,42 @@ const MediaDetail: React.FC = () => {
                   .map((source) => (
                   <div 
                     key={source.id}
-                    className={`p-3 md:p-4 rounded-md cursor-pointer border transition-all duration-200 hover:shadow-md ${
+                    className={`p-4 rounded-md cursor-pointer border transition-all duration-200 hover:shadow-md ${
                       source.isActive 
                         ? 'bg-wolzi-accent/20 border-wolzi-accent' 
                         : 'bg-wolzi-dark-gray/50 border-wolzi-gray/30 hover:bg-wolzi-dark-gray'
                     }`}
                     onClick={() => handleSourceChange(source.id)}
                   >
-                    <h3 className="font-medium text-sm md:text-base">{source.name}</h3>
+                    <h3 className="font-medium">{source.name}</h3>
                     {source.description && (
-                      <p className="text-xs md:text-sm text-wolzi-light-gray mt-1">{source.description}</p>
+                      <p className="text-sm text-wolzi-light-gray mt-1">{source.description}</p>
                     )}
                     <div className="flex justify-between mt-2">
-                      <div className="text-[10px] md:text-xs">
+                      <div className="text-xs">
                         {source.id === 'embedsu' && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] md:text-xs font-medium bg-blue-500/30 text-blue-200">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-500/30 text-blue-200">
                             Premium Quality
                           </span>
                         )}
                         {source.id === 'vidsrcto' && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] md:text-xs font-medium bg-green-500/30 text-green-200">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/30 text-green-200">
                             Fast Streaming
                           </span>
                         )}
                         {source.id === 'superembed' && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] md:text-xs font-medium bg-purple-500/30 text-purple-200">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-500/30 text-purple-200">
                             High Quality
                           </span>
                         )}
                         {source.id === 'smashystream' && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] md:text-xs font-medium bg-yellow-500/30 text-yellow-200">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/30 text-yellow-200">
                             Wide Collection
                           </span>
                         )}
                       </div>
                       {source.isActive && (
-                        <span className="text-[10px] md:text-xs bg-wolzi-accent px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-white">Active</span>
+                        <span className="text-xs bg-wolzi-accent px-2 py-1 rounded-full text-white">Active</span>
                       )}
                     </div>
                   </div>

@@ -48,9 +48,9 @@ const UserMenu: React.FC = () => {
     // Get display name
     const displayName = profile?.username || user.email?.split('@')[0] || 'User';
 
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="relative h-8 w-8 rounded-full focus:ring-2 focus:ring-wolzi-accent/50 focus:ring-offset-2 focus:ring-offset-wolzi-bg">
             <Avatar className="h-8 w-8 border border-wolzi-accent/30 transition-all hover:border-wolzi-accent/70">
               <AvatarImage 
@@ -59,38 +59,38 @@ const UserMenu: React.FC = () => {
               />
               <AvatarFallback className="bg-wolzi-accent/20 text-wolzi-accent font-medium">
                 {getInitials()}
-              </AvatarFallback>
-            </Avatar>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56 frosted-glass" align="end" forceMount>
-          <div className="flex flex-col space-y-1 p-2">
+            </AvatarFallback>
+          </Avatar>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56 frosted-glass" align="end" forceMount>
+        <div className="flex flex-col space-y-1 p-2">
             <p className="text-sm font-medium">{displayName}</p>
-            <p className="text-xs text-wolzi-light-gray">{user.email}</p>
-          </div>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <Link to="/profile" className="cursor-pointer flex w-full items-center">
-              <User className="mr-2 h-4 w-4" />
-              <span>Profile</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link to="/settings" className="cursor-pointer flex w-full items-center">
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onClick={() => logout()}
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            <span>Log out</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+          <p className="text-xs text-wolzi-light-gray">{user.email}</p>
+        </div>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/profile" className="cursor-pointer flex w-full items-center">
+            <User className="mr-2 h-4 w-4" />
+            <span>Profile</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/settings" className="cursor-pointer flex w-full items-center">
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Settings</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          className="cursor-pointer"
+          onClick={() => logout()}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>Log out</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
     );
   }
 

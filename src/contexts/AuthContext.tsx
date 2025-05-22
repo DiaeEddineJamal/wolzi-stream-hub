@@ -130,10 +130,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // fetch fresh profile data from the database
           if (!cachedProfile || cachedProfile.id !== currentSession.user.id) {
             console.log('Fetching fresh profile data from database');
-            const profileData = await fetchProfile(currentSession.user.id);
-            if (profileData) {
+          const profileData = await fetchProfile(currentSession.user.id);
+          if (profileData) {
               updateProfileState(profileData);
-            }
+          }
           } else {
             // Background refresh of profile data for next time
             // This doesn't block the UI since we've already set loading=false

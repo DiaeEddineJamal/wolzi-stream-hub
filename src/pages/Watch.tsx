@@ -1011,7 +1011,7 @@ const Watch: React.FC = () => {
                   }}
                 >
                   {sources.map(source => (
-                    <option key={source.id} value={source.id}>{source.name}</option>
+                      <option key={source.id} value={source.id}>{source.name}</option>
                   ))}
                 </select>
                 <div className="absolute right-3 top-2.5 pointer-events-none text-green-500">
@@ -1460,58 +1460,58 @@ const Watch: React.FC = () => {
             <h3 className="text-sm font-medium mb-2 text-wolzi-light-gray">Available Sources</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {sources.map((source) => (
-                <motion.div
-                  key={source.id}
-                  whileHover={{ y: -4, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)" }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`
-                    p-4 rounded-lg cursor-pointer border transition-all 
-                    ${source.isActive 
-                      ? 'bg-gradient-to-br from-wolzi-accent to-wolzi-accent/80 text-white border-wolzi-accent shadow-lg shadow-wolzi-accent/20' 
-                      : 'bg-wolzi-dark-gray/70 backdrop-blur-sm border-wolzi-gray/30 hover:bg-wolzi-dark-gray text-white'
-                    }
-                  `}
-                  onClick={() => handleSourceChange(source.id)}
-                >
-                  <div className="flex justify-between items-start mb-1">
-                    <h3 className="font-semibold">{source.name}</h3>
-                    <div className="flex items-center">
-                      {source.isActive && (
-                        <span className="bg-white/30 text-white text-xs px-2 py-0.5 rounded-full mr-1">
-                          Active
-                        </span>
-                      )}
-                      {source.quality && (
-                        <span className={`
-                          ${source.id === 'embedsu' ? 'bg-blue-500/80' : ''}
-                          ${source.id === 'vidsrcto' ? 'bg-green-500/80' : ''}
-                          ${source.id === 'superembed' ? 'bg-purple-500/80' : ''}
-                          ${source.id === 'smashystream' ? 'bg-yellow-500/80' : ''}
-                          text-white text-xs px-1.5 py-0.5 rounded-full
-                        `}>
-                          {source.quality}
-                        </span>
-                      )}
+                  <motion.div
+                    key={source.id}
+                    whileHover={{ y: -4, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)" }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`
+                      p-4 rounded-lg cursor-pointer border transition-all 
+                      ${source.isActive 
+                        ? 'bg-gradient-to-br from-wolzi-accent to-wolzi-accent/80 text-white border-wolzi-accent shadow-lg shadow-wolzi-accent/20' 
+                        : 'bg-wolzi-dark-gray/70 backdrop-blur-sm border-wolzi-gray/30 hover:bg-wolzi-dark-gray text-white'
+                      }
+                    `}
+                    onClick={() => handleSourceChange(source.id)}
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <h3 className="font-semibold">{source.name}</h3>
+                      <div className="flex items-center">
+                        {source.isActive && (
+                          <span className="bg-white/30 text-white text-xs px-2 py-0.5 rounded-full mr-1">
+                            Active
+                          </span>
+                        )}
+                        {source.quality && (
+                          <span className={`
+                            ${source.id === 'embedsu' ? 'bg-blue-500/80' : ''}
+                            ${source.id === 'vidsrcto' ? 'bg-green-500/80' : ''}
+                            ${source.id === 'superembed' ? 'bg-purple-500/80' : ''}
+                            ${source.id === 'smashystream' ? 'bg-yellow-500/80' : ''}
+                            text-white text-xs px-1.5 py-0.5 rounded-full
+                          `}>
+                            {source.quality}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  
-                  {source.description && (
-                    <p className="text-xs opacity-90">{source.description}</p>
-                  )}
-                  
-                  <div className="mt-2 text-xs">
-                    <div className="flex items-center">
-                      <span className="inline-block w-2 h-2 rounded-full 
-                        ${source.id === 'embedsu' ? 'bg-blue-400' : ''}
-                        ${source.id === 'vidsrcto' ? 'bg-green-400' : ''}
-                        ${source.id === 'superembed' ? 'bg-purple-400' : ''}
-                        ${source.id === 'smashystream' ? 'bg-yellow-400' : ''}
-                        mr-1.5"></span>
-                      {source.description?.split(' ')[0] || 'Quality'} streams
+                    
+                    {source.description && (
+                      <p className="text-xs opacity-90">{source.description}</p>
+                    )}
+                    
+                    <div className="mt-2 text-xs">
+                      <div className="flex items-center">
+                        <span className="inline-block w-2 h-2 rounded-full 
+                          ${source.id === 'embedsu' ? 'bg-blue-400' : ''}
+                          ${source.id === 'vidsrcto' ? 'bg-green-400' : ''}
+                          ${source.id === 'superembed' ? 'bg-purple-400' : ''}
+                          ${source.id === 'smashystream' ? 'bg-yellow-400' : ''}
+                          mr-1.5"></span>
+                        {source.description?.split(' ')[0] || 'Quality'} streams
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))}
             </div>
           </div>
         </div>
