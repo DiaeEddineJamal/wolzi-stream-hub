@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Info, Volume2, VolumeX } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Info, Volume2, VolumeX } from 'lucide-react';
 import YouTube from 'react-youtube';
 
 interface HeroBannerItem {
@@ -28,35 +28,66 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
   const [direction, setDirection] = useState(1); // 1 for forward, -1 for backward
   const [trailerMuted, setTrailerMuted] = useState<boolean>(true);
   const trailerPlayerRef = useRef<any>(null);
+  // Cache for YouTube players
+  const playerCacheRef = useRef<Record<string, any>>({});
   
-  // Toggle mute for trailer videos
+  // Toggle mute for all cached players
   const toggleMute = () => {
-    if (trailerPlayerRef.current) {
-      if (trailerMuted) {
-        trailerPlayerRef.current.unMute();
+    const newMutedState = !trailerMuted;
+    setTrailerMuted(newMutedState);
+    
+    // Apply mute state to current and all cached players
+    const currentTrailer = featuredItems[currentIndex]?.trailerKey;
+    if (currentTrailer && playerCacheRef.current[currentTrailer]) {
+      if (newMutedState) {
+        playerCacheRef.current[currentTrailer].mute();
       } else {
-        trailerPlayerRef.current.mute();
+        playerCacheRef.current[currentTrailer].unMute();
       }
-      setTrailerMuted(!trailerMuted);
     }
   };
   
-  // Auto advance slides
+  // Auto-advance slides every few seconds
   useEffect(() => {
-    if (featuredItems.length <= 1) return;
-    
     const interval = setInterval(() => {
-      setDirection(1);
-      setCurrentIndex((prevIndex) => (prevIndex + 1) % featuredItems.length);
+      goToNext();
     }, autoPlayInterval);
     
     return () => clearInterval(interval);
-  }, [featuredItems.length, autoPlayInterval]);
+  }, [autoPlayInterval, currentIndex]);
   
-  // Handle indicator click
-  const goToSlide = (index: number) => {
-    setDirection(index > currentIndex ? 1 : -1);
+  // Handle direction change and navigation
+  const goToSlide = (index: number, newDirection: number = 1) => {
+    // Pause current video if it exists
+    const currentTrailerKey = featuredItems[currentIndex]?.trailerKey;
+    if (currentTrailerKey && playerCacheRef.current[currentTrailerKey]) {
+      playerCacheRef.current[currentTrailerKey].pauseVideo();
+    }
+    
+    setDirection(newDirection);
     setCurrentIndex(index);
+    
+    // Resume or start the next video
+    const nextTrailerKey = featuredItems[index]?.trailerKey;
+    if (nextTrailerKey && playerCacheRef.current[nextTrailerKey]) {
+      const player = playerCacheRef.current[nextTrailerKey];
+      if (trailerMuted) {
+        player.mute();
+      } else {
+        player.unMute();
+      }
+      player.playVideo();
+    }
+  };
+  
+  const goToNext = () => {
+    const newIndex = (currentIndex + 1) % featuredItems.length;
+    goToSlide(newIndex, 1);
+  };
+  
+  const goToPrevious = () => {
+    const newIndex = (currentIndex - 1 + featuredItems.length) % featuredItems.length;
+    goToSlide(newIndex, -1);
   };
   
   // If no featured items, return null
@@ -162,6 +193,35 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
     }
   };
   
+  // Cleanup players when component unmounts
+  useEffect(() => {
+    return () => {
+      // Stop all cached players on unmount
+      Object.values(playerCacheRef.current).forEach(player => {
+        try {
+          player.stopVideo();
+        } catch (e) {
+          // Ignore any errors during cleanup
+        }
+      });
+    };
+  }, []);
+
+  // Preload the next video in the carousel
+  useEffect(() => {
+    if (featuredItems.length <= 1) return;
+    
+    // Calculate the next index
+    const nextIndex = (currentIndex + 1) % featuredItems.length;
+    const nextTrailerKey = featuredItems[nextIndex]?.trailerKey;
+    
+    // If next item has a trailer that's not in cache, preload it
+    if (nextTrailerKey && !playerCacheRef.current[nextTrailerKey]) {
+      // We don't need to do anything more here since YouTube component will
+      // automatically be created when we render it below, and it will be cached
+    }
+  }, [currentIndex, featuredItems]);
+  
   return (
     <div className="hero-banner relative h-[80vh] min-h-[500px] overflow-hidden">
       <AnimatePresence custom={direction} initial={false} mode="wait">
@@ -190,40 +250,50 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
                   width: '100%',
                   playerVars: {
                     autoplay: 1,
-                    mute: 1, // Always start muted
                     controls: 0,
-                    showinfo: 0,
-                    modestbranding: 1,
-                    loop: 1,
-                    playlist: currentItem.trailerKey,
                     rel: 0,
+                    showinfo: 0,
+                    mute: trailerMuted ? 1 : 0,
+                    modestbranding: 1,
+                    playsinline: 1,
+                    loop: 1,
+                    start: 0,
                   },
                 }}
-                className="absolute top-0 left-0 w-full h-full object-cover"
-                ref={trailerPlayerRef}
+                className="absolute top-0 left-0 w-full h-full pointer-events-none"
                 onReady={(event) => {
-                  trailerPlayerRef.current = event.target;
-                  // Ensure it's muted on initial load
-                  event.target.mute();
+                  // Store the player in our cache using the trailer key as identifier
+                  const player = event.target;
+                  trailerPlayerRef.current = player;
+                  playerCacheRef.current[currentItem.trailerKey!] = player;
+                  
+                  // Apply current muted state
+                  if (trailerMuted) {
+                    player.mute();
+                  } else {
+                    player.unMute();
+                  }
+                  
+                  // Start playing immediately
+                  player.playVideo();
+                }}
+                onEnd={(event) => {
+                  // Loop the video when it ends
+                  event.target.playVideo();
                 }}
                 onError={(error) => {
                   console.error("YouTube player error:", error);
                 }}
               />
-              <div className="absolute bottom-4 right-4 z-10 flex space-x-2">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="bg-black/50 hover:bg-black/70 text-white"
-                  onClick={toggleMute}
-                  aria-label={trailerMuted ? "Unmute trailer" : "Mute trailer"}
-                >
-                  {trailerMuted ? (
-                    <VolumeX className="h-4 w-4" />
-                  ) : (
-                    <Volume2 className="h-4 w-4" />
-                  )}
-                </Button>
+              <div 
+                className="absolute bottom-4 right-4 z-50 p-2 rounded-full bg-wolzi-bg/60 hover:bg-wolzi-bg/90 cursor-pointer transition-colors"
+                onClick={toggleMute}
+              >
+                {trailerMuted ? (
+                  <VolumeX className="h-6 w-6 text-white" />
+                ) : (
+                  <Volume2 className="h-6 w-6 text-white" />
+                )}
               </div>
             </div>
           ) : (
@@ -327,12 +397,12 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
         </motion.div>
       </AnimatePresence>
       
-      {/* Indicators */}
-      <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-10">
+      {/* Navigation controls */}
+      <div className="absolute inset-x-0 bottom-4 flex justify-center gap-2 z-20">
         {featuredItems.map((_, index) => (
           <motion.button
             key={index}
-            onClick={() => goToSlide(index)}
+            onClick={() => goToSlide(index, index > currentIndex ? 1 : -1)}
             className={`h-2 rounded-full transition-all overflow-hidden relative ${
               currentIndex === index 
                 ? "w-12" 
@@ -366,6 +436,26 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
           </motion.button>
         ))}
       </div>
+
+      {/* Prev/Next buttons */}
+      {featuredItems.length > 1 && (
+        <>
+          <button 
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-black/30 p-2 rounded-full hover:bg-black/60 transition-all"
+            onClick={goToPrevious}
+            aria-label="Previous slide"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <button 
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-black/30 p-2 rounded-full hover:bg-black/60 transition-all"
+            onClick={goToNext}
+            aria-label="Next slide"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        </>
+      )}
     </div>
   );
 };
