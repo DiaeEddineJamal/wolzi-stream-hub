@@ -70,6 +70,9 @@ const Watch: React.FC = () => {
   const [averageEpisodeDuration] = useState<number>(2400); // Average episode length ~40min in seconds
   const videoEndDetectionTimerRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Add fullscreen state tracking
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  
   // Determine media type from URL path instead of parameter
   // Extract media type from the path: /watch/movie/... or /watch/tv/... or /watch/anime/...
   const determineMediaType = (): MediaType => {
@@ -793,47 +796,84 @@ const Watch: React.FC = () => {
     return () => window.removeEventListener('message', handleMessageEvent);
   }, [activeSource]);
   
-  // Add a fullscreen helper function
-  const requestFullscreen = () => {
+  // Update fullscreen helper function to toggle between enter and exit
+  const toggleFullscreen = () => {
     try {
-      // Get the iframe element
-      const iframe = document.querySelector('iframe');
-      if (iframe) {
-        // Try to access the iframe content directly (will work only for same-origin content)
-        try {
-          if (iframe.contentDocument && iframe.contentDocument.documentElement) {
-            const iframeDoc = iframe.contentDocument.documentElement;
-            if (iframeDoc.requestFullscreen) {
-              iframeDoc.requestFullscreen();
-            } else if ((iframeDoc as any).webkitRequestFullscreen) {
-              (iframeDoc as any).webkitRequestFullscreen();
-            } else if ((iframeDoc as any).mozRequestFullScreen) {
-              (iframeDoc as any).mozRequestFullScreen();
-            } else if ((iframeDoc as any).msRequestFullscreen) {
-              (iframeDoc as any).msRequestFullscreen();
+      if (!isFullscreen) {
+        // Enter fullscreen
+        const iframe = document.querySelector('iframe');
+        if (iframe) {
+          // Try to access the iframe content directly (will work only for same-origin content)
+          try {
+            if (iframe.contentDocument && iframe.contentDocument.documentElement) {
+              const iframeDoc = iframe.contentDocument.documentElement;
+              if (iframeDoc.requestFullscreen) {
+                iframeDoc.requestFullscreen();
+              } else if ((iframeDoc as any).webkitRequestFullscreen) {
+                (iframeDoc as any).webkitRequestFullscreen();
+              } else if ((iframeDoc as any).mozRequestFullScreen) {
+                (iframeDoc as any).mozRequestFullScreen();
+              } else if ((iframeDoc as any).msRequestFullscreen) {
+                (iframeDoc as any).msRequestFullscreen();
+              }
             }
+          } catch (error) {
+            console.log('Direct access to iframe content failed, trying iframe element', error);
           }
-        } catch (error) {
-          console.log('Direct access to iframe content failed, trying iframe element', error);
+          
+          // If direct access fails, try the iframe element itself
+          if (iframe.requestFullscreen) {
+            iframe.requestFullscreen();
+          } else if ((iframe as any).webkitRequestFullscreen) {
+            (iframe as any).webkitRequestFullscreen();
+          } else if ((iframe as any).mozRequestFullScreen) {
+            (iframe as any).mozRequestFullScreen();
+          } else if ((iframe as any).msRequestFullscreen) {
+            (iframe as any).msRequestFullscreen();
+          }
         }
-        
-        // If direct access fails, try the iframe element itself
-        if (iframe.requestFullscreen) {
-          iframe.requestFullscreen();
-        } else if ((iframe as any).webkitRequestFullscreen) {
-          (iframe as any).webkitRequestFullscreen();
-        } else if ((iframe as any).mozRequestFullScreen) {
-          (iframe as any).mozRequestFullScreen();
-        } else if ((iframe as any).msRequestFullscreen) {
-          (iframe as any).msRequestFullscreen();
+      } else {
+        // Exit fullscreen
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+        } else if ((document as any).mozCancelFullScreen) {
+          (document as any).mozCancelFullScreen();
+        } else if ((document as any).msExitFullscreen) {
+          (document as any).msExitFullscreen();
         }
       }
     } catch (error) {
-      console.error('Error requesting fullscreen:', error);
+      console.error('Error toggling fullscreen:', error);
     }
   };
-
-  // Improved handleIframeLoad function to better handle fullscreen
+  
+  // Listen for fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(
+        !!(document.fullscreenElement || 
+          (document as any).webkitFullscreenElement || 
+          (document as any).mozFullScreenElement || 
+          (document as any).msFullscreenElement)
+      );
+    };
+    
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+    
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
+  }, []);
+  
+  // Restore the handleIframeLoad function 
   const handleIframeLoad = () => {
     console.log('Iframe loaded successfully');
     
@@ -936,7 +976,7 @@ const Watch: React.FC = () => {
         )) {
           console.log('Received fullscreen-related message:', event.data);
           // Try to trigger fullscreen
-          requestFullscreen();
+          toggleFullscreen();
         } else if (typeof event.data === 'object' && event.data !== null) {
           // Some players use objects for their messages
           const data = event.data;
@@ -944,7 +984,7 @@ const Watch: React.FC = () => {
               data.action === 'fullscreen' || 
               data.command === 'fullscreen') {
             console.log('Received fullscreen request via object:', data);
-            requestFullscreen();
+            toggleFullscreen();
           }
         }
       } catch (error) {
@@ -962,7 +1002,7 @@ const Watch: React.FC = () => {
       // F key for fullscreen
       if (e.key === 'f' || e.key === 'F') {
         console.log('F key pressed, attempting fullscreen');
-        requestFullscreen();
+        toggleFullscreen();
       }
     };
     
@@ -1479,18 +1519,38 @@ const Watch: React.FC = () => {
                   {activeSource.toUpperCase()}
                 </motion.div>
                 
-                {/* Full Screen Button Override for SuperEmbed and SmashyStream */}
-                {useIframe && (activeSource === 'superembed' || activeSource === 'smashystream') && !isLoading && (
+                {/* Fullscreen Toggle Button (available for all iframe sources) */}
+                {useIframe && !isLoading && (
                   <div 
-                    className="absolute bottom-10 right-10 z-20 bg-black/60 backdrop-blur-sm rounded-full p-2 cursor-pointer hover:bg-black/80 transition-all duration-200"
-                    onClick={requestFullscreen}
-                    title="Enter Fullscreen Mode"
+                    className={`absolute z-[9999] bg-black/60 backdrop-blur-sm rounded-full p-2.5 cursor-pointer hover:bg-black/80 transition-all duration-200 shadow-lg ${
+                      isFullscreen ? 'border-2 border-green-500 hover:border-green-400 animate-pulse' : 'border border-white/10'
+                    }`}
+                    onClick={toggleFullscreen}
+                    title={isFullscreen ? "Exit Fullscreen Mode" : "Enter Fullscreen Mode"}
+                    style={{
+                      position: 'fixed', // Change to fixed to keep it visible in fullscreen
+                      bottom: '30px',
+                      right: '30px'
+                    }}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
-                      <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
-                      <path d="M21 8V5a2 2 0 0 0-2-2h-3"></path>
-                      <path d="M3 16v3a2 2 0 0 0 2 2h3"></path>
-                      <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`${isFullscreen ? 'text-green-400' : 'text-white'}`}>
+                      {isFullscreen ? (
+                        // Exit fullscreen icon (compress)
+                        <>
+                          <path d="M8 3v3a2 2 0 0 1-2 2H3"></path>
+                          <path d="M21 8h-3a2 2 0 0 1-2-2V3"></path>
+                          <path d="M3 16h3a2 2 0 0 1 2 2v3"></path>
+                          <path d="M16 21v-3a2 2 0 0 1 2-2h3"></path>
+                        </>
+                      ) : (
+                        // Enter fullscreen icon (expand)
+                        <>
+                          <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
+                          <path d="M21 8V5a2 2 0 0 0-2-2h-3"></path>
+                          <path d="M3 16v3a2 2 0 0 0 2 2h3"></path>
+                          <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+                        </>
+                      )}
                     </svg>
                   </div>
                 )}
