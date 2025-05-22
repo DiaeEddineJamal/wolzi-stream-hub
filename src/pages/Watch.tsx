@@ -48,7 +48,7 @@ const Watch: React.FC = () => {
   const [progress, setProgress] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [sources, setSources] = useState<SourceItem[]>(streamingSources);
-  const [activeSource, setActiveSource] = useState<string>('embedsu');
+  const [activeSource, setActiveSource] = useState<string>('vidsrcto');
   const [watchId, setWatchId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [useIframe, setUseIframe] = useState<boolean>(true);
@@ -295,12 +295,12 @@ const Watch: React.FC = () => {
                 }))
               );
             } else {
-              // If preference is not allowed, set default to embedsu
-              setActiveSource('embedsu');
+              // If preference is not allowed, set default to vidsrcto
+              setActiveSource('vidsrcto');
               setSources(prev => 
                 prev.map(source => ({
                   ...source,
-                  isActive: source.id === 'embedsu'
+                  isActive: source.id === 'vidsrcto'
                 }))
               );
             }
@@ -434,10 +434,10 @@ const Watch: React.FC = () => {
     // Choose appropriate source from available sources
     let recommendedSource = activeSource;
     
-    // If current source is not one of the allowed ones, use embedsu as fallback
+    // If current source is not one of the allowed ones, use vidsrcto as fallback
     const allowedSources = streamingSources.filter(source => source.isActive).map(source => source.id);
     if (!allowedSources.includes(recommendedSource)) {
-      recommendedSource = 'embedsu';
+      recommendedSource = 'vidsrcto';
     }
     
     // If the recommended source is different from active source, update it
@@ -724,7 +724,7 @@ const Watch: React.FC = () => {
       // Pick a random alternative source
       const newSource = availableSources.length > 0 
         ? availableSources[Math.floor(Math.random() * availableSources.length)] 
-        : 'embedsu'; // Fallback
+        : 'vidsrcto'; // Fallback
       
       handleSourceChange(newSource);
     }, 3000);
@@ -747,7 +747,7 @@ const Watch: React.FC = () => {
       // Pick a random alternative source
       const newSource = availableSources.length > 0 
         ? availableSources[Math.floor(Math.random() * availableSources.length)] 
-        : 'embedsu'; // Fallback
+        : 'vidsrcto'; // Fallback
       
       handleSourceChange(newSource);
     }, 3000);
@@ -779,7 +779,7 @@ const Watch: React.FC = () => {
             // Pick a random alternative source
             const alternativeSource = availableSources.length > 0 
               ? availableSources[Math.floor(Math.random() * availableSources.length)] 
-              : 'embedsu'; // Fallback
+              : 'vidsrcto'; // Fallback
             
             toast({
               title: "Trying alternative source",

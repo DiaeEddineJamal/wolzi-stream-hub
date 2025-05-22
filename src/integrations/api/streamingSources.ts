@@ -14,17 +14,17 @@ export interface StreamingSource {
 // Define available streaming sources
 export const streamingSources: StreamingSource[] = [
   {
-    id: 'embedsu',
-    name: 'Embed.su',
-    description: 'Premium quality streams with fast loading times',
+    id: 'vidsrcto',
+    name: 'VidSrc.to',
+    description: 'Large library of content with reliable streaming',
     isActive: true,
     quality: '1080p',
     subtitles: true
   },
   {
-    id: 'vidsrcto',
-    name: 'VidSrc.to',
-    description: 'Large library of content with reliable streaming',
+    id: 'embedsu',
+    name: 'Embed.su',
+    description: 'Premium quality streams with fast loading times',
     isActive: true,
     quality: '1080p',
     subtitles: true
@@ -53,7 +53,7 @@ export const getStreamingUrl = (
   id: string,
   seasonNumber?: number,
   episodeNumber?: number,
-  sourceId: string = 'embedsu'
+  sourceId: string = 'vidsrcto'
 ): string => {
   // For anime, treat it as a TV series
   const actualMediaType = mediaType === 'anime' ? 'tv' : mediaType;
@@ -106,7 +106,7 @@ export const getStreamingUrl = (
       }
     
     default:
-      return getStreamingUrl(mediaType, id, seasonNumber, episodeNumber, 'embedsu');
+      return getStreamingUrl(mediaType, id, seasonNumber, episodeNumber, 'vidsrcto');
   }
 };
 
