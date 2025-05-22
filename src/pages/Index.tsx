@@ -246,7 +246,7 @@ const Index: React.FC = () => {
       {featuredItems.length > 0 ? (
         <HeroBanner
           featuredItems={featuredItems}
-          autoPlayInterval={10000}
+          autoPlayInterval={12000}
         />
       ) : (
         <div className="hero-banner">
