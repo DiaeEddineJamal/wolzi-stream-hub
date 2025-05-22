@@ -1519,21 +1519,14 @@ const Watch: React.FC = () => {
                   {activeSource.toUpperCase()}
                 </motion.div>
                 
-                {/* Fullscreen Toggle Button (available for all iframe sources) */}
-                {useIframe && !isLoading && (
+                {/* Full Screen Button Override for SuperEmbed and SmashyStream */}
+                {useIframe && (activeSource === 'superembed' || activeSource === 'smashystream') && !isLoading && (
                   <div 
-                    className={`absolute z-[9999] bg-black/60 backdrop-blur-sm rounded-full p-2.5 cursor-pointer hover:bg-black/80 transition-all duration-200 shadow-lg ${
-                      isFullscreen ? 'border-2 border-green-500 hover:border-green-400 animate-pulse' : 'border border-white/10'
-                    }`}
+                    className="absolute bottom-10 right-10 z-20 bg-black/60 backdrop-blur-sm rounded-full p-2 cursor-pointer hover:bg-black/80 transition-all duration-200"
                     onClick={toggleFullscreen}
                     title={isFullscreen ? "Exit Fullscreen Mode" : "Enter Fullscreen Mode"}
-                    style={{
-                      position: 'fixed', // Change to fixed to keep it visible in fullscreen
-                      bottom: '30px',
-                      right: '30px'
-                    }}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`${isFullscreen ? 'text-green-400' : 'text-white'}`}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white">
                       {isFullscreen ? (
                         // Exit fullscreen icon (compress)
                         <>
