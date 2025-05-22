@@ -3,6 +3,7 @@ import NavBar from "@/components/layout/NavBar";
 import Footer from "@/components/layout/Footer";
 import { useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { Analytics } from "@vercel/analytics/react";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -44,6 +45,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       
       {/* Global Footer */}
       <Footer />
+      
+      {/* Vercel Analytics */}
+      <Analytics />
     </div>
   );
 };
