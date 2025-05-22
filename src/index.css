@@ -9,6 +9,24 @@
   min-width: 44px;
 }
 
+/* Improve text readability on mobile */
+@media (max-width: 640px) {
+  h1, h2, h3, h4, h5, h6 {
+    letter-spacing: -0.01em;
+  }
+  
+  .hero-banner-content {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+  
+  /* Improve button layout on mobile */
+  .hero-banner-content button {
+    margin-bottom: 0.5rem;
+    min-height: 48px;
+  }
+}
+
   :root {
   --background: 0 0% 3.9%;
   --foreground: 0 0% 98%;
@@ -200,14 +218,52 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(
-    to right,
-    rgba(0, 0, 0, 0.9) 0%,
-    rgba(0, 0, 0, 0.6) 50%,
-    rgba(0, 0, 0, 0.4) 100%
-  );
+  background: linear-gradient(to top, 
+    rgba(0, 0, 0, 0.95) 0%, 
+    rgba(0, 0, 0, 0.8) 20%, 
+    rgba(0, 0, 0, 0.6) 40%, 
+    rgba(0, 0, 0, 0.4) 60%, 
+    rgba(0, 0, 0, 0.1) 80%);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
+  padding-bottom: 2rem;
+}
+
+/* Enhance mobile overlay with stronger gradient for better text visibility */
+@media (max-width: 768px) {
+  .hero-banner-overlay {
+    background: linear-gradient(to top, 
+      rgba(0, 0, 0, 1) 0%, 
+      rgba(0, 0, 0, 0.95) 15%, 
+      rgba(0, 0, 0, 0.85) 30%, 
+      rgba(0, 0, 0, 0.7) 50%, 
+      rgba(0, 0, 0, 0.5) 70%);
+    padding-bottom: 1rem;
+  }
+
+  .hero-banner {
+    height: 90vh; /* Taller mobile banner for more content space */
+  }
+  
+  /* Improve content spacing on mobile */
+  .hero-banner-content {
+    padding: 0 0.5rem !important;
+  }
+  
+  /* Enhance buttons on mobile */
+  button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  /* Improve text readability without background */
+  .text-container p {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 
+                 0 4px 8px rgba(0, 0, 0, 0.6), 
+                 0 1px 1px rgba(0, 0, 0, 1);
+    font-weight: 500;
+    line-height: 1.6;
+  }
 }
 
 .hero-banner-content {
@@ -340,4 +396,114 @@
   100% {
     transform: translateX(-50%);
   }
+}
+
+/* Hide scrollbar but allow scrolling */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
+/* Mobile tab improvements */
+@media (max-width: 640px) {
+  .TabsList {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 0.5rem;
+  }
+  
+  .TabsTrigger {
+    flex: 0 0 auto;
+    min-width: auto;
+  }
+}
+
+/* Add more padding to content cards on mobile */
+@media (max-width: 640px) {
+  .frosted-glass {
+    padding: 1rem !important;
+  }
+  
+  /* Line clamp for better mobile text display */
+  .line-clamp-4 {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  /* Styles for the scrollable text container */
+  .text-container {
+    position: relative;
+    border-radius: 0.375rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(29, 185, 84, 0.3) transparent;
+  }
+  
+  .text-container::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .text-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .text-container::-webkit-scrollbar-thumb {
+    background-color: rgba(29, 185, 84, 0.3);
+    border-radius: 4px;
+  }
+  
+  /* Add fade effect at the bottom to indicate more content */
+  .text-container::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 20px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+    pointer-events: none;
+    border-bottom-left-radius: 0.375rem;
+    border-bottom-right-radius: 0.375rem;
+  }
+}
+
+/* Styles for the scrollable text container */
+.text-container {
+  position: relative;
+  border-radius: 0.375rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(29, 185, 84, 0.3) transparent;
+}
+
+.text-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.text-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.text-container::-webkit-scrollbar-thumb {
+  background-color: rgba(29, 185, 84, 0.3);
+  border-radius: 4px;
+}
+
+/* Add fade effect at the bottom to indicate more content */
+.text-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+  pointer-events: none;
+  border-bottom-left-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
 }

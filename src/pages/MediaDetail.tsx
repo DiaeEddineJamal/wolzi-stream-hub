@@ -710,46 +710,63 @@ const MediaDetail: React.FC = () => {
         
         <div className="hero-banner-overlay">
           <div className="container mx-auto px-4">
-            <div className="hero-banner-content">
-              <h1 className="text-4xl font-bold mb-2">{title}</h1>
+            <div className="hero-banner-content md:max-w-[50%] max-w-full">
+              <h1 className="text-2xl md:text-4xl font-bold mb-2 text-white drop-shadow-lg">{title}</h1>
               
-              <div className="flex items-center mb-4 text-wolzi-light-gray">
-                <span className="mr-3 text-yellow-400">★ {mediaDetails?.vote_average?.toFixed(1)}</span>
-                <span className="mr-3">
+              <div className="flex flex-wrap items-center gap-2 mb-3 md:mb-4 text-white drop-shadow-lg">
+                <span className="mr-2 text-yellow-400 font-medium">★ {mediaDetails?.vote_average?.toFixed(1)}</span>
+                <span className="mr-2">
                   {mediaDetails?.release_date ? new Date(mediaDetails.release_date).getFullYear() : 
                    mediaDetails?.first_air_date ? new Date(mediaDetails.first_air_date).getFullYear() : 'Unknown'}
                 </span>
                 {mediaDetails?.runtime && (
-                  <span className="mr-3">{Math.floor(mediaDetails.runtime / 60)}h {mediaDetails.runtime % 60}m</span>
+                  <span className="mr-2">{Math.floor(mediaDetails.runtime / 60)}h {mediaDetails.runtime % 60}m</span>
                 )}
                 {mediaDetails?.genres && (
-                  <span>{mediaDetails.genres.slice(0, 3).map(g => g.name).join(', ')}</span>
+                  <span className="hidden md:inline">{mediaDetails.genres.slice(0, 3).map(g => g.name).join(', ')}</span>
                 )}
               </div>
               
-              <p className="text-wolzi-text mb-6">{mediaDetails?.overview}</p>
+              {/* Show only first genre on mobile for simplicity */}
+              <div className="flex flex-wrap mb-2 md:hidden">
+                {mediaDetails?.genres && mediaDetails.genres.length > 0 && (
+                  <span className="px-2 py-1 bg-black/30 rounded-md text-sm">{mediaDetails.genres[0].name}</span>
+                )}
+              </div>
               
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="relative mb-4 md:mb-6">
+                <div className="text-container max-h-[120px] md:max-h-none overflow-y-auto md:overflow-visible pr-1">
+                  <p className="text-sm md:text-base text-white drop-shadow-lg font-medium p-2">{mediaDetails?.overview}</p>
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3 z-10 relative">
                 <Button 
-                  className="glow-button" 
+                  className="glow-button bg-green-500 hover:bg-green-600 text-base"
                   onClick={handleWatchNow}
+                  size="lg"
                 >
-                  <Play className="mr-2 h-4 w-4" />
+                  <Play className="mr-2 h-5 w-5" />
                   Watch Now
                 </Button>
                 
                 {trailerKey && (
                   <Button 
-                    variant="outline" 
-                    className="flex items-center" 
+                    variant="outline"
+                    className="flex items-center bg-black/50 border-white/30 hover:bg-black/70 text-white hover:text-green-400"
+                    size="lg"
                     onClick={() => setActiveTab('trailer')}
                   >
-                    <PlayCircle className="mr-2 h-4 w-4" />
+                    <PlayCircle className="mr-2 h-5 w-5" />
                     Watch Trailer
                   </Button>
                 )}
                 
-                <Button variant="outline">
+                <Button 
+                  variant="outline"
+                  className="flex items-center bg-black/50 border-white/30 hover:bg-black/70 text-white hover:text-green-400"
+                  size="lg"
+                >
                   Add to List
                 </Button>
               </div>
@@ -759,26 +776,28 @@ const MediaDetail: React.FC = () => {
       </div>
       
       {/* Content Area */}
-      <div className="container mx-auto py-8 px-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
-          <TabsList className="grid w-full grid-cols-5 md:w-auto md:flex">
-            {trailerKey && <TabsTrigger value="trailer">Trailer</TabsTrigger>}
-            <TabsTrigger value="stream">Watch</TabsTrigger>
-            <TabsTrigger value="details">Details</TabsTrigger>
-            {actualMediaType === 'tv' && (
-              <TabsTrigger value="episodes">Episodes</TabsTrigger>
-            )}
-            {actualMediaType === 'anime' && (
-              <TabsTrigger value="episodes">Episodes</TabsTrigger>
-            )}
-            <TabsTrigger value="sources">Sources</TabsTrigger>
-          </TabsList>
+      <div className="container mx-auto py-6 md:py-8 px-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 md:mt-6">
+          <div className="overflow-x-auto pb-2 no-scrollbar">
+            <TabsList className="flex w-full md:w-auto min-w-max">
+              {trailerKey && <TabsTrigger value="trailer" className="text-sm md:text-base px-4 py-2">Trailer</TabsTrigger>}
+              <TabsTrigger value="stream" className="text-sm md:text-base px-4 py-2">Watch</TabsTrigger>
+              <TabsTrigger value="details" className="text-sm md:text-base px-4 py-2">Details</TabsTrigger>
+              {actualMediaType === 'tv' && (
+                <TabsTrigger value="episodes" className="text-sm md:text-base px-4 py-2">Episodes</TabsTrigger>
+              )}
+              {actualMediaType === 'anime' && (
+                <TabsTrigger value="episodes" className="text-sm md:text-base px-4 py-2">Episodes</TabsTrigger>
+              )}
+              <TabsTrigger value="sources" className="text-sm md:text-base px-4 py-2">Sources</TabsTrigger>
+            </TabsList>
+          </div>
           
           {/* Trailer Tab */}
           {trailerKey && (
-            <TabsContent value="trailer" className="mt-6">
-              <Card className="p-4 md:p-6 frosted-glass">
-                <h2 className="text-xl font-medium mb-4">Official Trailer</h2>
+            <TabsContent value="trailer" className="mt-4 md:mt-6">
+              <Card className="p-3 md:p-6 frosted-glass">
+                <h2 className="text-lg md:text-xl font-medium mb-3 md:mb-4">Official Trailer</h2>
                 <div className="aspect-video w-full bg-black rounded-md overflow-hidden">
                   <YouTube
                     videoId={trailerKey}
@@ -787,17 +806,17 @@ const MediaDetail: React.FC = () => {
                   />
                 </div>
                 
-                <div className="mt-4 flex justify-between items-center">
-                  <p className="text-wolzi-light-gray">
+                <div className="mt-3 md:mt-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                  <p className="text-sm md:text-base text-wolzi-light-gray">
                     Watch the official trailer for {title}
                   </p>
-                  <Button variant="outline" size="sm" onClick={handleWatchNow}>
+                  <Button variant="outline" size="sm" onClick={handleWatchNow} className="w-full md:w-auto">
                     <Play className="mr-2 h-4 w-4" />
                     Watch Full {actualMediaType === 'movie' ? 'Movie' : actualMediaType === 'tv' ? 'TV Show' : 'Anime'}
                   </Button>
                 </div>
                 
-                <div className="mt-8 pt-4 border-t border-wolzi-border">
+                <div className="mt-6 md:mt-8 pt-4 border-t border-wolzi-border">
                   <div className="flex items-center text-sm text-wolzi-light-gray">
                     <ArrowUpRight className="mr-2 h-4 w-4" />
                     <a 
@@ -815,9 +834,9 @@ const MediaDetail: React.FC = () => {
           )}
           
           {/* Stream Tab */}
-          <TabsContent value="stream" className="mt-6">
-            <Card className="p-4 md:p-6 frosted-glass">
-              <h2 className="text-xl font-medium mb-4">Watch {title}</h2>
+          <TabsContent value="stream" className="mt-4 md:mt-6">
+            <Card className="p-3 md:p-6 frosted-glass">
+              <h2 className="text-lg md:text-xl font-medium mb-3 md:mb-4">Watch {title}</h2>
               <div className="aspect-video w-full bg-black rounded-md overflow-hidden">
                 {actualMediaType === 'movie' && (
                   <iframe
@@ -862,9 +881,9 @@ const MediaDetail: React.FC = () => {
                 )}
               </div>
               
-              <div className="mt-4 flex justify-center">
+              <div className="mt-3 md:mt-4 flex justify-center">
                 <Button 
-                  className="glow-button w-64 py-6 text-lg font-medium" 
+                  className="glow-button w-full md:w-64 py-4 md:py-6 text-base md:text-lg font-medium" 
                   onClick={handleWatchNow}
                 >
                   <Play className="mr-2 h-5 w-5" />
@@ -873,34 +892,36 @@ const MediaDetail: React.FC = () => {
               </div>
               
               {/* Player Settings */}
-              <div className="mt-6 bg-black/30 backdrop-blur-sm border border-green-500/20 rounded-md p-4">
-                <div className="flex items-center justify-between">
-                  <div>
+              <div className="mt-6 bg-black/30 backdrop-blur-sm border border-green-500/20 rounded-md p-3 md:p-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
+                  <div className="mb-3 md:mb-0">
                     <h3 className="text-sm font-medium text-white">Player Settings</h3>
                     <p className="text-xs text-white/70 mt-1">
                       Configure your stream playback options
                     </p>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto">
+                    <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-start bg-black/20 p-2 rounded-md">
                       <label className="text-sm text-white/80">Sandbox Mode:</label>
-                      <Switch 
-                        checked={!disableSandbox}
-                        onCheckedChange={(value) => {
-                          setDisableSandbox(!value);
-                          // Force iframe reload
-                          const tempActiveTab = activeTab;
-                          setActiveTab('details');
-                          setTimeout(() => setActiveTab(tempActiveTab), 50);
-                        }}
-                      />
-                      <span className={`text-xs ${!disableSandbox ? "text-green-400" : "text-red-400"}`}>
-                        {!disableSandbox ? "Enabled" : "Disabled"}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <Switch 
+                          checked={!disableSandbox}
+                          onCheckedChange={(value) => {
+                            setDisableSandbox(!value);
+                            // Force iframe reload
+                            const tempActiveTab = activeTab;
+                            setActiveTab('details');
+                            setTimeout(() => setActiveTab(tempActiveTab), 50);
+                          }}
+                        />
+                        <span className={`text-xs ${!disableSandbox ? "text-green-400" : "text-red-400"}`}>
+                          {!disableSandbox ? "Enabled" : "Disabled"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="mt-2">
+                <div className="mt-2 block md:hidden">
                   <p className="text-xs text-white/60">
                     <span className="text-white/80">Sandbox Mode</span>: Provides secure playback (recommended). 
                     If you experience issues with certain servers, try disabling this feature temporarily.
