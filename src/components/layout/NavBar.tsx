@@ -35,6 +35,7 @@ const NavBar: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const lastScrollY = useRef(0);
+  const scrollThrottleTimer = useRef<number | null>(null);
   
   // Handle navigation to auth page
   const goToLogin = () => {
@@ -45,22 +46,23 @@ const NavBar: React.FC = () => {
     navigate("/auth?mode=signup");
   };
 
-  // Enhanced scroll effect with direction detection
+  // Enhanced scroll effect with direction detection and smoother animations
   const handleScroll = () => {
     const currentScrollY = window.scrollY;
     
-    // Apply scrolled class when scrolled down
-    if (currentScrollY > 50) {
+    // Apply scrolled class when scrolled down (with a smaller threshold for faster visual feedback)
+    if (currentScrollY > 20) {
       if (!scrolled) setScrolled(true);
     } else {
       if (scrolled) setScrolled(false);
     }
     
-    // Hide navbar when scrolling down, show when scrolling up
-    if (currentScrollY > lastScrollY.current && currentScrollY > 400 && !mobileMenuOpen) {
-      setHidden(true);
+    // Hide navbar when scrolling down fast, show when scrolling up
+    // More sensitive to user movement, smaller threshold
+    if (currentScrollY > lastScrollY.current && currentScrollY > 200 && !mobileMenuOpen) {
+      if (!hidden) setHidden(true);
     } else {
-      setHidden(false);
+      if (hidden) setHidden(false);
     }
     
     lastScrollY.current = currentScrollY;
@@ -68,13 +70,22 @@ const NavBar: React.FC = () => {
 
   useEffect(() => {
     const throttledHandleScroll = () => {
-      // Using requestAnimationFrame for better performance
-      window.requestAnimationFrame(handleScroll);
+      if (scrollThrottleTimer.current === null) {
+        scrollThrottleTimer.current = window.setTimeout(() => {
+          handleScroll();
+          scrollThrottleTimer.current = null;
+        }, 10); // Smaller throttle time for more responsive scrolling
+      }
     };
     
-    window.addEventListener("scroll", throttledHandleScroll);
-    return () => window.removeEventListener("scroll", throttledHandleScroll);
-  }, [scrolled, mobileMenuOpen]);
+    window.addEventListener("scroll", throttledHandleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", throttledHandleScroll);
+      if (scrollThrottleTimer.current) {
+        window.clearTimeout(scrollThrottleTimer.current);
+      }
+    };
+  }, [scrolled, mobileMenuOpen, hidden]);
 
   useEffect(() => {
     // Close mobile menu when route changes
@@ -142,15 +153,19 @@ const NavBar: React.FC = () => {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-500 navbar-glass border-b border-wolzi-accent/20",
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 frosted-glass border-b border-wolzi-accent/20",
         scrolled 
           ? "navbar-glass-scrolled shadow-[0_4px_30px_rgba(0,0,0,0.3)]" 
-          : "shadow-none",
+          : "navbar-glass shadow-none",
         hidden ? "-translate-y-full" : "translate-y-0",
         mobileMenuOpen ? "bg-black/80 h-auto" : ""
       )}
+      style={{
+        backdropFilter: "blur(10px)",
+        WebkitBackdropFilter: "blur(10px)"
+      }}
     >
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+      <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
         {/* Logo and Main Navigation */}
         <div className="flex items-center">
           <motion.div
@@ -159,7 +174,7 @@ const NavBar: React.FC = () => {
             transition={{ duration: 0.3 }}
           >
             <Link to="/" className="flex items-center group">
-              <h1 className="text-xl sm:text-2xl font-bold mr-2">
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold mr-2">
                 <motion.span 
                   className="inline-block text-wolzi-accent"
                   whileHover={{ scale: 1.05 }}
@@ -267,7 +282,7 @@ const NavBar: React.FC = () => {
             variant="ghost" 
             size="icon"
             onClick={toggleSearch}
-            className="text-wolzi-light-gray hover:text-white transition-colors"
+            className="text-wolzi-light-gray hover:text-white transition-colors mobile-touch-target"
             aria-label="Toggle search"
           >
             <Search className="h-[1.2rem] w-[1.2rem]" />
@@ -281,13 +296,13 @@ const NavBar: React.FC = () => {
                 <Button 
                   onClick={goToLogin} 
                   variant="ghost"
-                  className="text-sm text-wolzi-light-gray hover:text-white"
+                  className="text-sm text-wolzi-light-gray hover:text-white mobile-touch-target"
                 >
                   Login
                 </Button>
                 <Button 
                   onClick={goToSignup}
-                  className="bg-wolzi-accent hover:bg-wolzi-accent-hover text-white text-sm py-1 px-3"
+                  className="bg-wolzi-accent hover:bg-wolzi-accent-hover text-white text-sm py-1 px-3 mobile-touch-target"
                 >
                   Sign Up
                 </Button>
@@ -299,7 +314,7 @@ const NavBar: React.FC = () => {
             variant="ghost" 
             size="icon"
             onClick={toggleMobileMenu}
-            className="lg:hidden text-wolzi-light-gray hover:text-white transition-colors"
+            className="lg:hidden text-wolzi-light-gray hover:text-white transition-colors mobile-touch-target"
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
           >
             {mobileMenuOpen ? (
@@ -319,7 +334,7 @@ const NavBar: React.FC = () => {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="lg:hidden frosted-glass border-t border-wolzi-accent/10 overflow-hidden"
+            className="lg:hidden frosted-glass-dark border-t border-wolzi-accent/10 overflow-hidden"
           >
             <div className="container mx-auto px-4 py-4">
               <nav className="space-y-4 mb-6">
@@ -331,7 +346,7 @@ const NavBar: React.FC = () => {
                     <Link
                       to={item.path}
                       className={cn(
-                        "flex items-center py-3 px-4 rounded-lg transition-all gap-3",
+                        "flex items-center py-3 px-4 rounded-lg transition-all gap-3 mobile-touch-target",
                         isActivePath(item.path)
                           ? "bg-wolzi-accent/20 text-wolzi-accent" 
                           : "hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white"
@@ -353,7 +368,7 @@ const NavBar: React.FC = () => {
                     <motion.div whileTap={{ scale: 0.98 }}>
                       <Link
                         to="/profile"
-                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3"
+                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 mobile-touch-target"
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         <User className="h-5 w-5" />
@@ -364,7 +379,7 @@ const NavBar: React.FC = () => {
                     <motion.div whileTap={{ scale: 0.98 }}>
                       <Link
                         to="/favorites"
-                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3"
+                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 mobile-touch-target"
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         <Heart className="h-5 w-5" />
@@ -375,7 +390,7 @@ const NavBar: React.FC = () => {
                     <motion.div whileTap={{ scale: 0.98 }}>
                       <Link
                         to="/watch-history"
-                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3"
+                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 mobile-touch-target"
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         <History className="h-5 w-5" />
@@ -389,7 +404,7 @@ const NavBar: React.FC = () => {
                           logout();
                           setMobileMenuOpen(false);
                         }}
-                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 w-full text-left"
+                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 w-full text-left mobile-touch-target"
                       >
                         <LogOut className="h-5 w-5" />
                         <span className="font-medium">Log Out</span>
@@ -404,7 +419,7 @@ const NavBar: React.FC = () => {
                           goToLogin();
                           setMobileMenuOpen(false);
                         }}
-                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 w-full text-left"
+                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 w-full text-left mobile-touch-target"
                       >
                         <LogIn className="h-5 w-5" />
                         <span className="font-medium">Login</span>
@@ -417,7 +432,7 @@ const NavBar: React.FC = () => {
                           goToSignup();
                           setMobileMenuOpen(false);
                         }}
-                        className="flex items-center py-3 px-4 rounded-lg bg-wolzi-accent hover:bg-wolzi-accent-hover text-white gap-3 w-full text-left"
+                        className="flex items-center py-3 px-4 rounded-lg bg-wolzi-accent hover:bg-wolzi-accent-hover text-white gap-3 w-full text-left mobile-touch-target"
                       >
                         <User className="h-5 w-5" />
                         <span className="font-medium">Sign Up</span>
@@ -435,30 +450,30 @@ const NavBar: React.FC = () => {
       <AnimatePresence>
         {showSearch && (
           <motion.form
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 250, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
-            className="relative"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="absolute top-full left-0 right-0 p-3 border-t border-b border-wolzi-accent/20 frosted-glass-dark"
             onSubmit={handleSearchSubmit}
           >
-            <Input
-              id="search-input"
-              type="text"
-              placeholder="Search for movies, shows..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pr-10 bg-black/20 border-wolzi-accent/30 focus:border-wolzi-accent focus-visible:ring-1 focus-visible:ring-wolzi-accent/50 rounded-full text-sm"
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute right-0 top-0 h-full text-white/70 hover:text-white"
-              onClick={toggleSearch}
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="container mx-auto flex items-center max-w-lg">
+              <Input
+                id="search-input"
+                type="text"
+                placeholder="Search for movies, shows..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-grow bg-black/20 border-wolzi-accent/30 focus:border-wolzi-accent focus-visible:ring-1 focus-visible:ring-wolzi-accent/50 rounded-l-full text-sm py-5 mobile-touch-target"
+              />
+              <Button
+                type="submit"
+                variant="default"
+                className="bg-wolzi-accent hover:bg-wolzi-accent-hover rounded-r-full py-5 mobile-touch-target"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
           </motion.form>
         )}
       </AnimatePresence>

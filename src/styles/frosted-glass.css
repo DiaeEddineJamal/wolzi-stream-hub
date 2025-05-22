@@ -1,6 +1,6 @@
 /* Frosted Glass effect utilities */
 .frosted-glass {
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: rgba(0, 0, 0, 0.35);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -81,4 +81,31 @@
 
 .wolzi-text-glow {
   text-shadow: 0 0 8px rgba(29, 185, 84, 0.6);
+}
+
+/* Responsive frosted glass variants */
+@media (max-width: 767px) {
+  .frosted-glass {
+    background-color: rgba(0, 0, 0, 0.45); /* Slightly darker on mobile */
+  }
+  
+  .navbar-glass {
+    background: rgba(0, 0, 0, 0.3);
+  }
+  
+  .navbar-glass-scrolled {
+    background: rgba(0, 0, 0, 0.75);
+  }
+}
+
+/* Fix for some mobile browsers with backdrop-filter support issues */
+@supports not (backdrop-filter: blur(10px)) {
+  .frosted-glass,
+  .frosted-glass-light,
+  .frosted-glass-dark,
+  .glass-card,
+  .navbar-glass,
+  .navbar-glass-scrolled {
+    background-color: rgba(0, 0, 0, 0.85);
+  }
 } 
