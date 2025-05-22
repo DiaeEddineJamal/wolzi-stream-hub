@@ -36,6 +36,7 @@ interface HeroBannerItem {
   imageUrl: string;
   mediaType: string;
   ctaLink: string;
+  trailerKey?: string | null;
 }
 
 const Index: React.FC = () => {
@@ -60,17 +61,59 @@ const Index: React.FC = () => {
         // Get featured items for the hero banner (top 5 with backdrop images)
         const heroItems = trendingData
           .filter((item: any) => item.backdrop_path)
-          .slice(0, 5)
-          .map((item: any) => ({
-            id: item.id.toString(),
-            title: item.title || item.name,
-            description: item.overview || "",
-            imageUrl: getBackdropUrl(item.backdrop_path) || "",
-            mediaType: item.media_type,
-            ctaLink: `/${item.media_type}/${item.id}`
-          }));
+          .slice(0, 5);
+          
+        // Fetch trailers for each hero item
+        const heroItemsWithTrailers = await Promise.all(
+          heroItems.map(async (item: any) => {
+            let trailerKey = null;
+            try {
+              // Fetch detailed information with videos based on media type
+              const detailsResponse = item.media_type === 'movie' 
+                ? await tmdbApi.getMovieDetails(item.id)
+                : await tmdbApi.getTVShowDetails(item.id);
+                
+              const videos = detailsResponse.data.videos?.results || [];
+              
+              // Find official trailers first
+              const officialTrailer = videos.find(
+                (video: any) => video.type === 'Trailer' && video.site === 'YouTube' && video.official === true
+              );
+              
+              // If no official trailer, try any trailer
+              const anyTrailer = videos.find(
+                (video: any) => video.type === 'Trailer' && video.site === 'YouTube'
+              );
+              
+              // If still nothing, try any video
+              const anyVideo = videos.find(
+                (video: any) => video.site === 'YouTube'
+              );
+              
+              if (officialTrailer) {
+                trailerKey = officialTrailer.key;
+              } else if (anyTrailer) {
+                trailerKey = anyTrailer.key;
+              } else if (anyVideo) {
+                trailerKey = anyVideo.key;
+              }
+            } catch (error) {
+              console.error(`Error fetching trailer for ${item.media_type} ${item.id}:`, error);
+            }
+            
+            return {
+              id: item.id.toString(),
+              title: item.title || item.name,
+              description: item.overview || "",
+              imageUrl: getBackdropUrl(item.backdrop_path) || "",
+              mediaType: item.media_type,
+              ctaLink: `/${item.media_type}/${item.id}`,
+              trailerKey: trailerKey
+            };
+          })
+        );
         
-        setFeaturedItems(heroItems);
+        setFeaturedItems(heroItemsWithTrailers);
         
         // Process trending items
         const processedTrending = trendingData.map((item: any) => ({
@@ -203,7 +246,7 @@ const Index: React.FC = () => {
       {featuredItems.length > 0 ? (
         <HeroBanner
           featuredItems={featuredItems}
-          autoPlayInterval={7000}
+          autoPlayInterval={10000}
         />
       ) : (
         <div className="hero-banner">

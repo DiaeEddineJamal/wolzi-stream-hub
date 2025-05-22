@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,7 +12,7 @@ import ReactPlayer from 'react-player';
 import MainLayout from '@/layouts/MainLayout';
 import { Tables } from '@/types/supabase';
 import YouTube from 'react-youtube';
-import { Play, PlayCircle, ArrowUpRight } from 'lucide-react';
+import { Play, PlayCircle, ArrowUpRight, Volume2, VolumeX } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 
 type MediaType = 'movie' | 'tv' | 'anime';
@@ -138,7 +138,7 @@ const MediaDetail: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [streamingSources, setStreamingSources] = useState(availableStreamingSources);
   const [preferences, setPreferences] = useState<UserPreferences>({
-    active_streaming_source: 'vidjoy',
+    active_streaming_source: 'superembed',
     autoplay: true
   });
   const [progress, setProgress] = useState(0);
@@ -146,6 +146,8 @@ const MediaDetail: React.FC = () => {
   const [streamingLinks, setStreamingLinks] = useState<any[]>([]);
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [disableSandbox, setDisableSandbox] = useState<boolean>(false);
+  const [trailerMuted, setTrailerMuted] = useState<boolean>(true);
+  const trailerPlayerRef = useRef<any>(null);
 
   // Determine media type from URL path instead of parameter
   // Extract media type from the path: /movie/... or /tv/... or /anime/...
@@ -175,6 +177,14 @@ const MediaDetail: React.FC = () => {
           : await tmdbApi.getTVShowDetails(parseInt(id));
         
         setMediaDetails(data);
+        
+        // Set superembed as the default active source
+        setStreamingSources(prevSources => 
+          prevSources.map(source => ({
+            ...source,
+            isActive: source.id === 'superembed'
+          }))
+        );
         
         // If it's anime, store the title for backward compatibility
         if (actualMediaType === 'anime' && data.name) {
@@ -463,7 +473,7 @@ const MediaDetail: React.FC = () => {
   };
 
   const getActiveSource = () => {
-    return streamingSources.find(source => source.isActive)?.id || 'vidjoy';
+    return streamingSources.find(source => source.isActive)?.id || 'superembed';
   };
 
   const getStreamUrl = () => {
@@ -476,6 +486,18 @@ const MediaDetail: React.FC = () => {
       selectedEpisode || undefined,
       activeSourceId
     );
+  };
+
+  // Toggle mute without restarting the video
+  const toggleMute = () => {
+    if (trailerPlayerRef.current) {
+      if (trailerMuted) {
+        trailerPlayerRef.current.unMute();
+      } else {
+        trailerPlayerRef.current.mute();
+      }
+      setTrailerMuted(!trailerMuted);
+    }
   };
 
   const renderAnimeEpisodes = () => {
@@ -692,7 +714,63 @@ const MediaDetail: React.FC = () => {
     <MainLayout>
       {/* Hero Banner */}
       <div className="hero-banner">
-        {actualMediaType === 'anime' && mediaDetails?.backdrop_path ? (
+        {trailerKey ? (
+          <div className="hero-banner-video">
+            <YouTube
+              videoId={trailerKey}
+              opts={{
+                height: '100%',
+                width: '100%',
+                playerVars: {
+                  autoplay: 1,
+                  mute: 1, // Always start muted
+                  controls: 0,
+                  showinfo: 0,
+                  modestbranding: 1,
+                  loop: 1,
+                  playlist: trailerKey,
+                  rel: 0,
+                },
+              }}
+              className="absolute top-0 left-0 w-full h-full object-cover"
+              ref={trailerPlayerRef}
+              onReady={(event) => {
+                trailerPlayerRef.current = event.target;
+                // Ensure it's muted on initial load
+                event.target.mute();
+              }}
+              onError={(error) => {
+                console.error("YouTube player error:", error);
+                // If there's an error, hide the player and show the backdrop image instead
+                setTrailerKey(null);
+              }}
+            />
+            <div className="absolute bottom-4 right-4 z-10 flex space-x-2">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="bg-black/50 hover:bg-black/70 text-white"
+                onClick={toggleMute}
+                aria-label={trailerMuted ? "Unmute trailer" : "Mute trailer"}
+              >
+                {trailerMuted ? (
+                  <VolumeX className="h-4 w-4" />
+                ) : (
+                  <Volume2 className="h-4 w-4" />
+                )}
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="bg-black/50 hover:bg-black/70 text-white"
+                onClick={() => setActiveTab('trailer')}
+              >
+                <PlayCircle className="mr-1 h-4 w-4" />
+                Watch Full Trailer
+              </Button>
+            </div>
+          </div>
+        ) : actualMediaType === 'anime' && mediaDetails?.backdrop_path ? (
           <img 
             src={getBackdropUrl(mediaDetails.backdrop_path)} 
             alt={title}
@@ -736,7 +814,7 @@ const MediaDetail: React.FC = () => {
               
               <div className="relative mb-4 md:mb-6">
                 <div className="text-container max-h-[120px] md:max-h-none overflow-y-auto md:overflow-visible pr-1">
-                  <p className="text-sm md:text-base text-white drop-shadow-lg font-medium p-2">{mediaDetails?.overview}</p>
+                  <p className="text-sm md:text-base text-white drop-shadow-lg font-medium">{mediaDetails?.overview}</p>
                 </div>
               </div>
               
@@ -796,7 +874,7 @@ const MediaDetail: React.FC = () => {
           {/* Trailer Tab */}
           {trailerKey && (
             <TabsContent value="trailer" className="mt-4 md:mt-6">
-              <Card className="p-3 md:p-6 frosted-glass">
+              <Card className="p-3 md:p-6">
                 <h2 className="text-lg md:text-xl font-medium mb-3 md:mb-4">Official Trailer</h2>
                 <div className="aspect-video w-full bg-black rounded-md overflow-hidden">
                   <YouTube
@@ -835,12 +913,12 @@ const MediaDetail: React.FC = () => {
           
           {/* Stream Tab */}
           <TabsContent value="stream" className="mt-4 md:mt-6">
-            <Card className="p-3 md:p-6 frosted-glass">
+            <Card className="p-3 md:p-6">
               <h2 className="text-lg md:text-xl font-medium mb-3 md:mb-4">Watch {title}</h2>
               <div className="aspect-video w-full bg-black rounded-md overflow-hidden">
                 {actualMediaType === 'movie' && (
                   <iframe
-                    src={getStreamingUrl(actualMediaType, id, undefined, undefined, 'embedsu')}
+                    src={getStreamingUrl(actualMediaType, id, undefined, undefined, 'superembed')}
                     className="w-full h-full"
                     frameBorder="0"
                     allowFullScreen
@@ -854,7 +932,7 @@ const MediaDetail: React.FC = () => {
                 
                 {actualMediaType === 'tv' && selectedSeason && selectedEpisode && (
                   <iframe
-                    src={getStreamingUrl(actualMediaType, id, selectedSeason, selectedEpisode, 'embedsu')}
+                    src={getStreamingUrl(actualMediaType, id, selectedSeason, selectedEpisode, 'superembed')}
                     className="w-full h-full"
                     frameBorder="0"
                     allowFullScreen
@@ -892,7 +970,7 @@ const MediaDetail: React.FC = () => {
               </div>
               
               {/* Player Settings */}
-              <div className="mt-6 bg-black/30 backdrop-blur-sm border border-green-500/20 rounded-md p-3 md:p-4">
+              <div className="mt-6 border border-green-500/20 rounded-md p-3 md:p-4">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
                   <div className="mb-3 md:mb-0">
                     <h3 className="text-sm font-medium text-white">Player Settings</h3>
@@ -901,7 +979,7 @@ const MediaDetail: React.FC = () => {
                     </p>
                   </div>
                   <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto">
-                    <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-start bg-black/20 p-2 rounded-md">
+                    <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-start p-2 rounded-md">
                       <label className="text-sm text-white/80">Sandbox Mode:</label>
                       <div className="flex items-center gap-2">
                         <Switch 
@@ -947,7 +1025,7 @@ const MediaDetail: React.FC = () => {
                   
                   {seasonDetails ? (
                     <div className="space-y-4">
-                      <div className="mb-6 p-4 rounded-md bg-black/20 backdrop-blur-sm border border-green-500/30">
+                      <div className="mb-6 p-4 rounded-md border border-green-500/30">
                         <h2 className="text-xl font-bold text-white">{seasonDetails.name}</h2>
                         {seasonDetails.episodes && (
                           <div className="flex items-center mt-1">
@@ -965,7 +1043,7 @@ const MediaDetail: React.FC = () => {
                             className={`p-4 rounded-lg transition-all duration-200 ${
                               selectedEpisode === episode.episode_number 
                                 ? 'bg-green-500/10 border border-green-500/60 shadow-md shadow-green-500/20' 
-                                : 'bg-black/30 backdrop-blur-sm hover:bg-black/40 border border-green-500/20 hover:border-green-500/40'
+                                : 'border border-green-500/20 hover:border-green-500/40'
                             } cursor-pointer relative group`}
                             onClick={() => {
                               handleEpisodeSelect(episode.episode_number);
@@ -1045,7 +1123,7 @@ const MediaDetail: React.FC = () => {
           
           {/* Details Tab */}
           <TabsContent value="details" className="mt-6">
-            <Card className="p-6 frosted-glass">
+            <Card className="p-6">
               {renderAnimeDetails()}
             </Card>
           </TabsContent>
@@ -1053,7 +1131,7 @@ const MediaDetail: React.FC = () => {
           {/* Episodes Tab (TV only) */}
           {actualMediaType === 'tv' && (
             <TabsContent value="episodes" className="mt-6">
-              <Card className="p-6 frosted-glass">
+              <Card className="p-6">
                 <div className="flex flex-wrap gap-2 mb-6">
                   {mediaDetails?.seasons?.map((season) => (
                     <Button
@@ -1069,7 +1147,7 @@ const MediaDetail: React.FC = () => {
                 
                 {seasonDetails ? (
                   <div className="space-y-4">
-                    <div className="mb-6 p-4 rounded-md bg-black/20 backdrop-blur-sm border border-green-500/30">
+                    <div className="mb-6 p-4 rounded-md border border-green-500/30">
                       <h2 className="text-xl font-bold text-white">{seasonDetails.name}</h2>
                       {seasonDetails.episodes && (
                         <div className="flex items-center mt-1">
@@ -1087,7 +1165,7 @@ const MediaDetail: React.FC = () => {
                           className={`p-4 rounded-lg transition-all duration-200 ${
                             selectedEpisode === episode.episode_number 
                               ? 'bg-green-500/10 border border-green-500/60 shadow-md shadow-green-500/20' 
-                              : 'bg-black/30 backdrop-blur-sm hover:bg-black/40 border border-green-500/20 hover:border-green-500/40'
+                              : 'border border-green-500/20 hover:border-green-500/40'
                           } cursor-pointer relative group`}
                           onClick={() => {
                             handleEpisodeSelect(episode.episode_number);
@@ -1167,7 +1245,7 @@ const MediaDetail: React.FC = () => {
           {/* Episodes Tab for Anime */}
           {actualMediaType === 'anime' && (
             <TabsContent value="episodes" className="mt-6">
-              <Card className="p-6 frosted-glass">
+              <Card className="p-6">
                 {renderAnimeEpisodes()}
               </Card>
             </TabsContent>
@@ -1175,7 +1253,7 @@ const MediaDetail: React.FC = () => {
           
           {/* Streaming Sources Tab */}
           <TabsContent value="sources" className="mt-6">
-            <Card className="p-6 frosted-glass">
+            <Card className="p-6">
               <h2 className="text-xl font-bold mb-6">Video Sources</h2>
               <p className="mb-6 text-wolzi-light-gray">Select your preferred streaming source</p>
               
@@ -1229,13 +1307,39 @@ const MediaDetail: React.FC = () => {
               <div className="mt-8 pt-4 border-t border-wolzi-border">
                 <p className="text-sm text-wolzi-light-gray">
                   Recommended source: 
-                  <span className="font-medium text-blue-400 ml-1">Embed.su</span> for premium quality streams
+                  <span className="font-medium text-purple-400 ml-1">SuperEmbed</span> for high quality streams
                 </p>
               </div>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
+      
+      {/* CSS for hero banner video */}
+      <style jsx global>{`
+        .hero-banner-video {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+        }
+        
+        .hero-banner-video iframe {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 100%;
+          height: 100%;
+          transform: translate(-50%, -50%) scale(1.5);
+          pointer-events: none;
+        }
+        
+        @media (max-width: 768px) {
+          .hero-banner-video iframe {
+            transform: translate(-50%, -50%) scale(2);
+          }
+        }
+      `}</style>
     </MainLayout>
   );
 };
