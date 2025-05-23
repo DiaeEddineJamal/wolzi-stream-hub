@@ -491,12 +491,17 @@ const MediaDetail: React.FC = () => {
   // Toggle mute without restarting the video
   const toggleMute = () => {
     if (trailerPlayerRef.current) {
-      if (trailerMuted) {
-        trailerPlayerRef.current.unMute();
-      } else {
-        trailerPlayerRef.current.mute();
+      try {
+        if (trailerMuted) {
+          trailerPlayerRef.current.unMute();
+        } else {
+          trailerPlayerRef.current.mute();
+        }
+        // Update state after successful API call
+        setTrailerMuted(!trailerMuted);
+      } catch (error) {
+        console.error("Error toggling mute state:", error);
       }
-      setTrailerMuted(!trailerMuted);
     }
   };
 
@@ -723,21 +728,22 @@ const MediaDetail: React.FC = () => {
                 width: '100%',
                 playerVars: {
                   autoplay: 1,
-                  mute: 1, // Always start muted
                   controls: 0,
                   showinfo: 0,
                   modestbranding: 1,
                   loop: 1,
-                  playlist: trailerKey,
                   rel: 0,
+                  mute: 1, // Start muted
+                  playlist: trailerKey, // Required for looping
                 },
               }}
               className="absolute top-0 left-0 w-full h-full object-cover"
-              ref={trailerPlayerRef}
               onReady={(event) => {
+                // Store player reference
                 trailerPlayerRef.current = event.target;
-                // Ensure it's muted on initial load
-                event.target.mute();
+                
+                // Don't set mute again - it's already set in playerVars
+                // This prevents any audio glitches
               }}
               onError={(error) => {
                 console.error("YouTube player error:", error);
@@ -745,28 +751,29 @@ const MediaDetail: React.FC = () => {
                 setTrailerKey(null);
               }}
             />
-            <div className="absolute bottom-4 right-4 z-10 flex space-x-2">
+            {/* Video controls - positioned clearly below Add to List button */}
+            <div className="fixed bottom-36 sm:bottom-32 right-4 z-30 flex flex-row gap-2">
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="bg-black/50 hover:bg-black/70 text-white"
+                className="bg-black/70 hover:bg-black/90 text-white p-1.5 h-8 w-8 sm:h-9 sm:w-9 shadow-md backdrop-blur-sm"
                 onClick={toggleMute}
                 aria-label={trailerMuted ? "Unmute trailer" : "Mute trailer"}
               >
                 {trailerMuted ? (
-                  <VolumeX className="h-4 w-4" />
+                  <VolumeX className="h-4 w-4 sm:h-5 sm:w-5" />
                 ) : (
-                  <Volume2 className="h-4 w-4" />
+                  <Volume2 className="h-4 w-4 sm:h-5 sm:w-5" />
                 )}
               </Button>
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="bg-black/50 hover:bg-black/70 text-white"
+                className="bg-black/70 hover:bg-black/90 text-white text-xs py-1 px-2 sm:px-3 h-8 sm:h-9 shadow-md backdrop-blur-sm"
                 onClick={() => setActiveTab('trailer')}
               >
-                <PlayCircle className="mr-1 h-4 w-4" />
-                Watch Full Trailer
+                <PlayCircle className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="whitespace-nowrap">Watch Full Trailer</span>
               </Button>
             </div>
           </div>

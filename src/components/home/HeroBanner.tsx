@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -32,20 +32,28 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
   const playerCacheRef = useRef<Record<string, any>>({});
   
   // Toggle mute for all cached players
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     const newMutedState = !trailerMuted;
-    setTrailerMuted(newMutedState);
     
     // Apply mute state to current and all cached players
     const currentTrailer = featuredItems[currentIndex]?.trailerKey;
     if (currentTrailer && playerCacheRef.current[currentTrailer]) {
-      if (newMutedState) {
-        playerCacheRef.current[currentTrailer].mute();
-      } else {
-        playerCacheRef.current[currentTrailer].unMute();
+      try {
+        if (newMutedState) {
+          playerCacheRef.current[currentTrailer].mute();
+        } else {
+          playerCacheRef.current[currentTrailer].unMute();
+        }
+        // Only update state after successful player API call
+        setTrailerMuted(newMutedState);
+      } catch (error) {
+        console.error("Error toggling mute state:", error);
       }
+    } else {
+      // If no player reference, just update the state
+      setTrailerMuted(newMutedState);
     }
-  };
+  }, [featuredItems, currentIndex, trailerMuted]);
   
   // Auto-advance slides every few seconds
   useEffect(() => {
@@ -253,11 +261,11 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
                     controls: 0,
                     rel: 0,
                     showinfo: 0,
-                    mute: trailerMuted ? 1 : 0,
                     modestbranding: 1,
                     playsinline: 1,
                     loop: 1,
-                    start: 0,
+                    playlist: currentItem.trailerKey, // Required for looping
+                    mute: 1, // Always start muted and control via API later
                   },
                 }}
                 className="absolute top-0 left-0 w-full h-full pointer-events-none"
@@ -267,15 +275,13 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
                   trailerPlayerRef.current = player;
                   playerCacheRef.current[currentItem.trailerKey!] = player;
                   
-                  // Apply current muted state
-                  if (trailerMuted) {
-                    player.mute();
-                  } else {
-                    player.unMute();
-                  }
-                  
                   // Start playing immediately
                   player.playVideo();
+                  
+                  // Apply current mute state after player is ready - don't call mute() as it's in playerVars
+                  if (!trailerMuted) {
+                    player.unMute();
+                  }
                 }}
                 onEnd={(event) => {
                   // Loop the video when it ends
@@ -286,13 +292,13 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
                 }}
               />
               <div 
-                className="absolute bottom-4 right-4 z-50 p-2 rounded-full bg-wolzi-bg/60 hover:bg-wolzi-bg/90 cursor-pointer transition-colors"
+                className="absolute bottom-4 right-4 z-50 p-1.5 sm:p-2 rounded-full bg-wolzi-bg/60 hover:bg-wolzi-bg/90 cursor-pointer transition-colors"
                 onClick={toggleMute}
               >
                 {trailerMuted ? (
-                  <VolumeX className="h-6 w-6 text-white" />
+                  <VolumeX className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 ) : (
-                  <Volume2 className="h-6 w-6 text-white" />
+                  <Volume2 className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                 )}
               </div>
             </div>
@@ -441,18 +447,18 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
       {featuredItems.length > 1 && (
         <>
           <button 
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-black/30 p-2 rounded-full hover:bg-black/60 transition-all"
+            className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/70 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full transition-all"
             onClick={goToPrevious}
             aria-label="Previous slide"
           >
-            <ChevronLeft className="w-6 h-6" />
+            <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           </button>
           <button 
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-black/30 p-2 rounded-full hover:bg-black/60 transition-all"
+            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 bg-black/50 hover:bg-black/70 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full transition-all"
             onClick={goToNext}
             aria-label="Next slide"
           >
-            <ChevronRight className="w-6 h-6" />
+            <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           </button>
         </>
       )}
@@ -474,16 +480,21 @@ const SingleHeroBanner: React.FC<HeroBannerItem> = ({
   const trailerPlayerRef = useRef<any>(null);
   
   // Toggle mute for trailer videos
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     if (trailerPlayerRef.current) {
-      if (trailerMuted) {
-        trailerPlayerRef.current.unMute();
-      } else {
-        trailerPlayerRef.current.mute();
+      try {
+        if (trailerMuted) {
+          trailerPlayerRef.current.unMute();
+        } else {
+          trailerPlayerRef.current.mute();
+        }
+        // Update state after successful player API call
+        setTrailerMuted(!trailerMuted);
+      } catch (error) {
+        console.error("Error toggling mute state:", error);
       }
-      setTrailerMuted(!trailerMuted);
     }
-  };
+  }, [trailerMuted]);
   
   // Get the appropriate media type label color based on type
   const getMediaLabelStyles = (mediaType: string) => {
@@ -511,21 +522,22 @@ const SingleHeroBanner: React.FC<HeroBannerItem> = ({
               width: '100%',
               playerVars: {
                 autoplay: 1,
-                mute: 1, // Always start muted
                 controls: 0,
                 showinfo: 0,
                 modestbranding: 1,
                 loop: 1,
-                playlist: trailerKey,
+                playlist: trailerKey, // Required for looping
                 rel: 0,
+                mute: 1, // Always start muted and control via API
               },
             }}
             className="absolute top-0 left-0 w-full h-full object-cover"
-            ref={trailerPlayerRef}
             onReady={(event) => {
+              // Store player reference
               trailerPlayerRef.current = event.target;
-              // Ensure it's muted on initial load
-              event.target.mute();
+              
+              // Don't call mute() as it's already set in playerVars
+              // and may cause audio glitches on some browsers
             }}
             onError={(error) => {
               console.error("YouTube player error:", error);
@@ -535,14 +547,14 @@ const SingleHeroBanner: React.FC<HeroBannerItem> = ({
             <Button 
               variant="ghost" 
               size="icon" 
-              className="bg-black/50 hover:bg-black/70 text-white"
+              className="bg-black/50 hover:bg-black/70 text-white p-1.5 sm:p-2 h-auto w-auto"
               onClick={toggleMute}
               aria-label={trailerMuted ? "Unmute trailer" : "Mute trailer"}
             >
               {trailerMuted ? (
-                <VolumeX className="h-4 w-4" />
+                <VolumeX className="h-4 w-4 sm:h-5 sm:w-5" />
               ) : (
-                <Volume2 className="h-4 w-4" />
+                <Volume2 className="h-4 w-4 sm:h-5 sm:w-5" />
               )}
             </Button>
           </div>
