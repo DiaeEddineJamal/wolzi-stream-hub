@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Search, User, Heart, History, LogIn, Menu, X, Home, Film, Tv, TrendingUp, LogOut, ChevronDown, Github } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import tmdbApi, { getPosterUrl } from '@/integrations/api/tmdb';
 
 // Interface for user profile data from AuthContext
 interface UserProfile {
@@ -28,15 +29,22 @@ interface UserProfile {
 const NavBar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isLoggedIn, logout } = useAuth();
+  const { user, signOut, isLoggedIn } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [navVisible, setNavVisible] = useState(true);
+  const [lastScrollTop, setLastScrollTop] = useState(0);
   const [showSearch, setShowSearch] = useState(false);
-  const lastScrollY = useRef(0);
+  const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
-  
+  // New states for real-time search
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
   // Handle navigation to auth page
   const goToLogin = () => {
     navigate("/auth?mode=login");
@@ -58,13 +66,13 @@ const NavBar: React.FC = () => {
     }
     
     // Hide navbar when scrolling down, show when scrolling up
-    if (currentScrollY > lastScrollY.current && currentScrollY > 400 && !mobileMenuOpen) {
+    if (currentScrollY > lastScrollTop && currentScrollY > 400 && !mobileMenuOpen) {
       setHidden(true);
     } else {
       setHidden(false);
     }
     
-    lastScrollY.current = currentScrollY;
+    lastScrollTop.current = currentScrollY;
   };
 
   useEffect(() => {
@@ -99,11 +107,58 @@ const NavBar: React.FC = () => {
     }
   };
 
+  // Debounced search function
+  const performSearch = useCallback(async (query: string) => {
+    if (!query.trim() || query.length < 2) {
+      setSearchResults([]);
+      setShowResults(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await tmdbApi.searchMulti(query);
+      const results = response.data.results.slice(0, 5); // Only show top 5 results
+      
+      const processedResults = results.map((result: any) => ({
+        id: result.id.toString(),
+        title: result.title || result.name || 'Unknown',
+        mediaType: result.media_type,
+        posterUrl: getPosterUrl(result.poster_path || result.profile_path) || "https://via.placeholder.com/92x138?text=No+Image",
+        year: (result.release_date || result.first_air_date || "").substring(0, 4),
+      }));
+      
+      setSearchResults(processedResults);
+      setShowResults(true);
+    } catch (error) {
+      console.error('Error searching:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  // Handle search input change with debounce
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    // Clear previous timeout
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+    
+    // Set new timeout for debounce
+    searchDebounceRef.current = setTimeout(() => {
+      performSearch(query);
+    }, 300); // 300ms debounce time
+  };
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       setShowSearch(false);
+      setShowResults(false);
       setSearchQuery("");
     }
   };
@@ -140,6 +195,20 @@ const NavBar: React.FC = () => {
       { title: "On Air", path: "/view-all/anime/on-air" },
     ],
   };
+
+  // Close search results when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setShowResults(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <header
@@ -266,7 +335,7 @@ const NavBar: React.FC = () => {
         {/* Right side: Search, Login, User */}
         <div className="flex items-center space-x-1">
           {/* Search Input and Icon */}
-          <div className="flex items-center relative">
+          <div className="flex items-center relative" ref={searchContainerRef}>
             <AnimatePresence>
               {showSearch ? (
                 <motion.form
@@ -288,7 +357,7 @@ const NavBar: React.FC = () => {
                     type="text"
                     placeholder="Search for movies, TV shows..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={handleSearchChange}
                     className="pr-10 bg-black/30 border-wolzi-accent/30 focus:border-wolzi-accent 
                               focus-visible:ring-1 focus-visible:ring-wolzi-accent/50 rounded-full text-sm"
                   />
@@ -301,6 +370,58 @@ const NavBar: React.FC = () => {
                   >
                     <X className="h-4 w-4" />
                   </Button>
+                  
+                  {/* Real-time Search Results Dropdown */}
+                  {showResults && searchResults.length > 0 && (
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 max-h-96 overflow-y-auto rounded-md bg-black/90 backdrop-blur-lg border border-wolzi-accent/30 shadow-lg z-50">
+                      <div className="p-2">
+                        {isSearching ? (
+                          <div className="flex justify-center items-center py-3">
+                            <div className="w-5 h-5 border-2 border-wolzi-accent/30 border-t-wolzi-accent rounded-full animate-spin"></div>
+                          </div>
+                        ) : (
+                          <>
+                            {searchResults.map((result) => (
+                              <Link
+                                key={`${result.mediaType}-${result.id}`}
+                                to={`/${result.mediaType}/${result.id}`}
+                                className="flex items-center gap-3 p-2 hover:bg-wolzi-accent/20 rounded-md transition-colors"
+                                onClick={() => {
+                                  setShowSearch(false);
+                                  setShowResults(false);
+                                  setSearchQuery("");
+                                }}
+                              >
+                                <img 
+                                  src={result.posterUrl} 
+                                  alt={result.title}
+                                  className="w-10 h-15 object-cover rounded-md"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-white truncate text-sm">{result.title}</p>
+                                  <div className="flex items-center text-xs text-wolzi-light-gray">
+                                    <span className="capitalize">{result.mediaType}</span>
+                                    {result.year && <span className="ml-2">{result.year}</span>}
+                                  </div>
+                                </div>
+                              </Link>
+                            ))}
+                            
+                            <div className="mt-2 pt-2 border-t border-wolzi-border/20">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="w-full text-xs text-wolzi-light-gray hover:text-wolzi-accent rounded-md"
+                                onClick={handleSearchSubmit}
+                              >
+                                View all results for "{searchQuery}"
+                              </Button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </motion.form>
               ) : (
                 <Button 
@@ -459,7 +580,7 @@ const NavBar: React.FC = () => {
                     <motion.div whileTap={{ scale: 0.98 }}>
                       <button
                         onClick={() => {
-                          logout();
+                          signOut();
                           setMobileMenuOpen(false);
                         }}
                         className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 w-full text-left"
