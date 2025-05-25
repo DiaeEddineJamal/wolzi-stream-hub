@@ -10,7 +10,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, LogOut, Settings } from 'lucide-react';
+import { User, LogOut } from 'lucide-react';
+import { forceLogout } from '@/utils/auth-helpers';
 
 // Helper function to determine if user is truly logged in
 const isValidSession = (user: any, isLoggedIn: boolean) => {
@@ -94,12 +95,20 @@ const UserMenu: React.FC = () => {
     const handleLogout = () => {
       try {
         console.log("UserMenu: Initiating logout");
-        logout();
+        
+        // First try the regular logout to properly clean up auth state
+        try {
+          logout();
+        } catch (e) {
+          console.error("Error during regular logout call:", e);
+        }
+        
+        // Then force logout to ensure clean exit
+        forceLogout();
       } catch (error) {
-        console.error("UserMenu: Error during logout:", error);
-        // Force reset on error
-        sessionStorage.setItem('wolziflix_complete_logout', 'true');
-        window.location.href = '/?forced_reset=true';
+        console.error("UserMenu: Critical error during logout:", error);
+        // Last resort direct reload
+        window.location.href = '/';
       }
     };
 
@@ -128,12 +137,6 @@ const UserMenu: React.FC = () => {
             <Link to="/profile" className="cursor-pointer flex w-full items-center">
               <User className="mr-2 h-4 w-4" />
               <span>Profile</span>
-            </Link>
-          </DropdownMenuItem>
-          <DropdownMenuItem asChild>
-            <Link to="/settings" className="cursor-pointer flex w-full items-center">
-              <Settings className="mr-2 h-4 w-4" />
-              <span>Settings</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />

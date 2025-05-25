@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import tmdbApi, { getPosterUrl } from '@/integrations/api/tmdb';
+import { forceLogout } from "@/utils/auth-helpers";
 
 // Interface for user profile data from AuthContext
 interface UserProfile {
@@ -68,49 +69,31 @@ const NavBar: React.FC = () => {
   // State for nav item descriptions
   const [activeNavItem, setActiveNavItem] = useState<string | null>(null);
   
-  // Initialize isPageRefresh synchronously to ensure correct value on first render
+  // Initialize shouldAnimate state value
   const [shouldAnimate] = useState(() => {
-    // Check if this is an actual page refresh (not in-app navigation)
-    let isActualRefresh = false;
+    // Use sessionStorage to ensure animations only run once per browser session
+    const hasAnimatedThisSession = sessionStorage.getItem(NAV_ANIMATION_KEY) === 'true';
     
-    if (typeof window !== 'undefined' && window.performance && typeof window.performance.getEntriesByType === 'function') {
-      const perfEntries = window.performance.getEntriesByType('navigation');
-      if (perfEntries.length > 0 && perfEntries[0] instanceof PerformanceNavigationTiming) {
-        // Check if the navigation type is 'reload'
-        if ((perfEntries[0] as PerformanceNavigationTiming).type === 'reload') {
-          isActualRefresh = true; // It's a page refresh
-        }
-      }
-    }
-    
-    // Check if we've already animated during this browser session
-    const hasAnimatedBefore = localStorage.getItem(NAV_ANIMATION_KEY) === 'true';
-    
-    // Only animate if this is a page refresh or first visit AND we haven't animated before
-    const shouldRunAnimation = (isActualRefresh || !hasAnimatedBefore);
+    // Only animate if we haven't animated before in this session
+    const shouldRunAnimation = !hasAnimatedThisSession;
     
     // If we decide to animate, mark that we've done so for this session
     if (shouldRunAnimation) {
-      localStorage.setItem(NAV_ANIMATION_KEY, 'true');
+      sessionStorage.setItem(NAV_ANIMATION_KEY, 'true');
+      
+      // Also log the animation timestamp in localStorage for debugging
+      localStorage.setItem('wolziflix-last-animation', new Date().toISOString());
     }
     
     return shouldRunAnimation;
   });
-  
-  // useEffect to handle sessionStorage update (if still needed)
-  useEffect(() => {
-    // Store navigation ID to help track navigation if location.key is present
-    if (location.key) {
-      sessionStorage.setItem(NAV_SESSION_KEY, location.key);
-    }
-  }, [location.key]); // Rerun if location.key changes
 
   // Reset animation flag when user leaves/refreshes the page
   useEffect(() => {
     // Function to handle beforeunload event
     const handleBeforeUnload = () => {
-      // Clear the animation flag when the user leaves or refreshes the page
-      localStorage.removeItem(NAV_ANIMATION_KEY);
+      // Remove the session storage flag when the user refreshes the page or closes the browser
+      sessionStorage.removeItem(NAV_ANIMATION_KEY);
     };
 
     // Add event listener for page unload
@@ -121,6 +104,20 @@ const NavBar: React.FC = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, []);
+
+  // useEffect to handle sessionStorage update (if still needed)
+  useEffect(() => {
+    // Store navigation ID to help track navigation state
+    if (location.key) {
+      sessionStorage.setItem(NAV_SESSION_KEY, location.key);
+    }
+    
+    // Clear animation flag if URL contains 'force-animation' query param
+    if (location.search.includes('force-animation')) {
+      sessionStorage.removeItem(NAV_ANIMATION_KEY);
+      window.location.href = location.pathname; // Reload without the query param
+    }
+  }, [location.key, location.search]); // Rerun if location changes
 
   // Handle navigation to auth page
   const goToLogin = () => {
@@ -806,9 +803,22 @@ const NavBar: React.FC = () => {
                         onClick={() => {
                           try {
                             console.log("NavBar: Initiating logout");
-                            logout();
+                            // Close mobile menu
+                            setMobileMenuOpen(false);
+                            
+                            // First try the regular logout to properly clean up auth state
+                            try {
+                              logout();
+                            } catch (e) {
+                              console.error("Error during regular logout call:", e);
+                            }
+                            
+                            // Then force logout to ensure clean exit
+                            forceLogout();
                           } catch (error) {
-                            console.error("NavBar: Error during logout:", error);
+                            console.error("NavBar: Critical error during logout:", error);
+                            // Last resort direct reload
+                            window.location.href = '/';
                           }
                         }}
                         className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 w-full text-left"

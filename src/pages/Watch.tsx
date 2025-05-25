@@ -525,35 +525,54 @@ const Watch: React.FC = () => {
         posterPath = getPosterUrl(data.poster_path || '');
       }
       
+      // Calculate progress percentage
+      const currentDuration = duration || averageEpisodeDuration;
+      const progressPercent = currentDuration > 0 
+        ? Math.min(100, Math.round((seconds / currentDuration) * 100)) 
+        : 0;
+      
       const watchData = {
         user_id: user.id,
-        media_id: id,
-        media_type: actualMediaType,
+        content_id: id,
+        content_type: actualMediaType,
         title: title,
         poster_path: posterPath,
         progress: Math.floor(seconds),
+        duration: Math.floor(currentDuration),
+        progress_percent: progressPercent,
         watched_at: new Date().toISOString(),
-        season: actualMediaType === 'tv' ? seasonNumber : null,
-        episode: (actualMediaType === 'tv' || actualMediaType === 'anime') ? episodeNumber : null,
+        season: actualMediaType === 'tv' || actualMediaType === 'anime' ? parseInt(seasonNumber || '1') : null,
+        episode: (actualMediaType === 'tv' || actualMediaType === 'anime') ? parseInt(episodeNumber || '1') : null,
       };
+      
+      console.log('Updating watch history with data:', watchData);
       
       if (watchId) {
         // Update existing record
-        await supabase
+        const { error } = await supabase
           .from('watch_history')
           .update(watchData)
           .eq('id', watchId);
+          
+        if (error) {
+          console.error('Error updating watch history:', error);
+        }
       } else {
         // Create new record
         const { data, error } = await supabase
           .from('watch_history')
-          .insert(watchData)
+          .upsert(watchData, { 
+            onConflict: 'user_id, content_id, content_type, season, episode',
+            ignoreDuplicates: false
+          })
           .select('id')
           .single();
         
-        if (error) throw error;
-        
-        setWatchId(data.id);
+        if (error) {
+          console.error('Error creating watch history:', error);
+        } else if (data) {
+          setWatchId(data.id);
+        }
       }
     } catch (error) {
       console.error('Error updating watch history:', error);

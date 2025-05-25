@@ -4,11 +4,28 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import MainLayout from '@/layouts/MainLayout';
+import { Link } from 'react-router-dom';
+import { Play, History, Clock } from 'lucide-react';
+import { forceLogout } from '@/utils/auth-helpers';
 
 interface UserPreferences {
   active_streaming_source: string;
   theme: string;
   autoplay: boolean;
+}
+
+interface WatchHistoryItem {
+  id: string;
+  content_id: string;
+  content_type: 'movie' | 'tv' | 'anime';
+  title: string;
+  poster_path: string | null;
+  watched_at: string;
+  progress: number;
+  duration: number;
+  progress_percent: number;
+  season?: number;
+  episode?: number;
 }
 
 const Profile: React.FC = () => {
@@ -20,6 +37,8 @@ const Profile: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('profile');
+  const [watchHistory, setWatchHistory] = useState<WatchHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   // Add a debug function to check profile data
   useEffect(() => {
@@ -35,6 +54,39 @@ const Profile: React.FC = () => {
       setAvatarUrl(profile.avatar_url || null);
     }
   }, [profile]);
+
+  // Fetch watch history when history tab is selected
+  useEffect(() => {
+    if (activeTab === 'history' && user) {
+      fetchWatchHistory();
+    }
+  }, [activeTab, user]);
+
+  const fetchWatchHistory = async () => {
+    if (!user) return;
+    
+    try {
+      setHistoryLoading(true);
+      const { data, error } = await supabase
+        .from('watch_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('watched_at', { ascending: false })
+        .limit(20);
+      
+      if (error) {
+        console.error('Error fetching watch history:', error);
+        return;
+      }
+      
+      console.log('Fetched watch history:', data);
+      setWatchHistory(data || []);
+    } catch (error) {
+      console.error('Error in fetchWatchHistory:', error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || event.target.files.length === 0) {
@@ -99,6 +151,31 @@ const Profile: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to format watched time
+  const formatTime = (seconds: number) => {
+    if (!seconds) return '0 min';
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes} min`;
+  };
+  
+  // Helper function to determine continue watching URL
+  const getContinueWatchingUrl = (item: WatchHistoryItem) => {
+    if (item.content_type === 'movie') {
+      return `/watch/movie/${item.content_id}`;
+    } else if (item.content_type === 'tv') {
+      return `/watch/tv/${item.content_id}/season/${item.season}/episode/${item.episode}`;
+    } else if (item.content_type === 'anime') {
+      return `/watch/anime/${item.content_id}/episode/${item.episode}`;
+    }
+    return '';
   };
 
   if (!user) {
@@ -257,7 +334,25 @@ const Profile: React.FC = () => {
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={logout} 
+                  onClick={() => {
+                    try {
+                      console.log("Profile: Initiating logout");
+                      
+                      // First try the regular logout to properly clean up auth state
+                      try {
+                        logout();
+                      } catch (e) {
+                        console.error("Error during regular logout call:", e);
+                      }
+                      
+                      // Then force logout to ensure clean exit
+                      forceLogout();
+                    } catch (error) {
+                      console.error("Profile: Critical error during logout:", error);
+                      // Last resort direct reload
+                      window.location.href = '/';
+                    }
+                  }}
                   className="border-red-500 text-red-500 hover:bg-red-500/10"
                 >
                   Sign Out
@@ -268,11 +363,85 @@ const Profile: React.FC = () => {
         )}
         
         {activeTab === 'history' && (
-          <div className="max-w-4xl mx-auto bg-wolzi-dark-gray/50 p-6 rounded-lg shadow-lg backdrop-blur-md">
-            <h2 className="text-2xl font-bold text-wolzi-accent mb-6">Watch History</h2>
-            <p className="text-wolzi-light-gray mb-4">
-              Your watch history will appear here once you start watching content.
-            </p>
+          <div className="max-w-5xl mx-auto bg-wolzi-dark-gray/50 p-6 rounded-lg shadow-lg backdrop-blur-md">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-wolzi-accent">Watch History</h2>
+              <Link to="/watch-history" className="text-wolzi-accent hover:underline text-sm flex items-center">
+                <History className="h-4 w-4 mr-1" />
+                View Full History
+              </Link>
+            </div>
+            
+            {historyLoading ? (
+              <div className="flex justify-center items-center p-8">
+                <div className="loading-spinner-small"></div>
+              </div>
+            ) : watchHistory.length === 0 ? (
+              <div className="text-center p-8">
+                <Clock className="h-12 w-12 mx-auto text-wolzi-light-gray mb-3 opacity-50" />
+                <p className="text-wolzi-light-gray mb-4">
+                  Your watch history will appear here once you start watching content.
+                </p>
+                <Button asChild className="bg-wolzi-accent hover:bg-wolzi-accent/80">
+                  <Link to="/">Browse Content</Link>
+                </Button>
+              </div>
+            ) : (
+              <div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                  {watchHistory.map((item) => (
+                    <div key={item.id} className="media-card group relative">
+                      <Link 
+                        to={`/${item.content_type}/${item.content_id}${item.season && item.episode ? `/season/${item.season}/episode/${item.episode}` : ''}`}
+                        className="block"
+                      >
+                        <div className="relative overflow-hidden rounded-md">
+                          <img 
+                            src={item.poster_path || 'https://via.placeholder.com/300x450?text=No+Image'} 
+                            alt={item.title}
+                            className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                          
+                          {/* Progress bar */}
+                          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-800/80">
+                            <div 
+                              className="h-full bg-wolzi-accent" 
+                              style={{ width: `${item.progress_percent || 0}%` }}
+                            ></div>
+                          </div>
+                          
+                          {/* Content details overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <h3 className="text-sm font-semibold line-clamp-2">{item.title}</h3>
+                            <div className="flex justify-between text-xs mt-1 text-wolzi-light-gray">
+                              <span>{new Date(item.watched_at).toLocaleDateString()}</span>
+                              <span>{formatTime(item.progress)} / {formatTime(item.duration || 0)}</span>
+                            </div>
+                            {item.season && item.episode && (
+                              <div className="text-xs text-wolzi-light-gray mt-1">
+                                {item.content_type === 'tv' ? 'Season' : ''} {item.content_type === 'tv' ? item.season : ''} {item.content_type === 'tv' ? '•' : ''} Episode {item.episode}
+                              </div>
+                            )}
+                            <div className="text-xs text-wolzi-accent mt-1">
+                              {item.progress_percent}% completed
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                      
+                      {/* Play button overlay */}
+                      <Link 
+                        to={getContinueWatchingUrl(item)}
+                        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-wolzi-accent/90 hover:bg-wolzi-accent rounded-full p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg"
+                        title="Continue Watching"
+                      >
+                        <Play className="h-5 w-5 text-white" />
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
         

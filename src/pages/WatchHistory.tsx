@@ -5,15 +5,18 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
+import { Play } from 'lucide-react';
 
 interface WatchHistoryItem {
   id: string;
   content_id: string;
-  content_type: 'movie' | 'tv';
+  content_type: 'movie' | 'tv' | 'anime';
   title: string;
   poster_path: string | null;
   watched_at: string;
   progress: number;
+  duration: number;
+  progress_percent: number;
   season?: number;
   episode?: number;
 }
@@ -94,6 +97,18 @@ const WatchHistory: React.FC = () => {
     }
     return `${minutes} min`;
   };
+  
+  // Helper function to determine continue watching URL
+  const getContinueWatchingUrl = (item: WatchHistoryItem) => {
+    if (item.content_type === 'movie') {
+      return `/watch/movie/${item.content_id}`;
+    } else if (item.content_type === 'tv') {
+      return `/watch/tv/${item.content_id}/season/${item.season}/episode/${item.episode}`;
+    } else if (item.content_type === 'anime') {
+      return `/watch/anime/${item.content_id}/episode/${item.episode}`;
+    }
+    return '';
+  };
 
   return (
     <MainLayout>
@@ -128,33 +143,54 @@ const WatchHistory: React.FC = () => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {history.map((item) => (
-              <Link 
-                key={item.id} 
-                to={`/${item.content_type}/${item.content_id}${item.season && item.episode ? `/season/${item.season}/episode/${item.episode}` : ''}`}
-                className="block"
-              >
-                <div className="media-card">
-                  <div className="media-card-poster rounded-md overflow-hidden">
+              <div key={item.id} className="media-card group relative">
+                <Link 
+                  to={`/${item.content_type}/${item.content_id}${item.season && item.episode ? `/season/${item.season}/episode/${item.episode}` : ''}`}
+                  className="block"
+                >
+                  <div className="relative overflow-hidden rounded-md">
                     <img 
                       src={item.poster_path || 'https://via.placeholder.com/300x450?text=No+Image'} 
                       alt={item.title}
-                      className="w-full h-auto object-cover"
+                      className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
                     />
-                    <div className="media-card-overlay">
-                      <h3 className="text-sm font-semibold truncate">{item.title}</h3>
-                      <div className="flex justify-between text-xs mt-1">
+                    
+                    {/* Progress bar */}
+                    <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-800/80">
+                      <div 
+                        className="h-full bg-wolzi-accent" 
+                        style={{ width: `${item.progress_percent || 0}%` }}
+                      ></div>
+                    </div>
+                    
+                    {/* Content details overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-3 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <h3 className="text-sm font-semibold line-clamp-2">{item.title}</h3>
+                      <div className="flex justify-between text-xs mt-1 text-wolzi-light-gray">
                         <span>{new Date(item.watched_at).toLocaleDateString()}</span>
-                        <span>{formatTime(item.progress)}</span>
+                        <span>{formatTime(item.progress)} / {formatTime(item.duration || 0)}</span>
                       </div>
                       {item.season && item.episode && (
-                        <div className="text-xs mt-1">
-                          S{item.season} E{item.episode}
+                        <div className="text-xs text-wolzi-light-gray mt-1">
+                          {item.content_type === 'tv' ? 'Season' : ''} {item.content_type === 'tv' ? item.season : ''} {item.content_type === 'tv' ? '•' : ''} Episode {item.episode}
                         </div>
                       )}
+                      <div className="text-xs text-wolzi-accent mt-1">
+                        {item.progress_percent}% completed
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
+                
+                {/* Play button overlay */}
+                <Link 
+                  to={getContinueWatchingUrl(item)}
+                  className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-wolzi-accent/90 hover:bg-wolzi-accent rounded-full p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg"
+                  title="Continue Watching"
+                >
+                  <Play className="h-5 w-5 text-white" />
+                </Link>
+              </div>
             ))}
           </div>
         )}

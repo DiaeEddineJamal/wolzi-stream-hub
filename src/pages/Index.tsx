@@ -7,6 +7,9 @@ import tmdbApi, { getPosterUrl, getBackdropUrl } from "@/integrations/api/tmdb";
 import jikanApi from "@/integrations/api/jikan";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
+import { Play, Clock } from "lucide-react";
 import axios from 'axios';
 
 // Add the axios instance for anime similar to Anime.tsx
@@ -29,6 +32,20 @@ interface MediaItem {
   backdropUrl?: string;
 }
 
+interface WatchHistoryItem {
+  id: string;
+  content_id: string;
+  content_type: 'movie' | 'tv' | 'anime';
+  title: string;
+  poster_path: string | null;
+  watched_at: string;
+  progress: number;
+  duration: number;
+  progress_percent: number;
+  season?: number;
+  episode?: number;
+}
+
 interface HeroBannerItem {
   id: string;
   title: string;
@@ -40,6 +57,7 @@ interface HeroBannerItem {
 }
 
 const Index: React.FC = () => {
+  const { user, isLoggedIn } = useAuth();
   const [loading, setLoading] = useState(true);
   const [trending, setTrending] = useState<MediaItem[]>([]);
   const [featuredItems, setFeaturedItems] = useState<HeroBannerItem[]>([]);
@@ -49,6 +67,65 @@ const Index: React.FC = () => {
   const [topRatedTVShows, setTopRatedTVShows] = useState<MediaItem[]>([]);
   const [animeShows, setAnimeShows] = useState<MediaItem[]>([]);
   const [upcomingMovies, setUpcomingMovies] = useState<MediaItem[]>([]);
+  const [watchHistory, setWatchHistory] = useState<WatchHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  // Fetch watch history if user is logged in
+  useEffect(() => {
+    if (user && isLoggedIn) {
+      fetchWatchHistory();
+    }
+  }, [user, isLoggedIn]);
+
+  const fetchWatchHistory = async () => {
+    try {
+      setHistoryLoading(true);
+      
+      const { data, error } = await supabase
+        .from('watch_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('watched_at', { ascending: false })
+        .limit(10);
+      
+      if (error) {
+        console.error('Error fetching watch history:', error);
+        return;
+      }
+      
+      console.log('Home page fetched watch history:', data);
+      setWatchHistory(data || []);
+    } catch (error) {
+      console.error('Error in fetchWatchHistory:', error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  // Helper function to format watched time
+  const formatTime = (seconds: number) => {
+    if (!seconds) return '0 min';
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes} min`;
+  };
+  
+  // Helper function to determine continue watching URL
+  const getContinueWatchingUrl = (item: WatchHistoryItem) => {
+    if (item.content_type === 'movie') {
+      return `/watch/movie/${item.content_id}`;
+    } else if (item.content_type === 'tv') {
+      return `/watch/tv/${item.content_id}/season/${item.season}/episode/${item.episode}`;
+    } else if (item.content_type === 'anime') {
+      return `/watch/anime/${item.content_id}/episode/${item.episode}`;
+    }
+    return '';
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -273,59 +350,127 @@ const Index: React.FC = () => {
             <div className="loading-spinner"></div>
           </div>
         ) : (
-          <>
-        <ContentSection
-          title="Trending Now"
-          items={trending.slice(0, 12)} // Keep the homepage concise
-          viewMoreLink="/trending/all"
-          showViewMore={true}
-          className="mt-12"
-        />
-        
-        <ContentSection
-          title="Popular Movies"
-          items={popularMovies.slice(0, 12)}
-          viewMoreLink="/movies/popular"
-          showViewMore={true}
-          className="mt-12"
-        />
+          <div className="container mx-auto px-4">
+            {/* Continue Watching Section - Only show if user is logged in and has watch history */}
+            {user && isLoggedIn && watchHistory.length > 0 && (
+              <div className="mb-12">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold">Continue Watching</h2>
+                  <Link to="/watch-history" className="text-wolzi-accent hover:text-wolzi-accent/80 text-sm">
+                    View All
+                  </Link>
+                </div>
+                
+                <div className="relative">
+                  <div className="overflow-x-auto hide-scrollbar">
+                    <div className="flex gap-4 pb-2">
+                      {watchHistory.map((item) => (
+                        <div 
+                          key={item.id} 
+                          className="min-w-[180px] max-w-[180px] rounded-lg overflow-hidden bg-wolzi-dark-gray/30 relative group"
+                        >
+                          <Link to={`/${item.content_type}/${item.content_id}`}>
+                            <div className="relative aspect-[2/3] overflow-hidden">
+                              <img 
+                                src={item.poster_path || 'https://via.placeholder.com/300x450?text=No+Image'} 
+                                alt={item.title}
+                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              />
+                              
+                              {/* Progress bar */}
+                              <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/50">
+                                <div 
+                                  className="h-full bg-wolzi-accent" 
+                                  style={{ width: `${item.progress_percent || 0}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          </Link>
+                          
+                          {/* Content info */}
+                          <div className="p-2">
+                            <h3 className="font-medium text-sm line-clamp-1" title={item.title}>
+                              {item.title}
+                            </h3>
+                            <div className="flex justify-between items-center mt-1 text-xs text-wolzi-light-gray">
+                              <span>
+                                {item.progress_percent}%
+                              </span>
+                              <span className="flex items-center">
+                                <Clock className="h-3 w-3 mr-1" />
+                                {formatTime(item.progress)}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Play button overlay */}
+                          <Link 
+                            to={getContinueWatchingUrl(item)}
+                            className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-wolzi-accent/90 hover:bg-wolzi-accent rounded-full p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg"
+                            title="Continue Watching"
+                          >
+                            <Play className="h-5 w-5 text-white" />
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             
-        <ContentSection
-          title="Top Rated Movies"
-          items={topRatedMovies.slice(0, 12)}
-          viewMoreLink="/movies/top-rated"
-          showViewMore={true}
-          className="mt-12"
-        />
-        
-        {/* Assuming "Top TV Series" on Index means Popular for broader appeal, link to /tv/popular */}
-        {/* If you want a dedicated "Top Rated TV" section on Index, create another ContentSection for topRatedTVShows */}
-        <ContentSection
-          title="Popular TV Series" 
-          items={popularTVShows.slice(0, 12)} // Changed from topRatedTVShows to popularTVShows for this section
-          viewMoreLink="/tv/popular"
-          showViewMore={true}
-          className="mt-12"
-        />
+            <ContentSection
+              title="Trending Now"
+              items={trending.slice(0, 12)} // Keep the homepage concise
+              viewMoreLink="/trending/all"
+              showViewMore={true}
+              className="mt-12"
+            />
             
-        {animeShows.length > 0 && (
-          <ContentSection
-            title="Popular Anime"
-            items={animeShows.slice(0, 12)}
-            viewMoreLink="/anime"
-            showViewMore={true}
-            className="mb-12"
-          />
-        )}
-        
-        <ContentSection
-          title="Upcoming Movies"
-          items={upcomingMovies.slice(0, 12)}
-          viewMoreLink="/movies/upcoming"
-          showViewMore={true}
-          className="mt-12"
-        />
-          </>
+            <ContentSection
+              title="Popular Movies"
+              items={popularMovies.slice(0, 12)}
+              viewMoreLink="/movies/popular"
+              showViewMore={true}
+              className="mt-12"
+            />
+                
+            <ContentSection
+              title="Top Rated Movies"
+              items={topRatedMovies.slice(0, 12)}
+              viewMoreLink="/movies/top-rated"
+              showViewMore={true}
+              className="mt-12"
+            />
+            
+            {/* Assuming "Top TV Series" on Index means Popular for broader appeal, link to /tv/popular */}
+            {/* If you want a dedicated "Top Rated TV" section on Index, create another ContentSection for topRatedTVShows */}
+            <ContentSection
+              title="Popular TV Series" 
+              items={popularTVShows.slice(0, 12)} // Changed from topRatedTVShows to popularTVShows for this section
+              viewMoreLink="/tv/popular"
+              showViewMore={true}
+              className="mt-12"
+            />
+                
+            {animeShows.length > 0 && (
+              <ContentSection
+                title="Popular Anime"
+                items={animeShows.slice(0, 12)}
+                viewMoreLink="/anime"
+                showViewMore={true}
+                className="mb-12"
+              />
+            )}
+            
+            <ContentSection
+              title="Upcoming Movies"
+              items={upcomingMovies.slice(0, 12)}
+              viewMoreLink="/movies/upcoming"
+              showViewMore={true}
+              className="mt-12"
+            />
+          </div>
         )}
       </div>
     </MainLayout>
