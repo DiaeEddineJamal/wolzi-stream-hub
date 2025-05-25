@@ -8,7 +8,7 @@ const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
           <div>
             <h2 className="text-xl font-bold mb-4 text-wolzi-accent">
-              Luziv
+              WolziFlix
             </h2>
             <p className="text-gray-400 text-sm mb-4">
               Your premier destination for streaming movies, TV series, and anime. 
@@ -49,7 +49,7 @@ const Footer: React.FC = () => {
         
         <div className="border-t border-gray-800 mt-8 pt-6 text-center">
           <p className="text-gray-500 text-sm">
-            &copy; {new Date().getFullYear()} Luziv. All rights reserved.
+            &copy; {new Date().getFullYear()} WolziFlix,a Luziv creation. All rights reserved.
           </p>
         </div>
       </div>

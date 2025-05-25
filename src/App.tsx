@@ -6,6 +6,11 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Analytics } from "@vercel/analytics/react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { useEffect } from "react";
+import { initPerformanceOptimizer } from "@/utils/performance-optimizer";
+import { initAdBlocker } from "@/utils/server-ad-blocker";
+import { preloadAdBlockerScript, applyAdBlockerToIframes } from "@/utils/iframe-ad-blocker";
+import { setupGoogleAds } from "@/utils/ad-whitelist";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
@@ -246,121 +251,145 @@ const fetchSearchResultsPage = async (page: number, query: string, type: string)
   }
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } />
-            <Route path="/movies" element={<Movies />} />
-            <Route path="/tv-series" element={<TVSeries />} />
-            <Route path="/anime" element={<Anime />} />
-            
-            {/* Media detail routes */}
-            <Route path="/movie/:id" element={<MediaDetail />} />
-            <Route path="/tv/:id" element={<MediaDetail />} />
-            <Route path="/anime/:id" element={<MediaDetail />} />
-            
-            {/* Add explicit routes for season/episode parameters */}
-            <Route path="/tv/:id/season/:seasonNumber" element={<MediaDetail />} />
-            <Route path="/tv/:id/season/:seasonNumber/episode/:episodeNumber" element={<MediaDetail />} />
-            <Route path="/anime/:id/episode/:episodeNumber" element={<MediaDetail />} />
-            
-            {/* Watch routes */}
-            <Route path="/watch/movie/:id" element={<Watch />} />
-            <Route path="/watch/tv/:id/season/:seasonNumber/episode/:episodeNumber" element={<Watch />} />
-            <Route path="/watch/anime/:id/episode/:episodeNumber" element={<Watch />} />
-            
-            {/* Protected routes */}
-            <Route path="/watch-history" element={
-              <ProtectedRoute>
-                <WatchHistory />
-              </ProtectedRoute>
-            } />
-            
-            {/* Search */}
-            <Route path="/search" element={<SearchResults />} />
+const App = () => {
+  // Initialize performance optimizer and ad blockers on component mount
+  useEffect(() => {
+    // Initialize performance optimizer (includes general ad blocking)
+    initPerformanceOptimizer();
+    
+    // Initialize server-specific ad blocker
+    initAdBlocker();
+    
+    // Preload ad blocker script for iframes
+    preloadAdBlockerScript();
+    
+    // Apply ad blocker to any existing iframes
+    applyAdBlockerToIframes();
+    
+    // Prepare for Google Ads implementation
+    // When ready to monetize with Google Ads, uncomment the line below 
+    // and replace 'YOUR_GOOGLE_ADS_CLIENT_ID' with your actual Google AdSense client ID
+    // setupGoogleAds('YOUR_GOOGLE_ADS_CLIENT_ID');
+    
+    console.log("Performance and ad blocking optimizations initialized");
+  }, []);
 
-            {/* View All Routes */}
-            <Route 
-              path="/trending/all"
-              element={<ViewAllPage title="Trending Today" fetchDataFunction={fetchTrendingAllPage} />}
-            />
-            <Route 
-              path="/movies/popular" 
-              element={<ViewAllPage title="Popular Movies" fetchDataFunction={fetchPopularMoviesPage} />} 
-            />
-            <Route 
-              path="/movies/top-rated" 
-              element={<ViewAllPage title="Top Rated Movies" fetchDataFunction={fetchTopRatedMoviesPage} />} 
-            />
-            <Route 
-              path="/movies/upcoming" 
-              element={<ViewAllPage title="Upcoming Movies" fetchDataFunction={fetchUpcomingMoviesPage} />} 
-            />
-            <Route 
-              path="/tv/popular" 
-              element={<ViewAllPage title="Popular TV Series" fetchDataFunction={fetchPopularTVShowsPage} />} 
-            />
-            <Route 
-              path="/tv/top-rated" 
-              element={<ViewAllPage title="Top Rated TV Series" fetchDataFunction={fetchTopRatedTVShowsPage} />} 
-            />
-            <Route 
-              path="/view-all/anime/popular" 
-              element={<ViewAllPage title="Popular Anime" fetchDataFunction={fetchPopularAnimePage} />} 
-            />
-            <Route 
-              path="/view-all/anime/top-rated" 
-              element={<ViewAllPage title="Top Rated Anime" fetchDataFunction={fetchTopRatedAnimePage} />} 
-            />
-            <Route 
-              path="/view-all/anime/on-air" 
-              element={<ViewAllPage title="Currently Airing Anime" fetchDataFunction={fetchOnAirAnimePage} />} 
-            />
-            
-            {/* View All Search Results */}
-            <Route 
-              path="/view-all"
-              element={
-                <ViewAllPage 
-                  title={(() => {
-                    const searchParams = new URLSearchParams(window.location.search);
-                    const query = searchParams.get('query') || '';
-                    const type = searchParams.get('type') || 'all';
-                    const typeLabel = type === 'movie' ? 'Movies' : 
-                                      type === 'tv' ? 'TV Series' : 
-                                      type === 'anime' ? 'Anime' : 'Results';
-                    return `Search ${typeLabel}: "${query}"`;
-                  })()}
-                  fetchDataFunction={(page) => {
-                    const searchParams = new URLSearchParams(window.location.search);
-                    const query = searchParams.get('query') || '';
-                    const type = searchParams.get('type') || 'all';
-                    console.log(`ViewAllPage fetching data: page=${page}, type=${type}, query=${query}`);
-                    return fetchSearchResultsPage(page, query, type);
-                  }}
-                />
-              }
-            />
-            
-            {/* 404 */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-        <Analytics />
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
+              <Route path="/movies" element={<Movies />} />
+              <Route path="/tv-series" element={<TVSeries />} />
+              <Route path="/anime" element={<Anime />} />
+              
+              {/* Media detail routes */}
+              <Route path="/movie/:id" element={<MediaDetail />} />
+              <Route path="/tv/:id" element={<MediaDetail />} />
+              <Route path="/anime/:id" element={<MediaDetail />} />
+              
+              {/* Add explicit routes for season/episode parameters */}
+              <Route path="/tv/:id/season/:seasonNumber" element={<MediaDetail />} />
+              <Route path="/tv/:id/season/:seasonNumber/episode/:episodeNumber" element={<MediaDetail />} />
+              <Route path="/anime/:id/episode/:episodeNumber" element={<MediaDetail />} />
+              
+              {/* Watch routes */}
+              <Route path="/watch/movie/:id" element={<Watch />} />
+              <Route path="/watch/tv/:id/season/:seasonNumber/episode/:episodeNumber" element={<Watch />} />
+              <Route path="/watch/anime/:id/episode/:episodeNumber" element={<Watch />} />
+              
+              {/* Protected routes */}
+              <Route path="/watch-history" element={
+                <ProtectedRoute>
+                  <WatchHistory />
+                </ProtectedRoute>
+              } />
+              
+              {/* Search */}
+              <Route path="/search" element={<SearchResults />} />
+
+              {/* View All Routes */}
+              <Route 
+                path="/trending/all"
+                element={<ViewAllPage title="Trending Today" fetchDataFunction={fetchTrendingAllPage} />}
+              />
+              <Route 
+                path="/movies/popular" 
+                element={<ViewAllPage title="Popular Movies" fetchDataFunction={fetchPopularMoviesPage} />} 
+              />
+              <Route 
+                path="/movies/top-rated" 
+                element={<ViewAllPage title="Top Rated Movies" fetchDataFunction={fetchTopRatedMoviesPage} />} 
+              />
+              <Route 
+                path="/movies/upcoming" 
+                element={<ViewAllPage title="Upcoming Movies" fetchDataFunction={fetchUpcomingMoviesPage} />} 
+              />
+              <Route 
+                path="/tv/popular" 
+                element={<ViewAllPage title="Popular TV Series" fetchDataFunction={fetchPopularTVShowsPage} />} 
+              />
+              <Route 
+                path="/tv/top-rated" 
+                element={<ViewAllPage title="Top Rated TV Series" fetchDataFunction={fetchTopRatedTVShowsPage} />} 
+              />
+              <Route 
+                path="/view-all/anime/popular" 
+                element={<ViewAllPage title="Popular Anime" fetchDataFunction={fetchPopularAnimePage} />} 
+              />
+              <Route 
+                path="/view-all/anime/top-rated" 
+                element={<ViewAllPage title="Top Rated Anime" fetchDataFunction={fetchTopRatedAnimePage} />} 
+              />
+              <Route 
+                path="/view-all/anime/on-air" 
+                element={<ViewAllPage title="Currently Airing Anime" fetchDataFunction={fetchOnAirAnimePage} />} 
+              />
+              
+              {/* View All Search Results */}
+              <Route 
+                path="/view-all"
+                element={
+                  <ViewAllPage 
+                    title={(() => {
+                      const searchParams = new URLSearchParams(window.location.search);
+                      const query = searchParams.get('query') || '';
+                      const type = searchParams.get('type') || 'all';
+                      const typeLabel = type === 'movie' ? 'Movies' : 
+                                        type === 'tv' ? 'TV Series' : 
+                                        type === 'anime' ? 'Anime' : 'Results';
+                      return `Search ${typeLabel}: "${query}"`;
+                    })()}
+                    fetchDataFunction={(page) => {
+                      const searchParams = new URLSearchParams(window.location.search);
+                      const query = searchParams.get('query') || '';
+                      const type = searchParams.get('type') || 'all';
+                      console.log(`ViewAllPage fetching data: page=${page}, type=${type}, query=${query}`);
+                      return fetchSearchResultsPage(page, query, type);
+                    }}
+                  />
+                }
+              />
+              
+              {/* 404 */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+          <Analytics />
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

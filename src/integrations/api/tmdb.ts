@@ -1,10 +1,18 @@
 import axios from 'axios';
+import { cachedAsyncFunction } from '@/utils/api-cache';
 
 // Using TMDB API as it's free with registration
 // You'll need to register at https://www.themoviedb.org/ to get an API key
 const TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY;
 const BASE_URL = import.meta.env.VITE_TMDB_BASE_URL || 'https://api.themoviedb.org/3';
 const IMAGE_BASE_URL = import.meta.env.VITE_TMDB_IMAGE_BASE_URL || 'https://image.tmdb.org/t/p';
+
+// Cache durations (in milliseconds)
+const CACHE_DURATIONS = {
+  SHORT: 5 * 60 * 1000, // 5 minutes (for trending, now playing)
+  MEDIUM: 30 * 60 * 1000, // 30 minutes (for popular, top rated)
+  LONG: 12 * 60 * 60 * 1000, // 12 hours (for genres, movie/tv details)
+};
 
 // Image sizes
 export const posterSizes = {
@@ -34,27 +42,56 @@ export const getPosterUrl = (path: string, size = posterSizes.medium) =>
 export const getBackdropUrl = (path: string, size = backdropSizes.large) => 
   path ? `${IMAGE_BASE_URL}/${size}${path}` : null;
 
-// API endpoints
+export const getProfileUrl = (path: string | null, size = 'w185') => {
+  if (!path) return null;
+  return `${IMAGE_BASE_URL}/${size}${path}`;
+};
+
+// API endpoints with caching
 export const tmdbApi = {
   // Movies
   getTrending: (timeWindow = 'day', page = 1) => 
-    api.get(`/trending/all/${timeWindow}`, { params: { page } }),
+    cachedAsyncFunction(
+      () => api.get(`/trending/all/${timeWindow}`, { params: { page } }),
+      `trending-${timeWindow}-${page}`,
+      CACHE_DURATIONS.SHORT
+    ),
   
   getPopularMovies: (page = 1) => 
-    api.get('/movie/popular', { params: { page } }),
+    cachedAsyncFunction(
+      () => api.get('/movie/popular', { params: { page } }),
+      `popular-movies-${page}`,
+      CACHE_DURATIONS.MEDIUM
+    ),
   
   getTopRatedMovies: (page = 1) => 
-    api.get('/movie/top_rated', { params: { page } }),
+    cachedAsyncFunction(
+      () => api.get('/movie/top_rated', { params: { page } }),
+      `top-rated-movies-${page}`,
+      CACHE_DURATIONS.MEDIUM
+    ),
   
   getUpcomingMovies: (page = 1) => 
-    api.get('/movie/upcoming', { params: { page } }),
+    cachedAsyncFunction(
+      () => api.get('/movie/upcoming', { params: { page } }),
+      `upcoming-movies-${page}`,
+      CACHE_DURATIONS.MEDIUM
+    ),
   
   // TV Shows
   getPopularTVShows: (page = 1) => 
-    api.get('/tv/popular', { params: { page } }),
+    cachedAsyncFunction(
+      () => api.get('/tv/popular', { params: { page } }),
+      `popular-tv-${page}`,
+      CACHE_DURATIONS.MEDIUM
+    ),
   
   getTopRatedTVShows: (page = 1) => 
-    api.get('/tv/top_rated', { params: { page } }),
+    cachedAsyncFunction(
+      () => api.get('/tv/top_rated', { params: { page } }),
+      `top-rated-tv-${page}`,
+      CACHE_DURATIONS.MEDIUM
+    ),
   
   // Search
   searchMulti: (query: string, page = 1) => {
@@ -87,20 +124,51 @@ export const tmdbApi = {
     });
   },
   
-  // Details
+  // Details (with longer cache)
   getMovieDetails: (id: number) => 
-    api.get(`/movie/${id}`, { params: { append_to_response: 'videos,credits' } }),
+    cachedAsyncFunction(
+      () => api.get(`/movie/${id}`, { params: { append_to_response: 'videos,credits' } }),
+      `movie-details-${id}`,
+      CACHE_DURATIONS.LONG
+    ),
   
   getTVShowDetails: (id: number) => 
-    api.get(`/tv/${id}`, { params: { append_to_response: 'videos,credits' } }),
+    cachedAsyncFunction(
+      () => api.get(`/tv/${id}`, { params: { append_to_response: 'videos,credits' } }),
+      `tv-details-${id}`,
+      CACHE_DURATIONS.LONG
+    ),
   
-  // Genre lists
+  // Genre lists (with very long cache)
   getMovieGenres: () => 
-    api.get('/genre/movie/list'),
+    cachedAsyncFunction(
+      () => api.get('/genre/movie/list'),
+      'movie-genres',
+      CACHE_DURATIONS.LONG
+    ),
   
   getTVGenres: () => 
-    api.get('/genre/tv/list'),
-    
+    cachedAsyncFunction(
+      () => api.get('/genre/tv/list'),
+      'tv-genres',
+      CACHE_DURATIONS.LONG
+    ),
+  
+  // Discover endpoints
+  discoverMovies: (params: any) => 
+    cachedAsyncFunction(
+      () => api.get('/discover/movie', { params }),
+      `discover-movies-${JSON.stringify(params)}`,
+      CACHE_DURATIONS.MEDIUM
+    ),
+  
+  discoverTV: (params: any) => 
+    cachedAsyncFunction(
+      () => api.get('/discover/tv', { params }),
+      `discover-tv-${JSON.stringify(params)}`,
+      CACHE_DURATIONS.MEDIUM
+    ),
+  
   // Get anime (by filtering TV shows with animation genre and Japanese origin)
   getAnime: (page = 1) => 
     api.get('/discover/tv', { 
