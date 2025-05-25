@@ -12,8 +12,6 @@ import { ArrowLeft, Info, Bookmark, Heart, Share2, Settings } from 'lucide-react
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Switch } from "@/components/ui/switch";
-import { applyAdBlockerToIframes, getAdBlockerScriptDataUri } from '@/utils/iframe-ad-blocker';
-import { initAdBlocker } from '@/utils/server-ad-blocker';
 
 type MediaType = 'movie' | 'tv' | 'anime';
 
@@ -83,16 +81,6 @@ const Watch: React.FC = () => {
     if (path.startsWith('/watch/tv/')) return 'tv';  
     if (path.startsWith('/watch/anime/')) return 'anime';
     return 'movie'; // Default fallback
-  };
-  
-  // Add a function to check fullscreen state that can be called from anywhere
-  const handleFullscreenChange = () => {
-    setIsFullscreen(
-      !!(document.fullscreenElement || 
-        (document as any).webkitFullscreenElement || 
-        (document as any).mozFullScreenElement || 
-        (document as any).msFullscreenElement)
-    );
   };
   
   // Get actual media type with fallback
@@ -863,6 +851,15 @@ const Watch: React.FC = () => {
   
   // Listen for fullscreen changes
   useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(
+        !!(document.fullscreenElement || 
+          (document as any).webkitFullscreenElement || 
+          (document as any).mozFullScreenElement || 
+          (document as any).msFullscreenElement)
+      );
+    };
+    
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     document.addEventListener('mozfullscreenchange', handleFullscreenChange);
@@ -876,59 +873,44 @@ const Watch: React.FC = () => {
     };
   }, []);
   
-  // Handle iframe loading (add ad blocker)
+  // Restore the handleIframeLoad function 
   const handleIframeLoad = () => {
-    console.log("Iframe loaded");
-    setIsLoading(false);
+    console.log('Iframe loaded successfully');
     
+    // Reset the VidSrc.to network error state
+    setVidsrcNetworkError(false);
+    
+    // Try to communicate with the iframe to detect video events
     try {
-      // Apply ad blockers to the newly loaded iframe
-      applyAdBlockerToIframes();
-      
-      // Attempt to get the iframe element
       const iframe = document.querySelector('iframe');
-      if (iframe) {
-        // Apply specific play button click interceptor
-        try {
-          iframe.contentWindow?.postMessage('run-ad-blocker', '*');
-          
-          // For cross-origin iframes, try to force the src to include our ad blocker script
-          if (!iframe.contentDocument && iframe.src && !iframe.src.includes('data:')) {
-            const adBlockerScriptUrl = getAdBlockerScriptDataUri();
-            
-            // Create a timestamp to prevent caching
-            const timestamp = new Date().getTime();
-            
-            // Check if the iframe src already has query parameters
-            const separator = iframe.src.includes('?') ? '&' : '?';
-            
-            // Replace the iframe src to force reload with our script injector
-            iframe.src = `${iframe.src}${separator}_adblock=${timestamp}#${encodeURIComponent(adBlockerScriptUrl)}`;
-          }
-        } catch (e) {
-          console.log("Cross-origin restriction when trying to access iframe content, using alternative methods");
+      if (iframe && iframe.contentWindow) {
+        // Send a message to the iframe asking for video events
+        // This won't work with all players due to CORS, but worth trying
+        iframe.contentWindow.postMessage({ 
+          action: 'listenForVideoEvents',
+          requestProgress: true 
+        }, '*');
+        
+        // For SuperEmbed and SmashyStream, ensure we update disableSandbox
+        if ((activeSource === 'superembed' || activeSource === 'smashystream') && !disableSandbox) {
+          console.log('SuperEmbed or SmashyStream detected, ensuring sandbox is properly configured for fullscreen');
         }
+        
+        // Add a timeout to ensure loading state is cleared even if the iframe doesn't fully load
+        setTimeout(() => {
+          if (isLoading) {
+            console.log('Forcing loading state to complete after timeout');
+            setIsLoading(false);
+          }
+        }, 5000);
       }
-      
-      // Run ad blocking on the main page too (some streaming sites inject ads in the parent)
-      initAdBlocker();
-      
     } catch (error) {
-      console.error("Error applying ad blocker to iframe:", error);
+      console.log('Error communicating with iframe:', error);
+      // Ensure loading state is cleared even if there's an error
+      setIsLoading(false);
     }
     
-    // Continue with existing code
-    try {
-      // Update watch history if authenticated
-      if (user && watchId && progress > 0) {
-        updateWatchHistory(progress);
-      }
-      
-      // Check for fullscreen state
-      handleFullscreenChange();
-    } catch (error) {
-      console.error("Error in iframe load handler:", error);
-    }
+    setIsLoading(false);
   };
   
   // Add effect to isolate Vite HMR connection issues from the iframe

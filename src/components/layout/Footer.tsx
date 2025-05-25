@@ -49,7 +49,7 @@ const Footer: React.FC = () => {
         
         <div className="border-t border-gray-800 mt-8 pt-6 text-center">
           <p className="text-gray-500 text-sm">
-            &copy; {new Date().getFullYear()} WolziFlix,a Luziv creation. All rights reserved.
+            &copy; {new Date().getFullYear()} WolziFlix. All rights reserved.
           </p>
         </div>
       </div>
