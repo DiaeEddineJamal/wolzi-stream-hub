@@ -67,6 +67,7 @@ const Profile: React.FC = () => {
     
     try {
       setHistoryLoading(true);
+      console.log('Profile page: Fetching watch history for user:', user.id);
       const { data, error } = await supabase
         .from('watch_history')
         .select('*')
@@ -79,8 +80,17 @@ const Profile: React.FC = () => {
         return;
       }
       
-      console.log('Fetched watch history:', data);
-      setWatchHistory(data || []);
+      console.log('Profile page fetched watch history:', data);
+      
+      // Map data to correct interface fields if needed
+      const processedHistory = data?.map(item => ({
+        ...item,
+        // Handle possible field name differences
+        content_type: item.content_type || item.media_type,
+        content_id: item.content_id || item.media_id,
+      })) || [];
+      
+      setWatchHistory(processedHistory);
     } catch (error) {
       console.error('Error in fetchWatchHistory:', error);
     } finally {

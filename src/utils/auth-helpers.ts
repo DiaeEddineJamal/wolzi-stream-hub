@@ -2,6 +2,13 @@
  * Utility functions for authentication-related operations
  */
 
+// Add interface to extend Window with YouTube API properties
+interface YouTubeWindow extends Window {
+  YT?: any;
+  ytPlayer?: any;
+  onYouTubeIframeAPIReady?: () => void;
+}
+
 /**
  * Performs a clean, aggressive logout by clearing all storage and forcing a page reload
  * This bypasses any promise-based issues that might happen with the regular logout flow
@@ -45,17 +52,51 @@ const cleanupYouTubeIframes = () => {
     
     // Remove any YouTube iframes
     iframes.forEach(iframe => {
-      if (iframe.src.includes('youtube.com') || iframe.src.includes('youtu.be')) {
+      if (iframe.src && (iframe.src.includes('youtube.com') || iframe.src.includes('youtu.be'))) {
         console.log("Removing YouTube iframe to prevent logout errors");
         iframe.remove();
       }
     });
     
-    // Also try to clean up any YouTube API instances
-    if (window.YT) {
-      console.log("Attempting to clean up YouTube API");
-      // @ts-ignore - YT might not be properly typed
-      window.YT = null;
+    // Also clean up any global YouTube API instances
+    const win = window as YouTubeWindow;
+    if (win.YT) {
+      console.log("Cleaning up YouTube API instance");
+      try {
+        // Try to safely clean up YouTube API objects
+        const players = document.querySelectorAll('.youtube-player');
+        players.forEach(player => {
+          try {
+            // Try to stop the player if it has a stop method
+            if (player.id && win.YT && win.YT.get && win.YT.get(player.id)) {
+              win.YT.get(player.id).stopVideo();
+              win.YT.get(player.id).destroy();
+            }
+          } catch (e) {
+            console.error("Error stopping YouTube player:", e);
+          }
+        });
+      } catch (e) {
+        console.error("Error cleaning up YouTube players:", e);
+      }
+      
+      // Finally set YT to null
+      try {
+        win.YT = null;
+        // Also try to remove the YouTube script tag
+        const ytScripts = document.querySelectorAll('script[src*="youtube.com"]');
+        ytScripts.forEach(script => script.remove());
+      } catch (e) {
+        console.error("Error nullifying YouTube API:", e);
+      }
+    }
+    
+    // Also look for specific errors with the YouTube iframe API
+    try {
+      if (win.ytPlayer) win.ytPlayer = null;
+      if (win.onYouTubeIframeAPIReady) win.onYouTubeIframeAPIReady = null;
+    } catch (e) {
+      console.error("Error cleaning YouTube player references:", e);
     }
   } catch (e) {
     console.error("Error cleaning up YouTube iframes:", e);

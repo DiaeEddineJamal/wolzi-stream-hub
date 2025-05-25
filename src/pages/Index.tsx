@@ -81,6 +81,12 @@ const Index: React.FC = () => {
     try {
       setHistoryLoading(true);
       
+      if (!user || !user.id) {
+        console.log('Index page: User not logged in or missing ID, skipping watch history fetch');
+        return;
+      }
+      
+      console.log('Index page: Fetching watch history for user:', user.id);
       const { data, error } = await supabase
         .from('watch_history')
         .select('*')
@@ -93,8 +99,23 @@ const Index: React.FC = () => {
         return;
       }
       
-      console.log('Home page fetched watch history:', data);
-      setWatchHistory(data || []);
+      console.log('Index page fetched watch history:', data);
+      
+      // Map data to correct interface fields if needed
+      const processedHistory = data?.map(item => ({
+        ...item,
+        // Handle possible field name differences
+        content_type: item.content_type || item.media_type,
+        content_id: item.content_id || item.media_id,
+      })) || [];
+      
+      if (processedHistory.length > 0) {
+        console.log('Index page: Watch history loaded successfully, found', processedHistory.length, 'items');
+      } else {
+        console.log('Index page: No watch history found for user');
+      }
+      
+      setWatchHistory(processedHistory);
     } catch (error) {
       console.error('Error in fetchWatchHistory:', error);
     } finally {

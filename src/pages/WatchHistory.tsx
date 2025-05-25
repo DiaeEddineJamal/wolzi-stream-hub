@@ -33,6 +33,8 @@ const WatchHistory: React.FC = () => {
       
       try {
         setLoading(true);
+        console.log('WatchHistory page: Fetching watch history for user:', user.id);
+        
         const { data, error } = await supabase
           .from('watch_history')
           .select('*')
@@ -41,7 +43,23 @@ const WatchHistory: React.FC = () => {
         
         if (error) throw error;
         
-        setHistory(data || []);
+        console.log('WatchHistory page fetched watch history:', data);
+        
+        // Map data to correct interface fields if needed
+        const processedHistory = data?.map(item => ({
+          ...item,
+          // Handle possible field name differences
+          content_type: item.content_type || item.media_type,
+          content_id: item.content_id || item.media_id,
+        })) || [];
+        
+        if (processedHistory.length > 0) {
+          console.log('WatchHistory page: Watch history loaded successfully, found', processedHistory.length, 'items');
+        } else {
+          console.log('WatchHistory page: No watch history found for user');
+        }
+        
+        setHistory(processedHistory);
       } catch (error) {
         console.error('Error fetching watch history:', error);
         toast({
