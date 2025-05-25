@@ -23,6 +23,22 @@
     <!-- Force favicon refresh with increased version number -->
     <link rel="icon" href="/favicon.ico?v=3" />
     <link rel="shortcut icon" href="/favicon.ico?v=3" type="image/x-icon" />
+    
+    <!-- Register auth service worker for better auth management -->
+    <script>
+      // Register service worker for auth management
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/auth-service-worker.js')
+            .then(registration => {
+              console.log('Auth service worker registered:', registration.scope);
+            })
+            .catch(error => {
+              console.log('Auth service worker registration failed:', error);
+            });
+        });
+      }
+    </script>
   </head>
 
   <body>

@@ -101,14 +101,41 @@ const Profile: React.FC = () => {
     }
   };
 
-  if (!user || !profile) {
-    console.log('Profile page loading state:', { user, profile, loading: !user || !profile });
+  if (!user) {
+    console.log('Profile page: No authenticated user, showing loading state');
     return (
       <MainLayout>
         <div className="container mx-auto px-4 py-8 mt-20">
-          <div className="flex justify-center items-center h-64">
-            <div className="loading-spinner"></div>
-            <p className="mt-4 text-wolzi-light-gray">Loading profile data...</p>
+          <div className="flex flex-col justify-center items-center h-64">
+            <div className="loading-spinner mb-4"></div>
+            <p className="text-wolzi-light-gray">Loading profile data...</p>
+            <p className="text-wolzi-light-gray text-sm mt-2">Not signed in? <a href="/auth" className="text-wolzi-accent hover:underline">Login here</a></p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  // Separate check for profile to provide better feedback
+  if (user && !profile) {
+    console.log('Profile page: User authenticated but profile data not loaded yet');
+    
+    // Try to create a minimal UI with just the user data we have
+    const emailUsername = user.email?.split('@')[0] || 'User';
+    
+    return (
+      <MainLayout>
+        <div className="container mx-auto px-4 py-8 mt-20">
+          <div className="max-w-2xl mx-auto bg-wolzi-dark-gray/50 p-6 rounded-lg shadow-lg backdrop-blur-md">
+            <h2 className="text-2xl font-bold text-wolzi-accent mb-6">Your Profile</h2>
+            <div className="flex flex-col items-center mb-6">
+              <div className="mb-4 w-32 h-32 rounded-full overflow-hidden bg-wolzi-gray flex items-center justify-center">
+                <span className="text-4xl text-white">{emailUsername[0].toUpperCase()}</span>
+              </div>
+              <p className="text-wolzi-light-gray">{user.email}</p>
+              <p className="text-wolzi-accent text-sm mt-4">Loading complete profile data...</p>
+            </div>
+            <div className="loading-spinner-small mt-4 mx-auto"></div>
           </div>
         </div>
       </MainLayout>

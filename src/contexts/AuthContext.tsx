@@ -73,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Get user profile function
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, retryCount = 0) => {
     try {
       console.log('Fetching profile for user:', userId);
       const { data, error } = await supabase
@@ -84,10 +84,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Error fetching profile:', error);
+        
+        // Retry logic for transient errors, max 3 retries
+        if (retryCount < 3) {
+          console.log(`Retrying profile fetch (attempt ${retryCount + 1}/3)`);
+          // Exponential backoff: 500ms, 1000ms, 2000ms
+          await new Promise(resolve => setTimeout(resolve, 500 * Math.pow(2, retryCount)));
+          return fetchProfile(userId, retryCount + 1);
+        }
+        
         return null;
       }
 
       console.log('Profile data fetched:', data);
+      
+      // If no profile exists, create a basic one (handle missing profile case)
+      if (!data && retryCount < 1) {
+        console.log('No profile found for user, creating a basic profile');
+        try {
+          const { data: userData } = await supabase.auth.getUser();
+          const username = userData?.user?.email?.split('@')[0] || 'User';
+          
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              id: userId,
+              username: username,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+            
+          if (createError) {
+            console.error('Error creating profile:', createError);
+            return null;
+          }
+          
+          console.log('Created new profile:', newProfile);
+          
+          // Save the newly created profile to localStorage
+          if (newProfile) {
+            saveProfileToStorage(newProfile as UserProfile);
+          }
+          return newProfile as UserProfile;
+        } catch (createError) {
+          console.error('Error creating profile:', createError);
+          return null;
+        }
+      }
+      
       // Save the fetched profile to localStorage
       if (data) {
         saveProfileToStorage(data as UserProfile);
@@ -163,33 +209,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, currentSession) => {
         console.log('Auth state changed:', event, currentSession);
         
-        setSession(currentSession);
-        setUser(currentSession?.user || null);
-        setIsLoggedIn(!!currentSession);
-
-        if (currentSession?.user) {
-          // Try using cached profile if it exists and the ID matches
-          const cachedProfile = getProfileFromStorage();
-          if (cachedProfile && cachedProfile.id === currentSession.user.id) {
-            updateProfileState(cachedProfile);
-            // Set loading to false as soon as we have a profile
-            setLoading(false);
-          }
-          
-          // Always fetch fresh profile data to ensure it's up to date
-          // But don't block the UI if we already have cached data
-          const profileData = await fetchProfile(currentSession.user.id);
-          if (profileData) {
-            updateProfileState(profileData);
-          }
-          
-          // Always ensure loading is false after auth state change
-          setLoading(false);
-        } else {
-          updateProfileState(null);
+        if (event === 'SIGNED_OUT') {
+          // Clear all state on sign out
+          setUser(null);
+          setProfile(null);
+          setSession(null);
+          setIsLoggedIn(false);
           clearProfileFromStorage();
-          setLoading(false);
+          console.log('Auth state: Signed out, all state cleared');
+          return;
         }
+        
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          if (currentSession?.user) {
+            console.log('Auth state: User signed in, updating state');
+            setSession(currentSession);
+            setUser(currentSession.user);
+            setIsLoggedIn(true);
+            
+            // Try using cached profile if it exists and the ID matches
+            const cachedProfile = getProfileFromStorage();
+            if (cachedProfile && cachedProfile.id === currentSession.user.id) {
+              console.log('Auth state: Using cached profile temporarily');
+              updateProfileState(cachedProfile);
+              // Set loading to false as soon as we have a profile
+              setLoading(false);
+            } else {
+              console.log('Auth state: No matching cached profile found');
+            }
+            
+            // Always fetch fresh profile data with retries on SIGNED_IN event
+            console.log('Auth state: Fetching fresh profile after auth event:', event);
+            try {
+              // Add a slight delay to allow auth to settle
+              await new Promise(resolve => setTimeout(resolve, 300));
+              
+              const profileData = await fetchProfile(currentSession.user.id);
+              if (profileData) {
+                console.log('Auth state: Profile successfully fetched after auth event');
+                updateProfileState(profileData);
+              } else {
+                console.warn('Auth state: Failed to fetch profile after auth event');
+              }
+            } catch (error) {
+              console.error('Auth state: Error fetching profile after auth event:', error);
+            }
+          }
+        } else {
+          // For any other event, check if we have a session
+          if (currentSession?.user) {
+            // Update state with current session
+            setSession(currentSession);
+            setUser(currentSession.user); 
+            setIsLoggedIn(true);
+            
+            // Background fetch profile
+            fetchProfile(currentSession.user.id).then(freshProfile => {
+              if (freshProfile) {
+                updateProfileState(freshProfile);
+              }
+            });
+          } else {
+            console.log('Auth state: No user in session, clearing profile');
+            updateProfileState(null);
+            clearProfileFromStorage();
+          }
+        }
+        
+        // Always ensure loading is false after auth state change
+        setLoading(false);
       }
     );
 
@@ -201,6 +289,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
+      console.log('Attempting login for:', email);
+      
+      // Sign in with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -208,16 +299,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
+      console.log('Login successful, setting user state', data);
+      
+      // Ensure Supabase has time to set up the session
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Set auth state
       setUser(data.user);
       setSession(data.session);
       setIsLoggedIn(true);
 
       if (data.user) {
+        console.log('Fetching profile after successful login');
         const profileData = await fetchProfile(data.user.id);
         if (profileData) {
+          console.log('Profile found and loaded:', profileData);
           updateProfileState(profileData);
+        } else {
+          console.warn('No profile data found after login');
         }
       }
+      
+      return data;
     } catch (error) {
       console.error('Error during login:', error);
       throw error;
@@ -276,16 +379,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-
+      console.log("AuthContext: Starting logout process");
+      
+      // First, attempt to sign out from Supabase
+      const { error } = await supabase.auth.signOut({
+        scope: 'global' // Sign out from all tabs/windows
+      });
+      
+      if (error) {
+        console.error('Error during logout from Supabase:', error);
+      }
+      
+      // AGGRESSIVE CLEANUP - delete ALL auth-related storage
+      
+      // 1. Clear localStorage completely (Supabase stores auth data here)
+      console.log('Performing aggressive localStorage cleanup');
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) {
+          keysToRemove.push(key);
+        }
+      }
+      
+      // Remove keys in a separate loop to avoid index issues
+      keysToRemove.forEach(key => {
+        console.log(`Removing localStorage key: ${key}`);
+        localStorage.removeItem(key);
+      });
+      
+      // 2. Clear sessionStorage completely
+      console.log('Clearing sessionStorage');
+      sessionStorage.clear();
+      
+      // 3. Set a flag in the URL to indicate complete logout needed
+      sessionStorage.setItem('wolziflix_complete_logout', 'true');
+      
+      // 4. Clear application state
       setUser(null);
-      updateProfileState(null);
+      setProfile(null);
       setSession(null);
       setIsLoggedIn(false);
+      
+      // 5. Use service worker for deep cleanup if available
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        console.log('Using service worker for deep cleanup');
+        navigator.serviceWorker.controller.postMessage({
+          type: 'LOGOUT'
+        });
+      }
+      
+      // 6. Clear any specific profile storage
       clearProfileFromStorage();
+      
+      console.log("AuthContext: Logout complete, forcing page reload");
+      
+      // 7. Force hard reload with cache clearing
+      window.location.href = '/?logout=complete&t=' + new Date().getTime();
+      
+      return true;
     } catch (error) {
       console.error('Error during logout:', error);
+      // Even if there's an error, clear everything and redirect
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/?logout=error&t=' + new Date().getTime();
       throw error;
     }
   };

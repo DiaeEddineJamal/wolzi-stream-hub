@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, User, Heart, History, LogIn, Menu, X, Home, Film, Tv, TrendingUp, LogOut, ChevronDown, Github } from "lucide-react";
+import { Search, User, Heart, History, LogIn, Menu, X, Home, Film, Tv, TrendingUp, LogOut, ChevronDown, Github, Info, Clock, Award, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import UserMenu from "@/components/auth/UserMenu";
@@ -26,10 +26,31 @@ interface UserProfile {
   updated_at: string;
 }
 
+// Interface for nav item descriptions
+interface NavItemDescription {
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+}
+
+// Session-based flag to prevent reanimation only during in-app navigation
+const NAV_SESSION_KEY = 'wolziflix-nav-session-key';
+// Browser session storage key to track if animations have already run
+const NAV_ANIMATION_KEY = 'wolziflix-nav-animated';
+
+// Helper function to determine if user is truly logged in
+const isValidSession = (user: any, isLoggedIn: boolean) => {
+  // Check if user object exists and has an id AND isLoggedIn flag is true
+  const hasValidUser = !!user && !!user.id && typeof user.id === 'string';
+  
+  // Don't check for token existence as it might not be stored immediately
+  return hasValidUser && isLoggedIn;
+};
+
 const NavBar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signOut, isLoggedIn } = useAuth();
+  const { user, logout, isLoggedIn } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -38,12 +59,68 @@ const NavBar: React.FC = () => {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
-  // New states for real-time search
+  // State for real-time search
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const searchDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  // State for nav item descriptions
+  const [activeNavItem, setActiveNavItem] = useState<string | null>(null);
+  
+  // Initialize isPageRefresh synchronously to ensure correct value on first render
+  const [shouldAnimate] = useState(() => {
+    // Check if this is an actual page refresh (not in-app navigation)
+    let isActualRefresh = false;
+    
+    if (typeof window !== 'undefined' && window.performance && typeof window.performance.getEntriesByType === 'function') {
+      const perfEntries = window.performance.getEntriesByType('navigation');
+      if (perfEntries.length > 0 && perfEntries[0] instanceof PerformanceNavigationTiming) {
+        // Check if the navigation type is 'reload'
+        if ((perfEntries[0] as PerformanceNavigationTiming).type === 'reload') {
+          isActualRefresh = true; // It's a page refresh
+        }
+      }
+    }
+    
+    // Check if we've already animated during this browser session
+    const hasAnimatedBefore = localStorage.getItem(NAV_ANIMATION_KEY) === 'true';
+    
+    // Only animate if this is a page refresh or first visit AND we haven't animated before
+    const shouldRunAnimation = (isActualRefresh || !hasAnimatedBefore);
+    
+    // If we decide to animate, mark that we've done so for this session
+    if (shouldRunAnimation) {
+      localStorage.setItem(NAV_ANIMATION_KEY, 'true');
+    }
+    
+    return shouldRunAnimation;
+  });
+  
+  // useEffect to handle sessionStorage update (if still needed)
+  useEffect(() => {
+    // Store navigation ID to help track navigation if location.key is present
+    if (location.key) {
+      sessionStorage.setItem(NAV_SESSION_KEY, location.key);
+    }
+  }, [location.key]); // Rerun if location.key changes
+
+  // Reset animation flag when user leaves/refreshes the page
+  useEffect(() => {
+    // Function to handle beforeunload event
+    const handleBeforeUnload = () => {
+      // Clear the animation flag when the user leaves or refreshes the page
+      localStorage.removeItem(NAV_ANIMATION_KEY);
+    };
+
+    // Add event listener for page unload
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
 
   // Handle navigation to auth page
   const goToLogin = () => {
@@ -72,7 +149,7 @@ const NavBar: React.FC = () => {
       setHidden(false);
     }
     
-    lastScrollTop.current = currentScrollY;
+    setLastScrollTop(currentScrollY);
   };
 
   useEffect(() => {
@@ -83,7 +160,7 @@ const NavBar: React.FC = () => {
     
     window.addEventListener("scroll", throttledHandleScroll);
     return () => window.removeEventListener("scroll", throttledHandleScroll);
-  }, [scrolled, mobileMenuOpen]);
+  }, [scrolled, mobileMenuOpen, lastScrollTop]);
 
   useEffect(() => {
     // Close mobile menu when route changes
@@ -163,6 +240,30 @@ const NavBar: React.FC = () => {
     }
   };
 
+  // Nav item descriptions
+  const navItemDescriptions: Record<string, NavItemDescription> = {
+    "Home": {
+      title: "Home",
+      description: "Discover personalized recommendations and new releases",
+      icon: <Home className="h-5 w-5 text-wolzi-accent" />
+    },
+    "Movies": {
+      title: "Movies",
+      description: "Explore our vast collection of films from all genres",
+      icon: <Film className="h-5 w-5 text-wolzi-accent" />
+    },
+    "TV Series": {
+      title: "TV Series",
+      description: "Binge-worthy shows and exclusive series content",
+      icon: <Tv className="h-5 w-5 text-wolzi-accent" />
+    },
+    "Anime": {
+      title: "Anime",
+      description: "Latest and greatest anime series and films",
+      icon: <TrendingUp className="h-5 w-5 text-wolzi-accent" />
+    }
+  };
+
   const mainNavItems = [
     { title: "Home", path: "/", icon: <Home className="h-4 w-4" /> },
     { title: "Movies", path: "/movies", icon: <Film className="h-4 w-4" /> },
@@ -180,19 +281,19 @@ const NavBar: React.FC = () => {
   // Navigation menu items with dropdown content
   const categories = {
     movies: [
-      { title: "Popular", path: "/view-all/movies/popular" },
-      { title: "Top Rated", path: "/view-all/movies/top-rated" },
-      { title: "Upcoming", path: "/view-all/movies/upcoming" },
+      { title: "Popular", path: "/movies/popular", icon: <Flame className="h-4 w-4" /> },
+      { title: "Top Rated", path: "/movies/top-rated", icon: <Award className="h-4 w-4" /> },
+      { title: "Upcoming", path: "/movies/upcoming", icon: <Clock className="h-4 w-4" /> },
     ],
     tvSeries: [
-      { title: "Popular", path: "/view-all/tv/popular" },
-      { title: "Top Rated", path: "/view-all/tv/top-rated" },
-      { title: "On Air", path: "/view-all/tv/on-air" },
+      { title: "Popular", path: "/tv/popular", icon: <Flame className="h-4 w-4" /> },
+      { title: "Top Rated", path: "/tv/top-rated", icon: <Award className="h-4 w-4" /> },
+      { title: "Currently Airing", path: "/tv/top-rated", icon: <Clock className="h-4 w-4" /> }, // Fixed "On Air" category path
     ],
     anime: [
-      { title: "Popular", path: "/view-all/anime/popular" },
-      { title: "Top Rated", path: "/view-all/anime/top-rated" },
-      { title: "On Air", path: "/view-all/anime/on-air" },
+      { title: "Popular", path: "/view-all/anime/popular", icon: <Flame className="h-4 w-4" /> },
+      { title: "Top Rated", path: "/view-all/anime/top-rated", icon: <Award className="h-4 w-4" /> },
+      { title: "On Air", path: "/view-all/anime/on-air", icon: <Clock className="h-4 w-4" /> },
     ],
   };
 
@@ -210,58 +311,100 @@ const NavBar: React.FC = () => {
     };
   }, []);
 
+  // Enhanced check to ensure we're truly logged in
+  const isReallyLoggedIn = isValidSession(user, isLoggedIn);
+  
+  // Check for invalid auth state and reset if needed
+  useEffect(() => {
+    // Only attempt to fix auth state if there's a mismatch
+    // Don't auto-reset as it interferes with login process
+    if (!isReallyLoggedIn && user) {
+      console.warn('NavBar detected potential auth state mismatch', {
+        hasUser: !!user,
+        isLoggedIn,
+        isReallyLoggedIn
+      });
+      
+      // Just log warning instead of resetting
+    }
+  }, [user, isReallyLoggedIn, isLoggedIn]);
+
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300 navbar-glass border-b border-wolzi-accent/20",
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-500 navbar-glass",
         scrolled 
-          ? "navbar-glass-scrolled shadow-[0_4px_30px_rgba(0,0,0,0.3)]" 
+          ? "navbar-glass-scrolled shadow-[0_8px_30px_rgba(0,0,0,0.3)]" 
           : "shadow-none",
         hidden ? "-translate-y-full" : "translate-y-0",
         mobileMenuOpen ? "bg-black/80 h-auto" : ""
       )}
     >
-      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-        {/* Logo and Main Navigation */}
-        <div className="flex items-center">
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex items-center justify-between relative">
+          {/* Logo */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
+            initial={shouldAnimate ? { opacity: 0, x: -20 } : { opacity: 1, x: 0 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.5, type: "spring", stiffness: 300 }}
+            className="relative z-10"
           >
             <Link to="/" className="flex items-center group">
-              <h1 className="text-xl sm:text-2xl font-bold mr-2">
-                <motion.span 
-                  className="inline-block text-wolzi-accent"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 10 }}
-                >
-                  Wolzi
-                </motion.span>
-                <motion.span 
-                  className="inline-block text-white"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ type: "spring", stiffness: 500, damping: 10 }}
-                >
-                  Flix
-                </motion.span>
-              </h1>
+              <div className="relative">
+                <h1 className="text-xl sm:text-2xl font-bold mr-2 flex items-center">
+                  <motion.span 
+                    className="inline-block text-wolzi-accent relative"
+                    whileHover={{ 
+                      scale: 1.05, 
+                      textShadow: "0 0 8px rgba(29, 185, 84, 0.8)" 
+                    }}
+                    transition={{ type: "spring", stiffness: 500, damping: 10 }}
+                  >
+                    Wolzi
+                    <motion.span 
+                      className="absolute -bottom-1 left-0 w-full h-0.5 bg-wolzi-accent opacity-0"
+                      animate={{ opacity: [0, 1, 0] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    />
+                  </motion.span>
+                  <motion.span 
+                    className="inline-block text-white ml-1"
+                    whileHover={{ 
+                      scale: 1.05, 
+                      textShadow: "0 0 8px rgba(255, 255, 255, 0.8)" 
+                    }}
+                    transition={{ type: "spring", stiffness: 500, damping: 10 }}
+                  >
+                    Flix
+                  </motion.span>
+                </h1>
+                <motion.div 
+                  className="absolute -bottom-1 left-0 right-0 h-px bg-gradient-to-r from-transparent via-wolzi-accent to-transparent"
+                  initial={shouldAnimate ? { scaleX: 0, opacity: 0 } : { scaleX: 1, opacity: 1 }}
+                  animate={{ scaleX: 1, opacity: 1 }}
+                  transition={{ duration: 1.5, ease: "easeInOut" }}
+                />
+              </div>
             </Link>
           </motion.div>
           
-          <div className="hidden lg:flex ml-8">
+          {/* Main Navigation - Desktop */}
+          <nav className="hidden lg:block absolute left-1/2 transform -translate-x-1/2">
             <ul className="flex space-x-1">
               {mainNavItems.map((item, index) => (
                 <motion.li
                   key={item.title}
-                  initial={{ opacity: 0, y: -10 }}
+                  initial={shouldAnimate ? { opacity: 0, y: -10 } : { opacity: 1, y: 0 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 + 0.2, duration: 0.3 }}
+                  transition={{ delay: shouldAnimate ? index * 0.1 + 0.2 : 0, duration: 0.3 }}
+                  className="relative"
+                  onMouseEnter={() => setActiveNavItem(item.title)}
+                  onMouseLeave={() => setActiveNavItem(null)}
                 >
                   <Link
                     to={item.path}
                     className={cn(
-                      "relative px-4 py-2 rounded-md font-medium text-sm flex items-center gap-1.5 overflow-hidden group",
+                      "relative px-4 py-2 rounded-md font-medium text-sm flex items-center gap-2 overflow-hidden group",
                       isActivePath(item.path)
                         ? "text-wolzi-accent" 
                         : "text-white/85 hover:text-white"
@@ -298,197 +441,259 @@ const NavBar: React.FC = () => {
                       {item.title}
                     </motion.span>
                     
-                    {/* Active indicator dot */}
+                    {/* Active indicator pill */}
                     {isActivePath(item.path) && (
                       <motion.div
-                        className="absolute -bottom-1 left-1/2 w-1 h-1 rounded-full bg-wolzi-accent"
+                        className="absolute -bottom-1 left-1/2 h-0.5 bg-wolzi-accent rounded-full"
                         layoutId="activeNavIndicator"
-                        initial={{ x: "-50%" }}
+                        initial={{ width: "30%", x: "-50%" }}
                         animate={{ 
+                          width: "60%",
                           x: "-50%",
-                          boxShadow: ["0 0 0px 0px rgba(29, 185, 84, 0.0)", "0 0 5px 2px rgba(29, 185, 84, 0.5)", "0 0 0px 0px rgba(29, 185, 84, 0.0)"]
-                        }}
-                        transition={{ 
-                          boxShadow: { 
-                            repeat: Infinity, 
-                            duration: 2,
-                            ease: "easeInOut"
-                          } 
+                          boxShadow: "0 0 10px rgba(29, 185, 84, 0.7)"
                         }}
                       />
                     )}
                     
-                    {/* Hover underline effect */}
-                    <motion.div
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-wolzi-accent/70"
-                      initial={{ scaleX: 0, originX: 0 }}
-                      whileHover={{ scaleX: 1 }}
-                      transition={{ duration: 0.3 }}
-                    />
+                    {/* Hover indicator */}
+                    {!isActivePath(item.path) && (
+                      <motion.div
+                        className="absolute -bottom-1 left-1/2 h-0.5 bg-wolzi-accent/70 rounded-full"
+                        initial={{ width: 0, x: "-50%" }}
+                        whileHover={{ width: "50%" }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    )}
                   </Link>
+                  
+                  {/* Dropdown description */}
+                  <AnimatePresence>
+                    {activeNavItem === item.title && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, height: 0 }}
+                        animate={{ opacity: 1, y: 0, height: "auto" }}
+                        exit={{ opacity: 0, y: 5, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 w-60 z-50"
+                      >
+                        <div className="bg-black/90 backdrop-blur-xl border border-wolzi-accent/20 rounded-lg p-3 shadow-lg shadow-wolzi-accent/5">
+                          <div className="flex items-start gap-3">
+                            {navItemDescriptions[item.title].icon}
+                            <div>
+                              <h4 className="font-medium text-wolzi-accent">{navItemDescriptions[item.title].title}</h4>
+                              <p className="text-xs text-white/80 mt-1">{navItemDescriptions[item.title].description}</p>
+                              
+                              {/* Category links */}
+                              {item.title !== "Home" && (
+                                <div className="mt-2 pt-2 border-t border-wolzi-accent/10">
+                                  <p className="text-xs text-white/60 mb-1">Popular Categories:</p>
+                                  <div className="grid grid-cols-1 gap-1">
+                                    {categories[item.title === "Movies" ? "movies" : item.title === "TV Series" ? "tvSeries" : "anime"].map((category) => (
+                                      <Link 
+                                        key={category.path}
+                                        to={category.path}
+                                        className="text-xs flex items-center gap-1.5 px-2 py-1 rounded hover:bg-wolzi-accent/20 text-white/70 hover:text-white transition-colors"
+                                      >
+                                        {category.icon}
+                                        <span>{category.title}</span>
+                                      </Link>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        {/* Decorative connecting line */}
+                        <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-px h-1 bg-wolzi-accent/50" />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.li>
               ))}
             </ul>
-          </div>
-        </div>
+          </nav>
 
-        {/* Right side: Search, Login, User */}
-        <div className="flex items-center space-x-1">
-          {/* Search Input and Icon */}
-          <div className="flex items-center relative" ref={searchContainerRef}>
-            <AnimatePresence>
-              {showSearch ? (
-                <motion.form
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: "240px", opacity: 1 }}
-                  exit={{ width: 0, opacity: 0 }}
-                  transition={{ 
-                    type: "spring", 
-                    stiffness: 400, 
-                    damping: 30,
-                    opacity: { duration: 0.2 }
-                  }}
-                  className="absolute right-0 top-1/2 transform -translate-y-1/2"
-                  onSubmit={handleSearchSubmit}
-                >
-                  <Input
-                    ref={searchInputRef}
-                    id="search-input"
-                    type="text"
-                    placeholder="Search for movies, TV shows..."
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                    className="pr-10 bg-black/30 border-wolzi-accent/30 focus:border-wolzi-accent 
-                              focus-visible:ring-1 focus-visible:ring-wolzi-accent/50 rounded-full text-sm"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 text-white/70 hover:text-white"
-                    onClick={toggleSearch}
+          {/* Right side: Search, Login, User */}
+          <div className="flex items-center space-x-1 relative z-10">
+            {/* Search Input and Icon */}
+            <div className="flex items-center relative" ref={searchContainerRef}>
+              <AnimatePresence>
+                {showSearch ? (
+                  <motion.form
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: "260px", opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ 
+                      type: "spring", 
+                      stiffness: 400, 
+                      damping: 30,
+                      opacity: { duration: 0.2 }
+                    }}
+                    className="absolute right-0 top-1/2 transform -translate-y-1/2"
+                    onSubmit={handleSearchSubmit}
                   >
-                    <X className="h-4 w-4" />
-                  </Button>
-                  
-                  {/* Real-time Search Results Dropdown */}
-                  {showResults && searchResults.length > 0 && (
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 max-h-96 overflow-y-auto rounded-md bg-black/90 backdrop-blur-lg border border-wolzi-accent/30 shadow-lg z-50">
-                      <div className="p-2">
-                        {isSearching ? (
-                          <div className="flex justify-center items-center py-3">
-                            <div className="w-5 h-5 border-2 border-wolzi-accent/30 border-t-wolzi-accent rounded-full animate-spin"></div>
-                          </div>
-                        ) : (
-                          <>
-                            {searchResults.map((result) => (
-                              <Link
-                                key={`${result.mediaType}-${result.id}`}
-                                to={`/${result.mediaType}/${result.id}`}
-                                className="flex items-center gap-3 p-2 hover:bg-wolzi-accent/20 rounded-md transition-colors"
-                                onClick={() => {
-                                  setShowSearch(false);
-                                  setShowResults(false);
-                                  setSearchQuery("");
-                                }}
-                              >
-                                <img 
-                                  src={result.posterUrl} 
-                                  alt={result.title}
-                                  className="w-10 h-15 object-cover rounded-md"
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-white truncate text-sm">{result.title}</p>
-                                  <div className="flex items-center text-xs text-wolzi-light-gray">
-                                    <span className="capitalize">{result.mediaType}</span>
-                                    {result.year && <span className="ml-2">{result.year}</span>}
-                                  </div>
-                                </div>
-                              </Link>
-                            ))}
-                            
-                            <div className="mt-2 pt-2 border-t border-wolzi-border/20">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="w-full text-xs text-wolzi-light-gray hover:text-wolzi-accent rounded-md"
-                                onClick={handleSearchSubmit}
-                              >
-                                View all results for "{searchQuery}"
-                              </Button>
-                            </div>
-                          </>
-                        )}
-                      </div>
+                    <div className="relative">
+                      <Input
+                        ref={searchInputRef}
+                        id="search-input"
+                        type="text"
+                        placeholder="Search for movies, TV shows..."
+                        value={searchQuery}
+                        onChange={handleSearchChange}
+                        className="pr-10 bg-black/30 border-wolzi-accent/30 focus:border-wolzi-accent 
+                                  focus-visible:ring-1 focus-visible:ring-wolzi-accent/50 rounded-full text-sm h-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 text-white/70 hover:text-white"
+                        onClick={toggleSearch}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
-                  )}
-                </motion.form>
-              ) : (
+                    
+                    {/* Real-time Search Results Dropdown */}
+                    <AnimatePresence>
+                      {showResults && searchResults.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          transition={{ duration: 0.2 }}
+                          className="absolute top-full right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-lg bg-black/90 backdrop-blur-xl border border-wolzi-accent/20 shadow-lg shadow-black/50 z-50"
+                        >
+                          <div className="p-2">
+                            {isSearching ? (
+                              <div className="flex justify-center items-center py-3">
+                                <div className="w-5 h-5 border-2 border-wolzi-accent/30 border-t-wolzi-accent rounded-full animate-spin"></div>
+                              </div>
+                            ) : (
+                              <>
+                                {searchResults.map((result) => (
+                                  <Link
+                                    key={`${result.mediaType}-${result.id}`}
+                                    to={`/${result.mediaType}/${result.id}`}
+                                    className="flex items-center gap-3 p-2 hover:bg-wolzi-accent/20 rounded-md transition-colors"
+                                    onClick={() => {
+                                      setShowSearch(false);
+                                      setShowResults(false);
+                                      setSearchQuery("");
+                                    }}
+                                  >
+                                    <img 
+                                      src={result.posterUrl} 
+                                      alt={result.title}
+                                      className="w-10 h-15 object-cover rounded-md"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-white truncate text-sm">{result.title}</p>
+                                      <div className="flex items-center text-xs text-wolzi-light-gray">
+                                        <span className="capitalize">{result.mediaType}</span>
+                                        {result.year && <span className="ml-2">{result.year}</span>}
+                                      </div>
+                                    </div>
+                                  </Link>
+                                ))}
+                                
+                                <div className="mt-2 pt-2 border-t border-wolzi-border/20">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="w-full text-xs text-wolzi-light-gray hover:text-wolzi-accent rounded-md"
+                                    onClick={handleSearchSubmit}
+                                  >
+                                    View all results for "{searchQuery}"
+                                  </Button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.form>
+                ) : (
+                  <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={toggleSearch}
+                      className="text-wolzi-light-gray hover:text-white hover:bg-wolzi-accent/10 transition-colors rounded-full h-10 w-10"
+                      aria-label="Toggle search"
+                    >
+                      <Search className="h-[1.2rem] w-[1.2rem]" />
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            
+            {/* GitHub Icon */}
+            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+              <a 
+                href="https://github.com/DiaeEddineJamal" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center"
+              >
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  onClick={toggleSearch}
-                  className="text-wolzi-light-gray hover:text-white transition-colors"
-                  aria-label="Toggle search"
+                  className="text-wolzi-light-gray hover:text-white hover:bg-wolzi-accent/10 transition-colors rounded-full h-10 w-10"
+                  aria-label="GitHub Profile"
                 >
-                  <Search className="h-[1.2rem] w-[1.2rem]" />
+                  <Github className="h-[1.2rem] w-[1.2rem]" />
                 </Button>
+              </a>
+            </motion.div>
+            
+            {/* Auth Buttons or User Menu */}
+            <div className="hidden sm:block">
+              {isReallyLoggedIn ? (
+                <UserMenu />
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      onClick={goToLogin} 
+                      variant="ghost" 
+                      className="text-sm text-wolzi-light-gray hover:text-white hover:bg-wolzi-accent/10 transition-colors rounded-full px-4"
+                    >
+                      Login
+                    </Button>
+                  </motion.div>
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button 
+                      onClick={goToSignup}
+                      className="bg-wolzi-accent hover:bg-wolzi-accent-hover text-white text-sm py-1 px-4 rounded-full shadow-lg shadow-wolzi-accent/30"
+                    >
+                      Sign Up
+                    </Button>
+                  </motion.div>
+                </div>
               )}
-            </AnimatePresence>
-          </div>
-          
-          {/* GitHub Icon */}
-          <a 
-            href="https://github.com/DiaeEddineJamal" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center"
-          >
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="text-wolzi-light-gray hover:text-white transition-colors"
-              aria-label="GitHub Profile"
-            >
-              <Github className="h-[1.2rem] w-[1.2rem]" />
-            </Button>
-          </a>
-          
-          <div className="hidden sm:block">
-            {isLoggedIn ? (
-              <UserMenu />
-            ) : (
-              <div className="flex items-center space-x-2">
-                <Button 
-                  onClick={goToLogin} 
-                  variant="ghost" 
-                  className="text-sm text-wolzi-light-gray hover:text-white"
-                >
-                  Login
-                </Button>
-                <Button 
-                  onClick={goToSignup}
-                  className="bg-wolzi-accent hover:bg-wolzi-accent-hover text-white text-sm py-1 px-3"
-                >
-                  Sign Up
-                </Button>
-              </div>
-            )}
-          </div>
+            </div>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleMobileMenu}
-            className="lg:hidden text-wolzi-light-gray hover:text-white transition-colors"
-            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-          >
-            {mobileMenuOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Menu className="h-5 w-5" />
-            )}
-          </Button>
+            {/* Mobile Menu Toggle */}
+            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} className="lg:hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleMobileMenu}
+                className="text-wolzi-light-gray hover:text-white hover:bg-wolzi-accent/10 transition-colors rounded-full h-10 w-10"
+                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              >
+                {mobileMenuOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
+              </Button>
+            </motion.div>
+          </div>
         </div>
       </div>
 
@@ -500,13 +705,14 @@ const NavBar: React.FC = () => {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="lg:hidden frosted-glass border-t border-wolzi-accent/10 overflow-hidden"
+            className="lg:hidden frosted-glass-dark overflow-hidden"
           >
             <div className="container mx-auto px-4 py-4">
-              <nav className="space-y-4 mb-6">
+              <nav className="space-y-3 mb-6">
                 {mainNavItems.map((item) => (
                 <motion.div
                     key={item.title}
+                    whileHover={{ x: 5 }}
                     whileTap={{ scale: 0.98 }}
                 >
                   <Link
@@ -520,7 +726,10 @@ const NavBar: React.FC = () => {
                       onClick={() => setMobileMenuOpen(false)}
                   >
                       <span className="text-xl">{item.icon}</span>
-                      <span className="font-medium">{item.title}</span>
+                      <div>
+                        <span className="font-medium">{item.title}</span>
+                        <p className="text-xs text-white/60 mt-0.5">{navItemDescriptions[item.title].description}</p>
+                      </div>
                   </Link>
                 </motion.div>
               ))}
@@ -529,9 +738,12 @@ const NavBar: React.FC = () => {
               <div className="py-4 border-t border-wolzi-accent/10">
                 <h3 className="text-sm uppercase text-wolzi-light-gray mb-4">Account</h3>
                 
-                  {isLoggedIn ? (
-                  <div className="space-y-4">
-                    <motion.div whileTap={{ scale: 0.98 }}>
+                {isReallyLoggedIn ? (
+                  <div className="space-y-3">
+                    <motion.div 
+                      whileHover={{ x: 5 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
                       <Link
                         to="/profile"
                         className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3"
@@ -542,7 +754,10 @@ const NavBar: React.FC = () => {
                       </Link>
                     </motion.div>
                     
-                    <motion.div whileTap={{ scale: 0.98 }}>
+                    <motion.div 
+                      whileHover={{ x: 5 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
                       <Link
                         to="/favorites"
                         className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3"
@@ -553,7 +768,10 @@ const NavBar: React.FC = () => {
                       </Link>
                     </motion.div>
                     
-                    <motion.div whileTap={{ scale: 0.98 }}>
+                    <motion.div 
+                      whileHover={{ x: 5 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
                       <Link
                         to="/watch-history"
                         className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3"
@@ -564,7 +782,10 @@ const NavBar: React.FC = () => {
                       </Link>
                     </motion.div>
                     
-                    <motion.div whileTap={{ scale: 0.98 }}>
+                    <motion.div 
+                      whileHover={{ x: 5 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
                       <a
                         href="https://github.com/DiaeEddineJamal"
                         target="_blank"
@@ -577,11 +798,18 @@ const NavBar: React.FC = () => {
                       </a>
                     </motion.div>
                     
-                    <motion.div whileTap={{ scale: 0.98 }}>
+                    <motion.div 
+                      whileHover={{ x: 5 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
                       <button
                         onClick={() => {
-                          signOut();
-                          setMobileMenuOpen(false);
+                          try {
+                            console.log("NavBar: Initiating logout");
+                            logout();
+                          } catch (error) {
+                            console.error("NavBar: Error during logout:", error);
+                          }
                         }}
                         className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 w-full text-left"
                       >
@@ -590,9 +818,12 @@ const NavBar: React.FC = () => {
                       </button>
                     </motion.div>
                   </div>
-                  ) : (
+                ) : (
                   <div className="space-y-3">
-                    <motion.div whileTap={{ scale: 0.98 }}>
+                    <motion.div 
+                      whileHover={{ x: 5 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
                       <button
                         onClick={() => {
                           goToLogin();
@@ -605,7 +836,10 @@ const NavBar: React.FC = () => {
                       </button>
                     </motion.div>
                     
-                    <motion.div whileTap={{ scale: 0.98 }}>
+                    <motion.div 
+                      whileHover={{ x: 5 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
                       <button
                         onClick={() => {
                           goToSignup();
@@ -618,7 +852,10 @@ const NavBar: React.FC = () => {
                       </button>
                     </motion.div>
                     
-                    <motion.div whileTap={{ scale: 0.98 }}>
+                    <motion.div 
+                      whileHover={{ x: 5 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
                       <a
                         href="https://github.com/DiaeEddineJamal"
                         target="_blank"
@@ -630,9 +867,9 @@ const NavBar: React.FC = () => {
                         <span className="font-medium">GitHub</span>
                       </a>
                     </motion.div>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
@@ -642,6 +879,15 @@ const NavBar: React.FC = () => {
       <style jsx global>{`
         .green-glow {
           text-shadow: 0 0 8px rgba(29, 185, 84, 0.6);
+        }
+        
+        @keyframes pulse {
+          0%, 100% { opacity: 0.5; }
+          50% { opacity: 1; }
+        }
+        
+        .pulse-animation {
+          animation: pulse 2s infinite ease-in-out;
         }
       `}</style>
     </header>
