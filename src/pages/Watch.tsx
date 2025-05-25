@@ -12,6 +12,8 @@ import { ArrowLeft, Info, Bookmark, Heart, Share2, Settings } from 'lucide-react
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { Switch } from "@/components/ui/switch";
+import { blockServerAds } from '@/utils/server-ad-blocker';
+import { applyAdBlockerToIframes, createIframeAdBlockerScript } from '@/utils/iframe-ad-blocker';
 
 type MediaType = 'movie' | 'tv' | 'anime';
 
@@ -873,17 +875,33 @@ const Watch: React.FC = () => {
     };
   }, []);
   
-  // Restore the handleIframeLoad function 
+  // Modify the handleIframeLoad function to apply ad blocking
   const handleIframeLoad = () => {
     console.log('Iframe loaded successfully');
     
     // Reset the VidSrc.to network error state
     setVidsrcNetworkError(false);
     
-    // Try to communicate with the iframe to detect video events
+    // Apply ad blocking to the iframe
     try {
       const iframe = document.querySelector('iframe');
       if (iframe && iframe.contentWindow) {
+        // Try to inject the ad blocker script directly
+        try {
+          if (iframe.contentDocument && iframe.contentDocument.head) {
+            const script = document.createElement('script');
+            script.textContent = createIframeAdBlockerScript();
+            iframe.contentDocument.head.appendChild(script);
+            console.log('Successfully injected ad blocker script into iframe');
+          }
+        } catch (e) {
+          // Cross-origin restrictions prevent direct access
+          console.log('Cross-origin restrictions prevented direct script injection');
+          
+          // Use message passing to communicate with the iframe
+          iframe.contentWindow.postMessage('run-ad-blocker', '*');
+        }
+        
         // Send a message to the iframe asking for video events
         // This won't work with all players due to CORS, but worth trying
         iframe.contentWindow.postMessage({ 
