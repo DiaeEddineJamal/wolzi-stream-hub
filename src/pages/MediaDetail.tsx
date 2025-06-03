@@ -255,10 +255,8 @@ const MediaDetail: React.FC = () => {
           .from('watch_history')
           .select('*')
           .eq('user_id', user.id)
-          // Update from content_id to media_id to match schema
-          .eq('media_id', id)
-          // Update from content_type to media_type to match schema
-          .eq('media_type', actualMediaType)
+          .eq('content_id', id)
+          .eq('content_type', actualMediaType)
           .eq('season', selectedSeason || null)
           .eq('episode', selectedEpisode || null)
           .single();
@@ -425,12 +423,13 @@ const MediaDetail: React.FC = () => {
     if (!user || !id || (!mediaDetails)) return;
     
     try {
-      const posterPath = mediaDetails?.poster_path ? getPosterUrl(mediaDetails.poster_path) : '';
+      // Store only the path, not the full URL
+      const posterPath = mediaDetails?.poster_path || '';
 
       const watchData = {
         user_id: user.id,
-        media_id: id,
-        media_type: actualMediaType,
+        content_id: id,
+        content_type: actualMediaType,
         title: title,
         poster_path: posterPath,
         progress: Math.floor(seconds),

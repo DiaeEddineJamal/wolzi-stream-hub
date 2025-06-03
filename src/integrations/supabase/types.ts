@@ -96,27 +96,45 @@ export type Database = {
       watch_history: {
         Row: {
           id: string
-          media_id: string
-          media_type: string
-          progress: number | null
           user_id: string
+          content_id: string
+          content_type: string
+          title: string
+          poster_path: string | null
           watched_at: string
+          progress: number | null
+          duration: number | null
+          progress_percent: number | null
+          season: number | null
+          episode: number | null
         }
         Insert: {
           id?: string
-          media_id: string
-          media_type: string
-          progress?: number | null
           user_id: string
+          content_id: string
+          content_type: string
+          title: string
+          poster_path?: string | null
           watched_at?: string
+          progress?: number | null
+          duration?: number | null
+          progress_percent?: number | null
+          season?: number | null
+          episode?: number | null
         }
         Update: {
           id?: string
-          media_id?: string
-          media_type?: string
-          progress?: number | null
           user_id?: string
+          content_id?: string
+          content_type?: string
+          title?: string
+          poster_path?: string | null
           watched_at?: string
+          progress?: number | null
+          duration?: number | null
+          progress_percent?: number | null
+          season?: number | null
+          episode?: number | null
         }
         Relationships: []
       }

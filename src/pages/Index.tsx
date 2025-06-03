@@ -87,35 +87,44 @@ const Index: React.FC = () => {
       }
       
       console.log('Index page: Fetching watch history for user:', user.id);
-      const { data, error } = await supabase
-        .from('watch_history')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('watched_at', { ascending: false })
-        .limit(10);
       
-      if (error) {
-        console.error('Error fetching watch history:', error);
-        return;
+      try {
+        const { data, error } = await supabase
+          .from('watch_history')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('watched_at', { ascending: false })
+          .limit(10);
+        
+        if (error) {
+          console.error('Error fetching watch history:', error);
+          return;
+        }
+        
+        console.log('Index page raw watch history data:', JSON.stringify(data, null, 2));
+        
+        // Map data to correct interface fields if needed
+        const processedHistory = data?.map(item => ({
+          ...item,
+          // Handle possible field name differences
+          content_type: item.content_type || item.media_type,
+          content_id: item.content_id || item.media_id,
+        })) || [];
+        
+        console.log('Index page processed watch history:', JSON.stringify(processedHistory, null, 2));
+        console.log('Index page: setting watchHistory state with length:', processedHistory.length);
+        
+        if (processedHistory.length > 0) {
+          console.log('Index page: Watch history loaded successfully, found', processedHistory.length, 'items');
+          console.log('First item:', JSON.stringify(processedHistory[0], null, 2));
+        } else {
+          console.log('Index page: No watch history found for user');
+        }
+        
+        setWatchHistory(processedHistory);
+      } catch (supabaseError) {
+        console.error('Supabase error in fetchWatchHistory:', supabaseError);
       }
-      
-      console.log('Index page fetched watch history:', data);
-      
-      // Map data to correct interface fields if needed
-      const processedHistory = data?.map(item => ({
-        ...item,
-        // Handle possible field name differences
-        content_type: item.content_type || item.media_type,
-        content_id: item.content_id || item.media_id,
-      })) || [];
-      
-      if (processedHistory.length > 0) {
-        console.log('Index page: Watch history loaded successfully, found', processedHistory.length, 'items');
-      } else {
-        console.log('Index page: No watch history found for user');
-      }
-      
-      setWatchHistory(processedHistory);
     } catch (error) {
       console.error('Error in fetchWatchHistory:', error);
     } finally {
@@ -393,7 +402,7 @@ const Index: React.FC = () => {
                           <Link to={`/${item.content_type}/${item.content_id}`}>
                             <div className="relative aspect-[2/3] overflow-hidden">
                               <img 
-                                src={item.poster_path || 'https://via.placeholder.com/300x450?text=No+Image'} 
+                                src={item.poster_path ? (item.poster_path.startsWith('http') ? item.poster_path : getPosterUrl(item.poster_path)) : 'https://via.placeholder.com/300x450?text=No+Image'} 
                                 alt={item.title}
                                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                               />

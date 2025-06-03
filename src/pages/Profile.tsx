@@ -7,6 +7,7 @@ import MainLayout from '@/layouts/MainLayout';
 import { Link } from 'react-router-dom';
 import { Play, History, Clock } from 'lucide-react';
 import { forceLogout } from '@/utils/auth-helpers';
+import { getPosterUrl } from '@/integrations/api/tmdb';
 
 interface UserPreferences {
   active_streaming_source: string;
@@ -68,29 +69,44 @@ const Profile: React.FC = () => {
     try {
       setHistoryLoading(true);
       console.log('Profile page: Fetching watch history for user:', user.id);
-      const { data, error } = await supabase
-        .from('watch_history')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('watched_at', { ascending: false })
-        .limit(20);
       
-      if (error) {
-        console.error('Error fetching watch history:', error);
-        return;
+      try {
+        const { data, error } = await supabase
+          .from('watch_history')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('watched_at', { ascending: false })
+          .limit(20);
+        
+        if (error) {
+          console.error('Error fetching watch history:', error);
+          return;
+        }
+        
+        console.log('Profile page raw watch history data:', JSON.stringify(data, null, 2));
+        
+        // Map data to correct interface fields if needed
+        const processedHistory = data?.map(item => ({
+          ...item,
+          // Handle possible field name differences
+          content_type: item.content_type || item.media_type,
+          content_id: item.content_id || item.media_id,
+        })) || [];
+        
+        console.log('Profile page processed watch history:', JSON.stringify(processedHistory, null, 2));
+        console.log('Profile page: setting watchHistory state with length:', processedHistory.length);
+        
+        if (processedHistory.length > 0) {
+          console.log('Profile page: Watch history loaded successfully, found', processedHistory.length, 'items');
+          console.log('First item:', JSON.stringify(processedHistory[0], null, 2));
+        } else {
+          console.log('Profile page: No watch history found for user');
+        }
+        
+        setWatchHistory(processedHistory);
+      } catch (supabaseError) {
+        console.error('Supabase error in fetchWatchHistory:', supabaseError);
       }
-      
-      console.log('Profile page fetched watch history:', data);
-      
-      // Map data to correct interface fields if needed
-      const processedHistory = data?.map(item => ({
-        ...item,
-        // Handle possible field name differences
-        content_type: item.content_type || item.media_type,
-        content_id: item.content_id || item.media_id,
-      })) || [];
-      
-      setWatchHistory(processedHistory);
     } catch (error) {
       console.error('Error in fetchWatchHistory:', error);
     } finally {
@@ -407,7 +423,7 @@ const Profile: React.FC = () => {
                       >
                         <div className="relative overflow-hidden rounded-md">
                           <img 
-                            src={item.poster_path || 'https://via.placeholder.com/300x450?text=No+Image'} 
+                            src={item.poster_path ? (item.poster_path.startsWith('http') ? item.poster_path : getPosterUrl(item.poster_path)) : 'https://via.placeholder.com/300x450?text=No+Image'} 
                             alt={item.title}
                             className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
                           />

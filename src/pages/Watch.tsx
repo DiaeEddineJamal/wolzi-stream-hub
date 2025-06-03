@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { Download, X, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -34,7 +35,11 @@ interface SeasonInfo {
 }
 
 const Watch: React.FC = () => {
-  const { id, seasonNumber, episodeNumber } = useParams();
+  const { id, seasonNumber, episodeNumber } = useParams<{
+    id: string;
+    seasonNumber: string;
+    episodeNumber: string;
+  }>();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -74,6 +79,12 @@ const Watch: React.FC = () => {
   
   // Add fullscreen state tracking
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  
+  // Download modal state
+  const [showDownloadModal, setShowDownloadModal] = useState<boolean>(false);
+  const [downloadOptions, setDownloadOptions] = useState<Array<{quality: string, url: string}>>([]);
+
+
   
   // Determine media type from URL path instead of parameter
   // Extract media type from the path: /watch/movie/... or /watch/tv/... or /watch/anime/...
@@ -333,9 +344,12 @@ const Watch: React.FC = () => {
         try {
           setIsLoading(true);
           
+          // Convert seasonNumber to integer
+          const seasonNumberInt = parseInt(seasonNumber);
+          
           // Find the current season in our stored seasons
           const currentSeason = seasons.find(
-            season => season.season_number === parseInt(seasonNumber)
+            season => season.season_number === seasonNumberInt
           );
           
           // If we have the season info already, use it
@@ -345,7 +359,7 @@ const Watch: React.FC = () => {
           // Otherwise fetch the season info from TMDB
           else {
             const response = await fetch(
-              `https://api.themoviedb.org/3/tv/${id}/season/${seasonNumber}?api_key=2545dfe546bd75d5de4657e85942ecb2`
+              `https://api.themoviedb.org/3/tv/${id}/season/${seasonNumberInt}?api_key=2545dfe546bd75d5de4657e85942ecb2`
             );
             const data = await response.json();
             
@@ -388,15 +402,19 @@ const Watch: React.FC = () => {
     if (!user || !id) return;
     
     try {
+      // Convert string parameters to numbers or null for database query
+      const seasonNumberInt = seasonNumber ? parseInt(seasonNumber) : null;
+      const episodeNumberInt = episodeNumber ? parseInt(episodeNumber) : null;
+      
       // @ts-ignore - Supabase types are too complex for TypeScript
       const { data, error } = await supabase
         .from('watch_history')
         .select('*')
         .eq('user_id', user.id)
-        .eq('media_id', id)
-        .eq('media_type', actualMediaType)
-        .eq('season', seasonNumber || null)
-        .eq('episode', episodeNumber || null)
+        .eq('content_id', id)
+        .eq('content_type', actualMediaType)
+        .eq('season', seasonNumberInt)
+        .eq('episode', episodeNumberInt)
         .single();
       
       if (error && error.code !== 'PGRST116') throw error;
@@ -457,11 +475,15 @@ const Watch: React.FC = () => {
     // For anime, treat as TV shows
     const mediaTypeForUrl = actualMediaType === 'anime' ? 'tv' : actualMediaType;
     
+    // Convert string parameters to numbers for the API call
+    const seasonNumberInt = seasonNumber ? parseInt(seasonNumber) : undefined;
+    const episodeNumberInt = episodeNumber ? parseInt(episodeNumber) : undefined;
+    
     const url = getStreamingUrl(
       mediaTypeForUrl,
       id,
-      seasonNumber ? parseInt(seasonNumber) : undefined,
-      episodeNumber ? parseInt(episodeNumber) : undefined,
+      seasonNumberInt,
+      episodeNumberInt,
       recommendedSource
     );
     
@@ -517,12 +539,14 @@ const Watch: React.FC = () => {
       
       if (actualMediaType === 'anime') {
         const { data } = await jikanApi.getAnimeDetails(parseInt(id));
+        // For anime, we'll store the full URL as it's from Jikan API
         posterPath = data.data.images.jpg.large_image_url;
       } else {
         const { data } = actualMediaType === 'movie' 
           ? await tmdbApi.getMovieDetails(parseInt(id))
           : await tmdbApi.getTVShowDetails(parseInt(id));
-        posterPath = getPosterUrl(data.poster_path || '');
+        // For TMDB, store only the relative path, not the full URL
+        posterPath = data.poster_path || '';
       }
       
       // Calculate progress percentage
@@ -607,6 +631,103 @@ const Watch: React.FC = () => {
         navigate(`/watch/${actualMediaType}/${id}/episode/${nextEp}`);
       }
     }
+  };
+  
+  // Download functionality is already set up with state variables at the top of the component
+  
+  // Function to handle download
+  const handleDownload = () => {
+    // Generate download URLs based on the current source
+    let fileName = title;
+    const options: {quality: string, url: string}[] = [];
+    
+    if (actualMediaType === 'tv' || actualMediaType === 'anime') {
+      fileName = `${title} - S${seasonNumber || '1'}E${episodeNumber || '1'}`;
+    }
+    
+    // Different download URLs based on source
+    switch(activeSource) {
+      case 'vidsrcto':
+        // For VidSrc, we'll provide quality options
+        if (actualMediaType === 'movie') {
+          options.push(
+            {quality: '1080p', url: `https://vidsrc.to/download/movie/${id}?quality=1080p`},
+            {quality: '720p', url: `https://vidsrc.to/download/movie/${id}?quality=720p`},
+            {quality: '480p', url: `https://vidsrc.to/download/movie/${id}?quality=480p`}
+          );
+        } else {
+          options.push(
+            {quality: '1080p', url: `https://vidsrc.to/download/tv/${id}/${seasonNumber || '1'}/${episodeNumber || '1'}?quality=1080p`},
+            {quality: '720p', url: `https://vidsrc.to/download/tv/${id}/${seasonNumber || '1'}/${episodeNumber || '1'}?quality=720p`},
+            {quality: '480p', url: `https://vidsrc.to/download/tv/${id}/${seasonNumber || '1'}/${episodeNumber || '1'}?quality=480p`}
+          );
+        }
+        break;
+      case 'embedsu':
+        // For Embed.su, we'll provide quality options
+        if (actualMediaType === 'movie') {
+          options.push(
+            {quality: 'High Quality', url: `https://embed.su/download/movie/${id}`},
+            {quality: 'Medium Quality', url: `https://embed.su/download/movie/${id}?quality=720p`}
+          );
+        } else {
+          options.push(
+            {quality: 'High Quality', url: `https://embed.su/download/tv/${id}/${seasonNumber || '1'}/${episodeNumber || '1'}`},
+            {quality: 'Medium Quality', url: `https://embed.su/download/tv/${id}/${seasonNumber || '1'}/${episodeNumber || '1'}?quality=720p`}
+          );
+        }
+        break;
+      case 'superembed':
+        // For SuperEmbed, we'll provide quality options
+        if (actualMediaType === 'movie') {
+          options.push(
+            {quality: 'HD Quality', url: `https://multiembed.mov/download.php?video_id=${id}&tmdb=1&quality=hd`},
+            {quality: 'SD Quality', url: `https://multiembed.mov/download.php?video_id=${id}&tmdb=1&quality=sd`}
+          );
+        } else {
+          options.push(
+            {quality: 'HD Quality', url: `https://multiembed.mov/download.php?video_id=${id}&tmdb=1&s=${seasonNumber || '1'}&e=${episodeNumber || '1'}&quality=hd`},
+            {quality: 'SD Quality', url: `https://multiembed.mov/download.php?video_id=${id}&tmdb=1&s=${seasonNumber || '1'}&e=${episodeNumber || '1'}&quality=sd`}
+          );
+        }
+        break;
+      case 'smashystream':
+        // For SmashyStream, we'll provide quality options
+        if (actualMediaType === 'movie') {
+          options.push(
+            {quality: '1080p', url: `https://embed.smashystream.com/download.php?tmdb=${id}&quality=1080p`},
+            {quality: '720p', url: `https://embed.smashystream.com/download.php?tmdb=${id}&quality=720p`}
+          );
+        } else {
+          options.push(
+            {quality: '1080p', url: `https://embed.smashystream.com/download.php?tmdb=${id}&season=${seasonNumber || '1'}&episode=${episodeNumber || '1'}&quality=1080p`},
+            {quality: '720p', url: `https://embed.smashystream.com/download.php?tmdb=${id}&season=${seasonNumber || '1'}&episode=${episodeNumber || '1'}&quality=720p`}
+          );
+        }
+        break;
+      default:
+        // Default to VidSrc
+        if (actualMediaType === 'movie') {
+          options.push(
+            {quality: '1080p', url: `https://vidsrc.to/download/movie/${id}?quality=1080p`},
+            {quality: '720p', url: `https://vidsrc.to/download/movie/${id}?quality=720p`}
+          );
+        } else {
+          options.push(
+            {quality: '1080p', url: `https://vidsrc.to/download/tv/${id}/${seasonNumber || '1'}/${episodeNumber || '1'}?quality=1080p`},
+            {quality: '720p', url: `https://vidsrc.to/download/tv/${id}/${seasonNumber || '1'}/${episodeNumber || '1'}?quality=720p`}
+          );
+        }
+    }
+    
+    // Set download options and show modal
+    setDownloadOptions(options);
+    setShowDownloadModal(true);
+  };
+  
+  // Function to open download URL
+  const openDownloadUrl = (url: string) => {
+    window.open(url, '_blank');
   };
   
   // Add source availability validation
@@ -1105,7 +1226,61 @@ const Watch: React.FC = () => {
         </div>
       </header>
       
-      {/* Season and Episode Selection - Moved above the video player */}
+      {/* Media Controls Bar - Always visible for all media types */}
+      <div className="bg-black/70 backdrop-blur-lg px-4 py-4 border-b border-green-500/20 shadow-md">
+        <div className="flex flex-wrap items-center gap-4 max-w-5xl mx-auto">
+          {/* Server Selection */}
+          <div className="flex items-center space-x-2">
+            <label className="text-white font-medium text-sm">Server:</label>
+            <div className="relative">
+              <select 
+                className="px-4 py-2 rounded-md bg-black/60 backdrop-blur-md border border-green-500/40 text-white appearance-none cursor-pointer pr-10 focus:ring-2 focus:ring-green-500/60 focus:border-green-500 transition-all duration-200 hover:bg-black/80 min-w-[130px]"
+                value={activeSource}
+                onChange={(e) => {
+                  setError(null);
+                  setIsLoading(true);
+                  handleSourceChange(e.target.value);
+                }}
+              >
+                {sources.map(source => (
+                    <option key={source.id} value={source.id}>{source.name}</option>
+                ))}
+              </select>
+              <div className="absolute right-3 top-2.5 pointer-events-none text-green-500">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m6 9 6 6 6-6"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex-grow"></div>
+          
+          {/* Download and Settings Buttons - Always visible */}
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs bg-black/40 border-green-500/60 hover:bg-black/80 transition-all duration-200 text-white hover:text-green-400"
+              onClick={() => handleDownload()}
+            >
+              <Download size={14} className="mr-1" />
+              Download
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs bg-black/40 border-green-500/60 hover:bg-black/80 transition-all duration-200 text-white hover:text-green-400"
+              onClick={() => setShowSettings(!showSettings)}
+            >
+              <Settings size={14} className="mr-1" />
+              Settings
+            </Button>
+          </div>
+        </div>
+      </div>
+      
+      {/* Season and Episode Selection - Only for TV shows and anime */}
       {(actualMediaType === 'tv' || actualMediaType === 'anime') && (
         <div className="bg-black/70 backdrop-blur-lg px-4 py-4 border-b border-green-500/20 shadow-md">
           <div className="flex flex-wrap items-center gap-4 max-w-5xl mx-auto">
@@ -1171,39 +1346,7 @@ const Watch: React.FC = () => {
             
             <div className="flex-grow"></div>
             
-            <div className="flex items-center space-x-2">
-              <label className="text-white font-medium text-sm">Server:</label>
-              <div className="relative">
-                <select 
-                  className="px-4 py-2 rounded-md bg-black/60 backdrop-blur-md border border-green-500/40 text-white appearance-none cursor-pointer pr-10 focus:ring-2 focus:ring-green-500/60 focus:border-green-500 transition-all duration-200 hover:bg-black/80 min-w-[130px]"
-                  value={activeSource}
-                  onChange={(e) => {
-                    setError(null);
-                    setIsLoading(true);
-                    handleSourceChange(e.target.value);
-                  }}
-                >
-                  {sources.map(source => (
-                      <option key={source.id} value={source.id}>{source.name}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3 top-2.5 pointer-events-none text-green-500">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="m6 9 6 6 6-6"/>
-                  </svg>
-                </div>
-              </div>
-            </div>
-            
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-xs bg-black/40 border-green-500/60 hover:bg-black/80 transition-all duration-200 text-white hover:text-green-400"
-              onClick={() => setShowSettings(!showSettings)}
-            >
-              <Settings size={14} className="mr-1" />
-              Settings
-            </Button>
+            {/* Removed server selection and download/settings buttons as they're now in the Media Controls Bar */}
           </div>
           
           {/* Episode Navigation Quick Access Buttons */}
@@ -1214,12 +1357,14 @@ const Watch: React.FC = () => {
               className="text-white hover:text-green-400 hover:bg-green-500/10 flex items-center"
               disabled={parseInt(episodeNumber || '1') <= 1}
               onClick={() => {
-                const prevEp = parseInt(episodeNumber || '1') - 1;
+                const currentEpisode = parseInt(episodeNumber || '1');
+                const currentSeason = parseInt(seasonNumber || '1');
+                const prevEp = currentEpisode - 1;
                 if (prevEp >= 1) {
                   setError(null);
                   setIsLoading(true);
                   if (actualMediaType === 'tv') {
-                    navigate(`/watch/${actualMediaType}/${id}/season/${seasonNumber || '1'}/episode/${prevEp}`);
+                    navigate(`/watch/${actualMediaType}/${id}/season/${currentSeason}/episode/${prevEp}`);
                   } else {
                     navigate(`/watch/${actualMediaType}/${id}/episode/${prevEp}`);
                   }
@@ -1248,12 +1393,14 @@ const Watch: React.FC = () => {
               className="text-white hover:text-green-400 hover:bg-green-500/10 flex items-center"
               disabled={parseInt(episodeNumber || '1') >= episodeCount}
               onClick={() => {
-                const nextEp = parseInt(episodeNumber || '1') + 1;
+                const currentEpisode = parseInt(episodeNumber || '1');
+                const currentSeason = parseInt(seasonNumber || '1');
+                const nextEp = currentEpisode + 1;
                 if (nextEp <= episodeCount) {
                   setError(null);
                   setIsLoading(true);
                   if (actualMediaType === 'tv') {
-                    navigate(`/watch/${actualMediaType}/${id}/season/${seasonNumber || '1'}/episode/${nextEp}`);
+                    navigate(`/watch/${actualMediaType}/${id}/season/${currentSeason}/episode/${nextEp}`);
                   } else {
                     navigate(`/watch/${actualMediaType}/${id}/episode/${nextEp}`);
                   }
@@ -1265,6 +1412,56 @@ const Watch: React.FC = () => {
                 <path d="m9 18 6-6-6-6"/>
               </svg>
             </Button>
+          </div>
+        </div>
+      )}
+      
+      {/* Download Modal */}
+      {showDownloadModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-wolzi-bg border border-green-500/30 rounded-lg shadow-xl p-5 max-w-md w-full mx-4 animate-in fade-in slide-in-from-bottom-5 duration-300">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-white">Download Options</h3>
+              <button 
+                onClick={() => setShowDownloadModal(false)}
+                className="text-wolzi-light-gray hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-sm text-wolzi-light-gray mb-2">
+                {actualMediaType === 'tv' || actualMediaType === 'anime' 
+                  ? `${title} - Season ${seasonNumber || '1'}, Episode ${episodeNumber || '1'}` 
+                  : title}
+              </p>
+              <p className="text-xs text-wolzi-light-gray/70 mb-4">
+                Select your preferred quality to download from {activeSource}
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              {downloadOptions.map((option, index) => (
+                <button
+                  key={index}
+                  onClick={() => openDownloadUrl(option.url)}
+                  className="w-full flex items-center justify-between p-3 bg-black/40 hover:bg-green-500/20 border border-green-500/30 rounded-md text-white transition-all duration-200"
+                >
+                  <div className="flex items-center">
+                    <Download size={16} className="mr-2 text-green-400" />
+                    <span>{option.quality}</span>
+                  </div>
+                  <ExternalLink size={14} className="text-wolzi-light-gray" />
+                </button>
+              ))}
+            </div>
+            
+            <div className="mt-4 pt-3 border-t border-green-500/20">
+              <p className="text-xs text-wolzi-light-gray/70">
+                Note: Download speeds may vary based on server load and your internet connection.
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -1585,6 +1782,17 @@ const Watch: React.FC = () => {
                   </div>
                 )}
                 
+                {/* Download Button */}
+                {useIframe && !isLoading && (
+                  <div 
+                    className="absolute bottom-10 right-24 z-20 bg-black/60 backdrop-blur-sm rounded-full p-2 cursor-pointer hover:bg-black/80 transition-all duration-200"
+                    onClick={handleDownload}
+                    title="Download Content"
+                  >
+                    <Download className="text-white" size={20} />
+                  </div>
+                )}
+                
                 {/* Next Episode Overlay */}
                 <AnimatePresence>
                   {showNextEpisodeOverlay && hasNextEpisode && (
@@ -1662,6 +1870,79 @@ const Watch: React.FC = () => {
           </AnimatePresence>
         )}
       </div>
+      
+      {/* Download Modal */}
+      <AnimatePresence>
+        {showDownloadModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-wolzi-dark-gray rounded-lg max-w-md w-full p-6 border border-wolzi-accent/30"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold">Download {title}</h3>
+                <button 
+                  onClick={() => setShowDownloadModal(false)}
+                  className="text-wolzi-light-gray hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="mb-4">
+                <p className="text-sm text-wolzi-light-gray mb-2">
+                  Select your preferred quality to download:
+                </p>
+                
+                <div className="space-y-2 mt-4">
+                  {downloadOptions.map((option, index) => (
+                    <motion.div
+                      key={index}
+                      whileHover={{ y: -2 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="bg-wolzi-bg p-4 rounded-lg border border-wolzi-gray/30 hover:border-wolzi-accent/50 cursor-pointer transition-all"
+                      onClick={() => openDownloadUrl(option.url)}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center">
+                          <Download size={18} className="text-wolzi-accent mr-2" />
+                          <span>{option.quality}</span>
+                        </div>
+                        <ExternalLink size={16} className="text-wolzi-light-gray" />
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="text-xs text-wolzi-light-gray bg-wolzi-bg p-3 rounded-md">
+                <p className="flex items-center">
+                  <Info size={14} className="mr-2 text-wolzi-accent" />
+                  Downloads are provided by external sources and may require additional steps to complete.
+                </p>
+              </div>
+              
+              <div className="mt-4 flex justify-end">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowDownloadModal(false)}
+                  className="border-wolzi-gray/30 hover:bg-wolzi-gray/20"
+                >
+                  Close
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* Video Sources */}
       <div className="bg-wolzi-bg p-4">
@@ -1752,4 +2033,4 @@ const Watch: React.FC = () => {
   );
 };
 
-export default Watch; 
+export default Watch;
