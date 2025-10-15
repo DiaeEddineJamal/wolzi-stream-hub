@@ -62,15 +62,15 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				wolzi: {
-					'accent': '#1db954', // Spotify green
-					'accent-hover': '#1ed760',
-					'dark-blue': '#121212', // Dark background
-					'light-blue': '#212121', // Secondary dark background
-					'card': 'rgba(33, 33, 33, 0.7)',
-					'gray': '#535353', // Medium gray
-					'light-gray': '#b3b3b3' // Light gray
-				}
+                wolzi: {
+                    'accent': '#a855f7', // Royal purple
+                    'accent-hover': '#7c3aed',
+                    'dark-blue': '#121212', // Dark background
+                    'light-blue': '#212121', // Secondary dark background
+                    'card': 'rgba(33, 33, 33, 0.7)',
+                    'gray': '#535353', // Medium gray
+                    'light-gray': '#b3b3b3' // Light gray
+                }
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

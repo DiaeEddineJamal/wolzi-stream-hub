@@ -36,7 +36,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             willChange: "opacity",
             position: "relative" 
           }}
-          className="flex-grow pt-14 sm:pt-16 transition-all duration-300 overflow-x-hidden"
+          className="flex-grow transition-all duration-300 overflow-x-hidden"
         >
           {children}
         </motion.main>

@@ -21,7 +21,7 @@ import TVSeries from "./pages/TVSeries";
 import Anime from "./pages/Anime";
 import WatchHistory from "./pages/WatchHistory";
 import SearchResults from "./pages/SearchResults";
-import Watch from "./pages/Watch";
+import WatchNew from "./pages/WatchNew";
 import ViewAllPage from "./pages/ViewAllPage";
 import tmdbApi, { getPosterUrl } from "./integrations/api/tmdb";
 import jikanApi from "./integrations/api/jikan";
@@ -304,9 +304,9 @@ const App = () => {
             <Route path="/anime/:id/episode/:episodeNumber" element={<MediaDetail />} />
             
             {/* Watch routes */}
-            <Route path="/watch/movie/:id" element={<Watch />} />
-            <Route path="/watch/tv/:id/season/:seasonNumber/episode/:episodeNumber" element={<Watch />} />
-            <Route path="/watch/anime/:id/episode/:episodeNumber" element={<Watch />} />
+            <Route path="/watch/movie/:id" element={<WatchNew />} />
+            <Route path="/watch/tv/:id/:season/:episode" element={<WatchNew />} />
+            <Route path="/watch/anime/:id/:episode" element={<WatchNew />} />
             
             {/* Protected routes */}
             <Route path="/watch-history" element={

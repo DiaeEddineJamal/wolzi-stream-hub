@@ -12,7 +12,7 @@ import ReactPlayer from 'react-player';
 import MainLayout from '@/layouts/MainLayout';
 import { Tables } from '@/types/supabase';
 import YouTube from 'react-youtube';
-import { Play, PlayCircle, ArrowUpRight, Volume2, VolumeX } from 'lucide-react';
+import { Play, PlayCircle, ArrowUpRight, Volume2, VolumeX, Plus } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 
 type MediaType = 'movie' | 'tv' | 'anime';
@@ -138,7 +138,7 @@ const MediaDetail: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [streamingSources, setStreamingSources] = useState(availableStreamingSources);
   const [preferences, setPreferences] = useState<UserPreferences>({
-    active_streaming_source: 'superembed',
+    active_streaming_source: 'vidking',
     autoplay: true
   });
   const [progress, setProgress] = useState(0);
@@ -178,11 +178,11 @@ const MediaDetail: React.FC = () => {
         
         setMediaDetails(data);
         
-        // Set superembed as the default active source
+        // Set vidking as the default active source
         setStreamingSources(prevSources => 
           prevSources.map(source => ({
             ...source,
-            isActive: source.id === 'superembed'
+            isActive: source.id === 'vidking'
           }))
         );
         
@@ -472,18 +472,21 @@ const MediaDetail: React.FC = () => {
   };
 
   const getActiveSource = () => {
-    return streamingSources.find(source => source.isActive)?.id || 'superembed';
+    return streamingSources.find(source => source.isActive)?.id || 'vidking';
   };
 
   const getStreamUrl = () => {
-    const activeSourceId = streamingSources.find(source => source.isActive)?.id || 'vidjoy';
+    const activeSource = streamingSources.find(source => source.isActive);
+    if (!activeSource) {
+      return '';
+    }
     
     return getStreamingUrl(
       actualMediaType,
       id || '',
+      activeSource,
       selectedSeason || undefined,
-      selectedEpisode || undefined,
-      activeSourceId
+      selectedEpisode || undefined
     );
   };
 
@@ -520,7 +523,7 @@ const MediaDetail: React.FC = () => {
             <p className="text-sm text-gray-400">Total {totalEpisodes} episodes</p>
           </div>
           <div className="flex items-center space-x-2">
-            <div className="rounded-md bg-black/40 px-3 py-1 text-sm border border-green-500/30">
+            <div className="rounded-md bg-black/40 px-3 py-1 text-sm border border-purple-400/30">
               <span className="text-white font-medium">Season {selectedSeason || 1}</span>
             </div>
           </div>
@@ -534,8 +537,8 @@ const MediaDetail: React.FC = () => {
               className={`
                 relative overflow-hidden rounded-md cursor-pointer transition-all duration-200
                 ${selectedEpisode === episode.episode_number 
-                  ? 'bg-green-500/10 border border-green-500/60 shadow-md shadow-green-500/20' 
-                  : 'bg-black/40 border border-green-500/20 hover:border-green-500/40 hover:bg-black/60'}
+                  ? 'bg-purple-500/10 border border-purple-500/60 shadow-md shadow-purple-500/20' 
+                  : 'bg-black/40 border border-purple-400/20 hover:border-purple-400/40 hover:bg-black/60'}
                 group
               `}
               onClick={() => setSelectedEpisode(episode.episode_number)}
@@ -549,29 +552,29 @@ const MediaDetail: React.FC = () => {
                   />
                 ) : (
                   <span className={`text-xl font-bold ${
-                    selectedEpisode === episode.episode_number ? 'text-green-400' : 'text-white/80 group-hover:text-green-400/80'
+                    selectedEpisode === episode.episode_number ? 'text-purple-400' : 'text-white/80 group-hover:text-purple-400/80'
                   }`}>{episode.episode_number}</span>
                 )}
                 
                 {/* Hover Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-2">
-                  <Play className="h-8 w-8 text-green-400" />
+                  <Play className="h-8 w-8 text-purple-400" />
                 </div>
               </div>
               
               <div className="p-2">
                 <div className="flex justify-between items-center">
                   <p className="text-xs font-medium truncate text-white">Episode {episode.episode_number}</p>
-                  {selectedEpisode === episode.episode_number && (
-                    <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                  )}
+                    {selectedEpisode === episode.episode_number && (
+                      <div className="w-2 h-2 rounded-full bg-purple-500"></div>
+                    )}
                 </div>
               </div>
               
               {/* Selected Indicator */}
-              {selectedEpisode === episode.episode_number && (
-                <div className="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
-              )}
+                {selectedEpisode === episode.episode_number && (
+                  <div className="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
+                )}
             </div>
           ))}
         </div>
@@ -580,7 +583,7 @@ const MediaDetail: React.FC = () => {
         <div className="flex justify-center mt-2 pb-4">
           <Button
             onClick={() => handleWatchNow()}
-            className="px-8 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-md hover:shadow-lg shadow-green-500/20 transition-all duration-200"
+            className="glassmorphism-button bg-white/20 hover:bg-white/30 text-white px-8 py-2 border border-white/30 shadow-lg backdrop-blur-sm transition-all duration-300"
           >
             <Play className="mr-2 h-4 w-4" />
             Watch Episode {selectedEpisode || 1}
@@ -588,19 +591,19 @@ const MediaDetail: React.FC = () => {
         </div>
         
         {/* Streaming Sources Section */}
-        <div className="mt-6 pt-4 border-t border-green-500/20">
+        <div className="mt-6 pt-4 border-t border-purple-400/20">
           <h3 className="text-lg font-medium mb-3">Available Streaming Sources</h3>
           <div className="flex flex-wrap gap-2">
             {streamingSources
-              .filter(source => ['embedsu', 'vidsrcto'].includes(source.id))
+              .filter(source => ['embedsu', 'vidsrcto', 'vidking'].includes(source.id))
               .map(source => (
                 <div 
                   key={source.id} 
                   className={`
                     px-3 py-1.5 rounded-md cursor-pointer text-sm font-medium transition-all 
                     ${getActiveSource() === source.id 
-                      ? 'bg-green-500 text-white shadow-md shadow-green-500/20' 
-                      : 'bg-black/40 text-white/80 border border-green-500/30 hover:border-green-500/50 hover:bg-black/60'}
+                      ? 'bg-purple-500 text-white shadow-md shadow-purple-500/20' 
+                      : 'bg-black/40 text-white/80 border border-purple-400/30 hover:border-purple-400/50 hover:bg-black/60'}
                   `}
                   onClick={() => handleSourceChange(source.id)}
                 >
@@ -668,9 +671,9 @@ const MediaDetail: React.FC = () => {
 
   const handleWatchNow = () => {
     if (actualMediaType === 'tv' && selectedSeason && selectedEpisode) {
-      navigate(`/watch/tv/${id}/season/${selectedSeason}/episode/${selectedEpisode}`);
+      navigate(`/watch/tv/${id}/${selectedSeason}/${selectedEpisode}`);
     } else if (actualMediaType === 'anime' && selectedEpisode) {
-      navigate(`/watch/anime/${id}/episode/${selectedEpisode}`);
+      navigate(`/watch/anime/${id}/${selectedEpisode}`);
     } else if (actualMediaType === 'movie') {
       navigate(`/watch/movie/${id}`);
     } else {
@@ -825,8 +828,8 @@ const MediaDetail: React.FC = () => {
               </div>
               
               <div className="flex flex-col sm:flex-row gap-3 z-10 relative">
-                <Button 
-                  className="glow-button bg-green-500 hover:bg-green-600 text-base"
+                <Button
+                  className="glassmorphism-button bg-white/20 hover:bg-white/30 text-white px-6 py-3 border border-white/30 shadow-lg backdrop-blur-sm transition-all duration-300"
                   onClick={handleWatchNow}
                   size="lg"
                 >
@@ -837,7 +840,7 @@ const MediaDetail: React.FC = () => {
                 {trailerKey && (
                   <Button 
                     variant="outline"
-                    className="flex items-center bg-black/50 border-white/30 hover:bg-black/70 text-white hover:text-green-400"
+                    className="glassmorphism-button bg-white/20 hover:bg-white/30 text-white px-6 py-3 border border-white/30 shadow-lg backdrop-blur-sm transition-all duration-300"
                     size="lg"
                     onClick={() => setActiveTab('trailer')}
                   >
@@ -848,9 +851,14 @@ const MediaDetail: React.FC = () => {
                 
                 <Button 
                   variant="outline"
-                  className="flex items-center bg-black/50 border-white/30 hover:bg-black/70 text-white hover:text-green-400"
+                  className="glow-button glassmorphism-button bg-white/20 hover:bg-white/30 text-white px-6 py-3 border border-white/30 shadow-lg backdrop-blur-sm transition-all duration-300"
+                  onClick={() => {
+                    // TODO: Implement add to list functionality
+                    console.log('Add to list clicked');
+                  }}
                   size="lg"
                 >
+                  <Plus className="mr-2 h-5 w-5" />
                   Add to List
                 </Button>
               </div>
@@ -921,10 +929,10 @@ const MediaDetail: React.FC = () => {
           <TabsContent value="stream" className="mt-4 md:mt-6">
             <Card className="p-3 md:p-6">
               <h2 className="text-lg md:text-xl font-medium mb-3 md:mb-4">Watch {title}</h2>
-              <div className="aspect-video w-full bg-black rounded-md overflow-hidden">
+              <div className="aspect-video w-full bg-black rounded-md overflow-hidden min-h-[400px] md:min-h-[500px] lg:min-h-[600px]">
                 {actualMediaType === 'movie' && (
                   <iframe
-                    src={getStreamingUrl(actualMediaType, id, undefined, undefined, 'superembed')}
+                    src={getStreamUrl()}
                     className="w-full h-full"
                     frameBorder="0"
                     allowFullScreen
@@ -938,7 +946,7 @@ const MediaDetail: React.FC = () => {
                 
                 {actualMediaType === 'tv' && selectedSeason && selectedEpisode && (
                   <iframe
-                    src={getStreamingUrl(actualMediaType, id, selectedSeason, selectedEpisode, 'superembed')}
+                    src={getStreamUrl()}
                     className="w-full h-full"
                     frameBorder="0"
                     allowFullScreen
@@ -976,7 +984,7 @@ const MediaDetail: React.FC = () => {
               </div>
               
               {/* Player Settings */}
-              <div className="mt-6 border border-green-500/20 rounded-md p-3 md:p-4">
+              <div className="mt-6 border border-purple-400/20 rounded-md p-3 md:p-4">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
                   <div className="mb-3 md:mb-0">
                     <h3 className="text-sm font-medium text-white">Player Settings</h3>
@@ -998,7 +1006,7 @@ const MediaDetail: React.FC = () => {
                             setTimeout(() => setActiveTab(tempActiveTab), 50);
                           }}
                         />
-                        <span className={`text-xs ${!disableSandbox ? "text-green-400" : "text-red-400"}`}>
+                        <span className={`text-xs ${!disableSandbox ? "text-purple-400" : "text-red-400"}`}> 
                           {!disableSandbox ? "Enabled" : "Disabled"}
                         </span>
                       </div>
@@ -1031,7 +1039,7 @@ const MediaDetail: React.FC = () => {
                   
                   {seasonDetails ? (
                     <div className="space-y-4">
-                      <div className="mb-6 p-4 rounded-md border border-green-500/30">
+                      <div className="mb-6 p-4 rounded-md border border-purple-400/30">
                         <h2 className="text-xl font-bold text-white">{seasonDetails.name}</h2>
                         {seasonDetails.episodes && (
                           <div className="flex items-center mt-1">
@@ -1048,8 +1056,8 @@ const MediaDetail: React.FC = () => {
                             key={episode.id}
                             className={`p-4 rounded-lg transition-all duration-200 ${
                               selectedEpisode === episode.episode_number 
-                                ? 'bg-green-500/10 border border-green-500/60 shadow-md shadow-green-500/20' 
-                                : 'border border-green-500/20 hover:border-green-500/40'
+                                ? 'bg-purple-500/10 border border-purple-500/60 shadow-md shadow-purple-500/20' 
+                                : 'border border-purple-400/20 hover:border-purple-400/40'
                             } cursor-pointer relative group`}
                             onClick={() => {
                               handleEpisodeSelect(episode.episode_number);
@@ -1082,7 +1090,7 @@ const MediaDetail: React.FC = () => {
                               
                               <div className="md:w-3/4 lg:w-4/5">
                                 <div className="flex justify-between mb-2">
-                                  <h3 className="text-lg font-medium group-hover:text-green-400 transition-colors">
+                                  <h3 className="text-lg font-medium group-hover:text-purple-400 transition-colors">
                                     {episode.name}
                                   </h3>
                                 </div>
@@ -1097,7 +1105,7 @@ const MediaDetail: React.FC = () => {
                                   <Button 
                                     variant="ghost" 
                                     size="sm"
-                                    className="text-xs text-white hover:text-green-400 hover:bg-green-500/10 group-hover:text-green-400 transition-colors"
+                                    className="glassmorphism-button bg-white/20 hover:bg-white/30 text-white text-xs border border-white/30 shadow-lg backdrop-blur-sm transition-all duration-300"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleEpisodeSelect(episode.episode_number);
@@ -1111,7 +1119,7 @@ const MediaDetail: React.FC = () => {
                             </div>
                             
                             {selectedEpisode === episode.episode_number && (
-                              <div className="absolute top-0 left-0 w-1 h-full bg-green-500 rounded-l-lg"></div>
+                              <div className="absolute top-0 left-0 w-1 h-full bg-purple-500 rounded-l-lg"></div>
                             )}
                           </div>
                         ))}
@@ -1153,7 +1161,7 @@ const MediaDetail: React.FC = () => {
                 
                 {seasonDetails ? (
                   <div className="space-y-4">
-                    <div className="mb-6 p-4 rounded-md border border-green-500/30">
+                    <div className="mb-6 p-4 rounded-md border border-purple-400/30">
                       <h2 className="text-xl font-bold text-white">{seasonDetails.name}</h2>
                       {seasonDetails.episodes && (
                         <div className="flex items-center mt-1">
@@ -1170,8 +1178,8 @@ const MediaDetail: React.FC = () => {
                           key={episode.id}
                           className={`p-4 rounded-lg transition-all duration-200 ${
                             selectedEpisode === episode.episode_number 
-                              ? 'bg-green-500/10 border border-green-500/60 shadow-md shadow-green-500/20' 
-                              : 'border border-green-500/20 hover:border-green-500/40'
+                              ? 'bg-purple-500/10 border border-purple-500/60 shadow-md shadow-purple-500/20' 
+                              : 'border border-purple-400/20 hover:border-purple-400/40'
                           } cursor-pointer relative group`}
                           onClick={() => {
                             handleEpisodeSelect(episode.episode_number);
@@ -1204,7 +1212,7 @@ const MediaDetail: React.FC = () => {
                             
                             <div className="md:w-3/4 lg:w-4/5">
                               <div className="flex justify-between mb-2">
-                                <h3 className="text-lg font-medium group-hover:text-green-400 transition-colors">
+                                <h3 className="text-lg font-medium group-hover:text-purple-400 transition-colors">
                                   {episode.name}
                                 </h3>
                               </div>
@@ -1219,7 +1227,7 @@ const MediaDetail: React.FC = () => {
                                 <Button 
                                   variant="ghost" 
                                   size="sm"
-                                  className="text-xs text-white hover:text-green-400 hover:bg-green-500/10 group-hover:text-green-400 transition-colors"
+                                  className="glassmorphism-button bg-white/20 hover:bg-white/30 text-white text-xs border border-white/30 shadow-lg backdrop-blur-sm transition-all duration-300"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     handleEpisodeSelect(episode.episode_number);
@@ -1233,7 +1241,7 @@ const MediaDetail: React.FC = () => {
                           </div>
                           
                           {selectedEpisode === episode.episode_number && (
-                            <div className="absolute top-0 left-0 w-1 h-full bg-green-500 rounded-l-lg"></div>
+                            <div className="absolute top-0 left-0 w-1 h-full bg-purple-500 rounded-l-lg"></div>
                           )}
                         </div>
                       ))}
@@ -1287,18 +1295,8 @@ const MediaDetail: React.FC = () => {
                           </span>
                         )}
                         {source.id === 'vidsrcto' && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/30 text-green-200">
-                            Fast Streaming
-                          </span>
-                        )}
-                        {source.id === 'superembed' && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-500/30 text-purple-200">
-                            High Quality
-                          </span>
-                        )}
-                        {source.id === 'smashystream' && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/30 text-yellow-200">
-                            Wide Collection
+                            Fast Streaming
                           </span>
                         )}
                       </div>
@@ -1313,7 +1311,7 @@ const MediaDetail: React.FC = () => {
               <div className="mt-8 pt-4 border-t border-wolzi-border">
                 <p className="text-sm text-wolzi-light-gray">
                   Recommended source: 
-                  <span className="font-medium text-purple-400 ml-1">SuperEmbed</span> for high quality streams
+                  <span className="font-medium text-purple-400 ml-1">VidSrc.to</span> for fast loading streams
                 </p>
               </div>
             </Card>
@@ -1322,7 +1320,7 @@ const MediaDetail: React.FC = () => {
       </div>
       
       {/* CSS for hero banner video */}
-      <style jsx global>{`
+      <style >{`
         .hero-banner-video {
           position: relative;
           width: 100%;
@@ -1350,4 +1348,4 @@ const MediaDetail: React.FC = () => {
   );
 };
 
-export default MediaDetail; 
+export default MediaDetail;

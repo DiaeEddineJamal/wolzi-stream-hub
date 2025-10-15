@@ -1,0 +1,36 @@
+/* Shimmer animation for title text */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.4),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* Enhanced title glow effect */
+.title-glow {
+  text-shadow: 
+    0 0 10px rgba(255, 255, 255, 0.3),
+    0 0 20px rgba(255, 255, 255, 0.2),
+    0 0 30px rgba(255, 255, 255, 0.1);
+}
+
+/* 3D text perspective */
+.text-3d {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}

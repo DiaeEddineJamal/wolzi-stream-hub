@@ -182,9 +182,8 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
       }
     },
     hover: {
-      scale: 1.05,
       y: -3,
-      boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2), 0 0 15px rgba(29, 185, 84, 0.3)",
+      boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2), 0 0 15px rgba(168, 85, 247, 0.3)",
       transition: {
         duration: 0.2,
         ease: "easeOut",
@@ -322,62 +321,68 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
           
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent">
-            <div className="container mx-auto px-4 h-full flex items-end pb-20 sm:pb-24">
-              <motion.div 
-                className="max-w-3xl"
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                variants={{
-                  hidden: { opacity: 0 },
-                  visible: {
-                    opacity: 1,
-                    transition: {
-                      staggerChildren: 0.12,
-                      delayChildren: 0.4
-                    }
-                  },
-                  exit: {
-                    opacity: 0,
-                    transition: {
-                      staggerChildren: 0.06,
-                      staggerDirection: -1,
-                      when: "afterChildren"
-                    }
+            <motion.div 
+              className="container mx-auto px-4 h-full flex items-end justify-start pb-20 sm:pb-24"
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                  opacity: 1,
+                  transition: {
+                    staggerChildren: 0.12,
+                    delayChildren: 0.4
                   }
-                }}
-              >
-                <motion.div variants={textVariants}>
+                },
+                exit: {
+                  opacity: 0,
+                  transition: {
+                    staggerChildren: 0.06,
+                    staggerDirection: -1,
+                    when: "afterChildren"
+                  }
+                }
+              }}
+            >
+              {/* Header Content Container */}
+              <div className="space-y-4 text-left max-w-3xl">
+                {/* Content Rating/Classification */}
+                <div className="flex items-center justify-start gap-2">
                   <span className={`px-2 py-1 text-xs sm:text-sm font-semibold rounded-sm uppercase ${getMediaLabelStyles(currentItem.mediaType)}`}>
                     {currentItem.mediaType === 'movie' ? 'Movie' : currentItem.mediaType === 'tv' ? 'TV Series' : 'Anime'}
                   </span>
+                </div>
+                
+                {/* Movie Title */}
+                <div className="text-left">
+                  <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-white via-white/90 to-white/70 bg-clip-text text-transparent text-left">
+                    {currentItem.title}
+                  </h1>
+                </div>
+                
+                {/* Description Text */}
+                <motion.div 
+                  className="max-w-2xl text-left"
+                  variants={textVariants}
+                >
+                  <p className="text-wolzi-light-gray text-base md:text-lg leading-relaxed text-left">
+                    {currentItem.description.length > 200 
+                      ? `${currentItem.description.substring(0, 200)}...` 
+                      : currentItem.description}
+                  </p>
                 </motion.div>
                 
-                <motion.h1 
-                  className="text-4xl md:text-5xl lg:text-6xl font-bold mt-3 mb-3 bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent"
-                  variants={textVariants}
-                >
-                  {currentItem.title}
-                </motion.h1>
-                
-                <motion.p 
-                  className="text-wolzi-light-gray mb-6 text-base md:text-lg max-w-2xl"
-                  variants={textVariants}
-                >
-                  {currentItem.description.length > 200 
-                    ? `${currentItem.description.substring(0, 200)}...` 
-                    : currentItem.description}
-                </motion.p>
-                
+                {/* Action Buttons */}
                 <motion.div 
-                  className="flex flex-wrap gap-3"
+                  className="flex flex-wrap gap-3 pt-2 justify-start"
                   variants={textVariants}
                 >
                   <motion.div
                     variants={buttonVariants}
                     whileHover="hover"
                   >
-                    <Button asChild className="bg-wolzi-accent hover:bg-wolzi-accent-hover text-white">
+                    <Button asChild className="glassmorphism-button bg-white/20 hover:bg-white/30 text-white px-6 py-3 border border-white/30 shadow-lg backdrop-blur-sm transition-all duration-300">
                       <Link to={`/${currentItem.mediaType}/${currentItem.id}`}>
                         <Play className="w-5 h-5 mr-2" />
                         Watch Now
@@ -389,7 +394,7 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
                     variants={buttonVariants}
                     whileHover="hover"
                   >
-                    <Button variant="outline" asChild className="border-wolzi-gray/50 hover:bg-wolzi-dark-blue/50 hover:border-white/50">
+                    <Button variant="outline" asChild className="glassmorphism-button bg-white/20 hover:bg-white/30 text-white px-6 py-3 border border-white/30 shadow-lg backdrop-blur-sm transition-all duration-300">
                       <Link to={`/${currentItem.mediaType}/${currentItem.id}`}>
                         <Info className="w-5 h-5 mr-2" />
                         More Info
@@ -397,8 +402,8 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
                     </Button>
                   </motion.div>
                 </motion.div>
-              </motion.div>
-            </div>
+              </div>
+            </motion.div>
           </div>
         </motion.div>
       </AnimatePresence>
@@ -416,12 +421,12 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
             }`}
             initial={false}
             animate={{
-              backgroundColor: currentIndex === index ? "rgb(29, 185, 84)" : "rgba(255, 255, 255, 0.4)",
-              boxShadow: currentIndex === index ? "0 0 10px rgba(29, 185, 84, 0.5)" : "none"
+              backgroundColor: currentIndex === index ? "rgb(168, 85, 247)" : "rgba(255, 255, 255, 0.4)",
+              boxShadow: currentIndex === index ? "0 0 10px rgba(168, 85, 247, 0.5)" : "none"
             }}
             transition={{ duration: 0.3, ease: "easeOut" }}
             whileHover={{ 
-              backgroundColor: currentIndex === index ? "rgb(29, 185, 84)" : "rgba(255, 255, 255, 0.8)",
+              backgroundColor: currentIndex === index ? "rgb(168, 85, 247)" : "rgba(255, 255, 255, 0.8)",
               scale: 1.1 
             }}
             aria-label={`Go to slide ${index + 1}`}

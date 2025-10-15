@@ -282,7 +282,7 @@ const Profile: React.FC = () => {
             )}
             
             {success && (
-              <div className="mb-4 p-3 bg-green-500/20 border border-green-500/50 rounded-md text-white">
+              <div className="mb-4 p-3 bg-wolzi-accent/20 border border-wolzi-accent/50 rounded-md text-white">
                 {success}
               </div>
             )}

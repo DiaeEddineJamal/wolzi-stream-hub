@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Search, User, Heart, History, LogIn, Menu, X, Home, Film, Tv, TrendingUp, LogOut, ChevronDown, Github, Info, Clock, Award, Flame } from "lucide-react";
+import { Search, User, Heart, History, LogIn, Menu, X, Home, Film, Tv, TrendingUp, LogOut, ChevronDown, Github, Info, Clock, Award, Flame, ArrowLeft, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import UserMenu from "@/components/auth/UserMenu";
@@ -34,6 +34,15 @@ interface NavItemDescription {
   icon: React.ReactNode;
 }
 
+// Interface for NavBar props
+interface NavBarProps {
+  isWatchPage?: boolean;
+  onBack?: () => void;
+  sourcesCount?: number;
+  onSourcesClick?: () => void;
+  onSettingsClick?: () => void;
+}
+
 // Session-based flag to prevent reanimation only during in-app navigation
 const NAV_SESSION_KEY = 'wolziflix-nav-session-key';
 // Browser session storage key to track if animations have already run
@@ -48,7 +57,13 @@ const isValidSession = (user: any, isLoggedIn: boolean) => {
   return hasValidUser && isLoggedIn;
 };
 
-const NavBar: React.FC = () => {
+const NavBar: React.FC<NavBarProps> = ({ 
+  isWatchPage = false, 
+  onBack, 
+  sourcesCount, 
+  onSourcesClick, 
+  onSettingsClick 
+}) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, isLoggedIn } = useAuth();
@@ -241,12 +256,12 @@ const NavBar: React.FC = () => {
   const navItemDescriptions: Record<string, NavItemDescription> = {
     "Home": {
       title: "Home",
-      description: "Discover personalized recommendations and new releases",
+      description: "Discover personalized recommendations and trending content",
       icon: <Home className="h-5 w-5 text-wolzi-accent" />
     },
     "Movies": {
       title: "Movies",
-      description: "Explore our vast collection of films from all genres",
+      description: "Explore blockbusters, classics, and hidden gems",
       icon: <Film className="h-5 w-5 text-wolzi-accent" />
     },
     "TV Series": {
@@ -256,7 +271,7 @@ const NavBar: React.FC = () => {
     },
     "Anime": {
       title: "Anime",
-      description: "Latest and greatest anime series and films",
+      description: "Latest anime series, movies, and seasonal favorites",
       icon: <TrendingUp className="h-5 w-5 text-wolzi-accent" />
     }
   };
@@ -329,15 +344,34 @@ const NavBar: React.FC = () => {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-500 navbar-glass",
-        scrolled 
-          ? "navbar-glass-scrolled shadow-[0_8px_30px_rgba(0,0,0,0.3)]" 
-          : "shadow-none",
-        hidden ? "-translate-y-full" : "translate-y-0",
-        mobileMenuOpen ? "bg-black/80 h-auto" : ""
+        "fixed left-0 right-0 z-50 transition-all duration-500",
+        hidden ? "-translate-y-full" : "translate-y-0"
       )}
+      style={{ top: '20px' }}
     >
-      <div className="container mx-auto px-4 py-3">
+      {/* Floating Navbar Container */}
+      <div className="mx-4">
+        <motion.div
+          initial={shouldAnimate ? { opacity: 0, y: -20, scale: 0.95 } : { opacity: 1, y: 0, scale: 1 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.6, type: "spring", stiffness: 300, damping: 25 }}
+          whileHover={{ 
+            y: -2,
+            transition: { duration: 0.2, ease: "easeOut" }
+          }}
+          className={cn(
+            "floating-navbar-glass rounded-2xl border border-white/10 transition-all duration-500",
+            scrolled 
+              ? "floating-navbar-glass-scrolled shadow-[0_20px_40px_rgba(0,0,0,0.4)]" 
+              : "shadow-[0_8px_25px_rgba(0,0,0,0.15)]",
+            mobileMenuOpen ? "bg-black/90 backdrop-blur-xl" : ""
+          )}
+          style={{
+            transform: scrolled ? "scale(0.98)" : "scale(1)",
+            transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
+          }}
+        >
+          <div className="px-6 py-4">
         <div className="flex items-center justify-between relative">
           {/* Logo */}
           <motion.div
@@ -350,19 +384,14 @@ const NavBar: React.FC = () => {
               <div className="relative">
                 <h1 className="text-xl sm:text-2xl font-bold mr-2 flex items-center">
                   <motion.span 
-                    className="inline-block text-wolzi-accent relative"
-                    whileHover={{ 
-                      scale: 1.05, 
-                      textShadow: "0 0 8px rgba(29, 185, 84, 0.8)" 
-                    }}
+                    className="inline-block text-wolzi-accent"
+                  whileHover={{ 
+                    scale: 1.05, 
+                    textShadow: "0 0 8px rgba(168, 85, 247, 0.8)" 
+                  }}
                     transition={{ type: "spring", stiffness: 500, damping: 10 }}
                   >
                     Wolzi
-                    <motion.span 
-                      className="absolute -bottom-1 left-0 w-full h-0.5 bg-wolzi-accent opacity-0"
-                      animate={{ opacity: [0, 1, 0] }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    />
                   </motion.span>
                   <motion.span 
                     className="inline-block text-white ml-1"
@@ -375,68 +404,114 @@ const NavBar: React.FC = () => {
                     Flix
                   </motion.span>
                 </h1>
-                <motion.div 
-                  className="absolute -bottom-1 left-0 right-0 h-px bg-gradient-to-r from-transparent via-wolzi-accent to-transparent"
-                  initial={shouldAnimate ? { scaleX: 0, opacity: 0 } : { scaleX: 1, opacity: 1 }}
-                  animate={{ scaleX: 1, opacity: 1 }}
-                  transition={{ duration: 1.5, ease: "easeInOut" }}
-                />
               </div>
             </Link>
           </motion.div>
           
           {/* Main Navigation - Desktop */}
-          <nav className="hidden lg:block absolute left-1/2 transform -translate-x-1/2">
-            <ul className="flex space-x-1">
-              {mainNavItems.map((item, index) => (
-                <motion.li
-                  key={item.title}
-                  initial={shouldAnimate ? { opacity: 0, y: -10 } : { opacity: 1, y: 0 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: shouldAnimate ? index * 0.1 + 0.2 : 0, duration: 0.3 }}
-                  className="relative"
-                  onMouseEnter={() => setActiveNavItem(item.title)}
-                  onMouseLeave={() => setActiveNavItem(null)}
+          {isWatchPage ? (
+            // Watch page navigation
+            <nav className="hidden lg:block absolute left-1/2 transform -translate-x-1/2">
+              <div className="flex items-center space-x-2">
+                <Button
+                  onClick={onBack}
+                  variant="ghost"
+                  className="text-white hover:bg-white/10"
                 >
-                  <Link
-                    to={item.path}
-                    className={cn(
-                      "relative px-4 py-2 rounded-md font-medium text-sm flex items-center gap-2 overflow-hidden group",
-                      isActivePath(item.path)
-                        ? "text-wolzi-accent" 
-                        : "text-white/85 hover:text-white"
-                    )}
+                  <ArrowLeft className="w-5 h-5 mr-2" />
+                  Back
+                </Button>
+                
+                <Button
+                  onClick={onSourcesClick}
+                  variant="ghost"
+                  className="text-white hover:bg-white/10"
+                >
+                  Sources ({sourcesCount || 0})
+                </Button>
+                
+                <Button
+                  onClick={onSettingsClick}
+                  variant="ghost"
+                  className="text-white hover:bg-white/10"
+                >
+                  <Settings className="w-5 h-5" />
+                </Button>
+              </div>
+            </nav>
+          ) : (
+            // Default navigation
+            <nav className="hidden lg:block absolute left-1/2 transform -translate-x-1/2">
+              <ul className="flex space-x-1">
+                {mainNavItems.map((item, index) => (
+                  <motion.li
+                    key={item.title}
+                    initial={shouldAnimate ? { opacity: 0, y: -10 } : { opacity: 1, y: 0 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: shouldAnimate ? index * 0.1 + 0.2 : 0, duration: 0.3 }}
+                    className="relative"
+                    onMouseEnter={() => setActiveNavItem(item.title)}
+                    onMouseLeave={() => setActiveNavItem(null)}
                   >
-                    {/* Icon with glow effect */}
-                    <motion.span
-                      className={cn(
-                        "transition-all duration-300 ease-in-out",
-                        isActivePath(item.path) 
-                          ? "text-wolzi-accent" 
-                          : "text-white/90 group-hover:text-wolzi-accent"
-                      )}
-                      whileHover={{ 
-                        scale: 1.2,
-                        textShadow: "0 0 8px rgba(29, 185, 84, 0.8)"
-                      }}
-                    >
-                      {item.icon}
-                    </motion.span>
+                    <Link
+                        to={item.path}
+                        className={cn(
+                          "relative px-4 py-2 rounded-md font-medium text-sm flex items-center gap-2 overflow-hidden group",
+                          isActivePath(item.path)
+                            ? "text-wolzi-accent" 
+                            : "text-white/85 hover:text-white"
+                        )}
+                      >
+                        {/* Icon with glow effect */}
+                        <motion.span
+                          className={cn(
+                            "transition-all duration-300 ease-in-out",
+                            isActivePath(item.path) 
+                              ? "text-wolzi-accent" 
+                              : "text-white/90 group-hover:text-wolzi-accent"
+                          )}
+                          whileHover={{ 
+                            scale: 1.2,
+                            textShadow: "0 0 8px rgba(168, 85, 247, 0.8)"
+                          }}
+                        >
+                          {item.icon}
+                        </motion.span>
 
-                    {/* Text with glow effect */}
-                    <motion.span
-                      className={cn(
-                        "transition-all duration-300 ease-in-out",
-                        isActivePath(item.path)
-                          ? "text-wolzi-accent" 
-                          : "group-hover:text-wolzi-accent"
+                        {/* Text with glow effect */}
+                        <motion.span
+                          className={cn(
+                            "transition-all duration-300 ease-in-out",
+                            isActivePath(item.path)
+                              ? "text-wolzi-accent" 
+                              : "group-hover:text-wolzi-accent"
+                          )}
+                          whileHover={{ 
+                            textShadow: "0 0 8px rgba(168, 85, 247, 0.8)"
+                          }}
+                        >
+                        {item.title}
+                      </motion.span>
+
+                      {/* Dropdown arrow indicator */}
+                      {item.title !== "Home" && (
+                        <motion.div
+                          className={cn(
+                            "h-3 w-3 transition-all duration-200 ml-1",
+                            isActivePath(item.path) 
+                              ? "text-wolzi-accent" 
+                              : "text-white/70 group-hover:text-wolzi-accent"
+                          )}
+                          animate={{
+                            rotate: activeNavItem === item.title ? 180 : 0
+                          }}
+                          whileHover={{ 
+                            textShadow: "0 0 8px rgba(168, 85, 247, 0.8)"
+                          }}
+                        >
+                          <ChevronDown className="h-full w-full" />
+                        </motion.div>
                       )}
-                      whileHover={{ 
-                        textShadow: "0 0 8px rgba(29, 185, 84, 0.8)"
-                      }}
-                    >
-                      {item.title}
-                    </motion.span>
                     
                     {/* Active indicator pill */}
                     {isActivePath(item.path) && (
@@ -446,8 +521,7 @@ const NavBar: React.FC = () => {
                         initial={{ width: "30%", x: "-50%" }}
                         animate={{ 
                           width: "60%",
-                          x: "-50%",
-                          boxShadow: "0 0 10px rgba(29, 185, 84, 0.7)"
+                          x: "-50%"
                         }}
                       />
                     )}
@@ -473,7 +547,12 @@ const NavBar: React.FC = () => {
                         transition={{ duration: 0.2 }}
                         className="absolute top-full left-1/2 transform -translate-x-1/2 mt-1 w-60 z-50"
                       >
-                        <div className="bg-black/90 backdrop-blur-xl border border-wolzi-accent/20 rounded-lg p-3 shadow-lg shadow-wolzi-accent/5">
+                        <div className="glassmorphism-dropdown bg-white/20 backdrop-blur-md border border-white/30 rounded-lg p-3 shadow-lg transition-all duration-300"
+                             style={{
+                               backdropFilter: 'blur(15px)',
+                               WebkitBackdropFilter: 'blur(15px)',
+                               boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)'
+                             }}>
                           <div className="flex items-start gap-3">
                             {navItemDescriptions[item.title].icon}
                             <div>
@@ -482,7 +561,7 @@ const NavBar: React.FC = () => {
                               
                               {/* Category links */}
                               {item.title !== "Home" && (
-                                <div className="mt-2 pt-2 border-t border-wolzi-accent/10">
+                                <div className="mt-2 pt-2">
                                   <p className="text-xs text-white/60 mb-1">Popular Categories:</p>
                                   <div className="grid grid-cols-1 gap-1">
                                     {categories[item.title === "Movies" ? "movies" : item.title === "TV Series" ? "tvSeries" : "anime"].map((category) => (
@@ -501,8 +580,6 @@ const NavBar: React.FC = () => {
                             </div>
                           </div>
                         </div>
-                        {/* Decorative connecting line */}
-                        <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-px h-1 bg-wolzi-accent/50" />
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -510,6 +587,7 @@ const NavBar: React.FC = () => {
               ))}
             </ul>
           </nav>
+          )}
 
           {/* Right side: Search, Login, User */}
           <div className="flex items-center space-x-1 relative z-10">
@@ -560,7 +638,12 @@ const NavBar: React.FC = () => {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: 10 }}
                           transition={{ duration: 0.2 }}
-                          className="absolute top-full right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-lg bg-black/90 backdrop-blur-xl border border-wolzi-accent/20 shadow-lg shadow-black/50 z-50"
+                          className="glassmorphism-dropdown absolute top-full right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-lg bg-white/20 backdrop-blur-md border border-white/30 shadow-lg z-50 transition-all duration-300"
+                          style={{
+                            backdropFilter: 'blur(15px)',
+                            WebkitBackdropFilter: 'blur(15px)',
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)'
+                          }}
                         >
                           <div className="p-2">
                             {isSearching ? (
@@ -595,7 +678,7 @@ const NavBar: React.FC = () => {
                                   </Link>
                                 ))}
                                 
-                                <div className="mt-2 pt-2 border-t border-wolzi-border/20">
+                                <div className="mt-2 pt-2">
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -630,21 +713,35 @@ const NavBar: React.FC = () => {
             
             {/* GitHub Icon */}
             <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-              <a 
+              <motion.a 
                 href="https://github.com/DiaeEddineJamal" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="flex items-center"
+                whileHover={{ 
+                  scale: 1.05,
+                  textShadow: "0 0 8px rgba(168, 85, 247, 0.6)"
+                }}
+                whileTap={{ scale: 0.95 }}
               >
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="text-wolzi-light-gray hover:text-white hover:bg-wolzi-accent/10 transition-colors rounded-full h-10 w-10"
+                  className="text-wolzi-light-gray hover:text-white hover:bg-wolzi-accent/10 transition-all duration-300 ease-in-out rounded-full h-10 w-10 hover:shadow-lg hover:shadow-wolzi-accent/30"
                   aria-label="GitHub Profile"
                 >
-                  <Github className="h-[1.2rem] w-[1.2rem]" />
+                  <motion.span
+                    whileHover={{ 
+                      scale: 1.1,
+                      color: "#a855f7",
+                      textShadow: "0 0 8px rgba(168, 85, 247, 0.8)"
+                    }}
+                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                  >
+                    <Github className="h-[1.2rem] w-[1.2rem]" />
+                  </motion.span>
                 </Button>
-              </a>
+              </motion.a>
             </motion.div>
             
             {/* Auth Buttons or User Menu */}
@@ -692,6 +789,8 @@ const NavBar: React.FC = () => {
             </motion.div>
           </div>
         </div>
+          </div>
+      </motion.div>
       </div>
 
       {/* Mobile menu */}
@@ -702,34 +801,79 @@ const NavBar: React.FC = () => {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="lg:hidden frosted-glass-dark overflow-hidden"
+            className="lg:hidden floating-navbar-glass mt-2 mx-4 rounded-2xl overflow-hidden"
           >
             <div className="container mx-auto px-4 py-4">
               <nav className="space-y-3 mb-6">
-                {mainNavItems.map((item) => (
-                <motion.div
-                    key={item.title}
-                    whileHover={{ x: 5 }}
-                    whileTap={{ scale: 0.98 }}
-                >
-                  <Link
-                    to={item.path}
-                    className={cn(
-                        "flex items-center py-3 px-4 rounded-lg transition-all gap-3",
-                      isActivePath(item.path)
-                        ? "bg-wolzi-accent/20 text-wolzi-accent"
-                          : "hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white"
-                    )}
-                      onClick={() => setMobileMenuOpen(false)}
-                  >
-                      <span className="text-xl">{item.icon}</span>
-                      <div>
-                        <span className="font-medium">{item.title}</span>
-                        <p className="text-xs text-white/60 mt-0.5">{navItemDescriptions[item.title].description}</p>
-                      </div>
-                  </Link>
-                </motion.div>
-              ))}
+                {isWatchPage ? (
+                  // Watch page mobile navigation
+                  <>
+                    <motion.div whileHover={{ x: 5 }} whileTap={{ scale: 0.98 }}>
+                      <button
+                        onClick={() => {
+                          onBack?.();
+                          setMobileMenuOpen(false);
+                        }}
+                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 w-full text-left"
+                      >
+                        <ArrowLeft className="h-5 w-5" />
+                        <span className="font-medium">Back</span>
+                      </button>
+                    </motion.div>
+                    
+                    <motion.div whileHover={{ x: 5 }} whileTap={{ scale: 0.98 }}>
+                      <button
+                        onClick={() => {
+                          onSourcesClick?.();
+                          setMobileMenuOpen(false);
+                        }}
+                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 w-full text-left"
+                      >
+                        <Film className="h-5 w-5" />
+                        <span className="font-medium">Sources ({sourcesCount || 0})</span>
+                      </button>
+                    </motion.div>
+                    
+                    <motion.div whileHover={{ x: 5 }} whileTap={{ scale: 0.98 }}>
+                      <button
+                        onClick={() => {
+                          onSettingsClick?.();
+                          setMobileMenuOpen(false);
+                        }}
+                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 w-full text-left"
+                      >
+                        <Settings className="h-5 w-5" />
+                        <span className="font-medium">Settings</span>
+                      </button>
+                    </motion.div>
+                  </>
+                ) : (
+                  // Default mobile navigation
+                  mainNavItems.map((item) => (
+                    <motion.div
+                        key={item.title}
+                        whileHover={{ x: 5 }}
+                        whileTap={{ scale: 0.98 }}
+                    >
+                      <Link
+                        to={item.path}
+                        className={cn(
+                            "flex items-center py-3 px-4 rounded-lg transition-all gap-3",
+                          isActivePath(item.path)
+                            ? "bg-wolzi-accent/20 text-wolzi-accent"
+                              : "hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white"
+                        )}
+                          onClick={() => setMobileMenuOpen(false)}
+                      >
+                          <span className="text-xl">{item.icon}</span>
+                          <div>
+                            <span className="font-medium">{item.title}</span>
+                            <p className="text-xs text-white/60 mt-0.5">{navItemDescriptions[item.title].description}</p>
+                          </div>
+                      </Link>
+                    </motion.div>
+                  ))
+                )}
               </nav>
               
               <div className="py-4 border-t border-wolzi-accent/10">
@@ -783,16 +927,37 @@ const NavBar: React.FC = () => {
                       whileHover={{ x: 5 }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      <a
+                      <motion.a
                         href="https://github.com/DiaeEddineJamal"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 w-full"
+                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 w-full transition-all duration-300 ease-in-out"
                         onClick={() => setMobileMenuOpen(false)}
+                        whileHover={{ 
+                          backgroundColor: "rgba(168, 85, 247, 0.15)",
+                          textShadow: "0 0 8px rgba(168, 85, 247, 0.6)"
+                        }}
+                        whileTap={{ scale: 0.95 }}
                       >
-                        <Github className="h-5 w-5" />
-                        <span className="font-medium">GitHub</span>
-                      </a>
+                        <motion.span
+                          whileHover={{ 
+                            scale: 1.1,
+                            textShadow: "0 0 8px rgba(168, 85, 247, 0.8)"
+                          }}
+                          transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                        >
+                          <Github className="h-5 w-5" />
+                        </motion.span>
+                        <motion.span 
+                          className="font-medium"
+                          whileHover={{ 
+                            color: "#a855f7",
+                            textShadow: "0 0 8px rgba(168, 85, 247, 0.6)"
+                          }}
+                        >
+                          GitHub
+                        </motion.span>
+                      </motion.a>
                     </motion.div>
                     
                     <motion.div 
@@ -866,16 +1031,37 @@ const NavBar: React.FC = () => {
                       whileHover={{ x: 5 }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      <a
+                      <motion.a
                         href="https://github.com/DiaeEddineJamal"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 w-full"
+                        className="flex items-center py-3 px-4 rounded-lg hover:bg-wolzi-accent/10 text-wolzi-light-gray hover:text-white gap-3 w-full transition-all duration-300 ease-in-out"
                         onClick={() => setMobileMenuOpen(false)}
+                        whileHover={{ 
+                          backgroundColor: "rgba(168, 85, 247, 0.15)",
+                          textShadow: "0 0 8px rgba(168, 85, 247, 0.6)"
+                        }}
+                        whileTap={{ scale: 0.95 }}
                       >
-                        <Github className="h-5 w-5" />
-                        <span className="font-medium">GitHub</span>
-                      </a>
+                        <motion.span
+                          whileHover={{ 
+                            scale: 1.1,
+                            textShadow: "0 0 8px rgba(168, 85, 247, 0.8)"
+                          }}
+                          transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                        >
+                          <Github className="h-5 w-5" />
+                        </motion.span>
+                        <motion.span 
+                          className="font-medium"
+                          whileHover={{ 
+                            color: "#a855f7",
+                            textShadow: "0 0 8px rgba(168, 85, 247, 0.6)"
+                          }}
+                        >
+                          GitHub
+                        </motion.span>
+                      </motion.a>
                     </motion.div>
                   </div>
                 )}
@@ -885,10 +1071,10 @@ const NavBar: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Apply the consistent green accent */}
-      <style jsx global>{`
+
+      <style>{`
         .green-glow {
-          text-shadow: 0 0 8px rgba(29, 185, 84, 0.6);
+          text-shadow: 0 0 8px rgba(168, 85, 247, 0.6);
         }
         
         @keyframes pulse {

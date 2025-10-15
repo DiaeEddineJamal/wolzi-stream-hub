@@ -42,6 +42,52 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Floating Navbar Glass Styles */
+.floating-navbar-glass {
+  background: rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, background, box-shadow, backdrop-filter;
+  transform: translateZ(0);
+  position: relative;
+}
+
+.floating-navbar-glass::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.02) 100%);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.floating-navbar-glass-scrolled {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.floating-navbar-glass-scrolled::before {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 100%);
+}
+
+/* Enhanced hover effect for floating navbar */
+.floating-navbar-glass:hover {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px) translateZ(0);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+  transition-duration: 0.2s;
+}
+
 /* Navbar-specific glass styles */
 .navbar-glass {
   background: rgba(0, 0, 0, 0.25);
@@ -76,11 +122,120 @@
   transition: transform 0.3s ease;
 }
 
-/* Add green accents for wolzi theme */
+/* Add purple accents for wolzi theme with floating effects */
 .wolzi-accent-glow {
-  box-shadow: 0 0 15px rgba(29, 185, 84, 0.3);
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.3), 0 0 30px rgba(124, 58, 237, 0.2);
 }
 
 .wolzi-text-glow {
-  text-shadow: 0 0 8px rgba(29, 185, 84, 0.6);
-} 
+  text-shadow: 0 0 8px rgba(168, 85, 247, 0.6);
+}
+
+/* Floating animation keyframes */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) translateZ(0); }
+  50% { transform: translateY(-3px) translateZ(0); }
+}
+
+@keyframes floatReverse {
+  0%, 100% { transform: translateY(-2px) translateZ(0); }
+  50% { transform: translateY(1px) translateZ(0); }
+}
+
+.float-animation {
+  animation: float 6s ease-in-out infinite;
+}
+
+.float-reverse-animation {
+  animation: floatReverse 8s ease-in-out infinite;
+}
+
+/* Enhanced glassmorphism with floating effects */
+.floating-glass-enhanced {
+  background: rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced Glassmorphism Button Styles with Advanced Hover Effects */
+.glassmorphism-button {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  -moz-backdrop-filter: blur(20px) saturate(180%);
+  -ms-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 
+    0 4px 15px rgba(0, 0, 0, 0.1),
+    0 2px 6px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.glassmorphism-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.6s ease;
+}
+
+.glassmorphism-button:hover {
+  background-color: rgba(255, 255, 255, 0.25) !important;
+  backdrop-filter: blur(25px) saturate(200%);
+  -webkit-backdrop-filter: blur(25px) saturate(200%);
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.2),
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 20px rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.glassmorphism-button:hover::before {
+  left: 100%;
+}
+
+.glassmorphism-button:active {
+  transform: translateY(-1px) scale(1.01);
+  transition: all 0.1s ease;
+}
+
+/* Enhanced Glassmorphism Dropdown Styles with Complete Opacity */
+.glassmorphism-dropdown {
+  background-color: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  -moz-backdrop-filter: blur(40px) saturate(200%);
+  -ms-backdrop-filter: blur(40px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.6),
+    0 4px 16px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glassmorphism-dropdown:hover {
+  background-color: rgba(0, 0, 0, 0.9) !important;
+  backdrop-filter: blur(45px) saturate(220%);
+  -webkit-backdrop-filter: blur(45px) saturate(220%);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 
+    0 16px 50px rgba(0, 0, 0, 0.7),
+    0 6px 20px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}

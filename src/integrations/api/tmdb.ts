@@ -139,6 +139,14 @@ export const tmdbApi = {
       CACHE_DURATIONS.LONG
     ),
   
+  // TV season details (episodes list and metadata)
+  getTVSeasonDetails: (showId: number, seasonNumber: number) =>
+    cachedAsyncFunction(
+      () => api.get(`/tv/${showId}/season/${seasonNumber}`, { params: { append_to_response: 'credits' } }),
+      `tv-season-${showId}-${seasonNumber}`,
+      CACHE_DURATIONS.MEDIUM
+    ),
+  
   // Genre lists (with very long cache)
   getMovieGenres: () => 
     cachedAsyncFunction(
@@ -181,4 +189,4 @@ export const tmdbApi = {
     }),
 };
 
-export default tmdbApi; 
+export default tmdbApi;

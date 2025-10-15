@@ -72,7 +72,7 @@ const EmbedTest: React.FC = () => {
             )}
             
             {apiStatus === 'success' && (
-              <div className="flex items-center p-3 bg-green-500/10 text-green-400 rounded-md mb-4">
+              <div className="flex items-center p-3 bg-wolzi-accent/10 text-wolzi-accent rounded-md mb-4">
                 <Check className="w-5 h-5 mr-3" />
                 <span>Successfully connected to Embed.su API</span>
               </div>
@@ -149,10 +149,10 @@ const EmbedTest: React.FC = () => {
               <div>
                 <h3 className="font-bold">API Documentation Reference</h3>
                 <p className="text-wolzi-light-gray mt-1">
-                  <strong>Movie Embed URL:</strong> https://embed.su/embed/movie/{tmdb_id}
+                  <strong>Movie Embed URL:</strong> https://embed.su/embed/movie/<code>{"{tmdb_id}"}</code>
                 </p>
                 <p className="text-wolzi-light-gray">
-                  <strong>TV Show Embed URL:</strong> https://embed.su/embed/tv/{tmdb_id}/{season_number}/{episode_number}
+                  <strong>TV Show Embed URL:</strong> https://embed.su/embed/tv/<code>{"{tmdb_id}"}</code>/<code>{"{season_number}"}</code>/<code>{"{episode_number}"}</code>
                 </p>
                 <p className="text-wolzi-light-gray">
                   <strong>List Endpoints:</strong> https://embed.su/list/movie.json and https://embed.su/list/tv.json
@@ -166,4 +166,4 @@ const EmbedTest: React.FC = () => {
   );
 };
 
-export default EmbedTest; 
+export default EmbedTest;

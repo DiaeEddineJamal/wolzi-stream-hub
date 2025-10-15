@@ -11,103 +11,94 @@ export interface StreamingSource {
   subtitles?: boolean;
 }
 
-// Define available streaming sources
+// Define available streaming sources - simplified to only reliable sources
 export const streamingSources: StreamingSource[] = [
   {
     id: 'vidsrcto',
-    name: 'VidSrc.to',
-    description: 'Large library of content with reliable streaming',
+    name: 'VidSrc.to 🔥',
     isActive: true,
-    quality: '1080p',
-    subtitles: true
+    quality: 'HD'
+  },
+  {
+    id: 'vidking',
+    name: 'Vidking Player',
+    isActive: true,
+    quality: 'HD'
   },
   {
     id: 'embedsu',
     name: 'Embed.su',
-    description: 'Premium quality streams with fast loading times',
-    isActive: true,
-    quality: '1080p',
-    subtitles: true
-  },
-  {
-    id: 'superembed',
-    name: 'SuperEmbed',
-    description: 'High quality streams with fast servers',
-    isActive: true,
-    quality: '1080p',
-    subtitles: true
-  },
-  {
-    id: 'smashystream',
-    name: 'SmashyStream',
-    description: 'Wide collection of movies and TV shows',
-    isActive: true,
-    quality: '1080p',
-    subtitles: true
+    isActive: false,
+    quality: 'HD'
   }
 ];
 
 // Function to get streaming URL for content
-export const getStreamingUrl = (
-  mediaType: 'movie' | 'tv' | 'anime', 
-  id: string,
-  seasonNumber?: number,
-  episodeNumber?: number,
-  sourceId: string = 'vidsrcto'
-): string => {
-  // For anime, treat it as a TV series
-  const actualMediaType = mediaType === 'anime' ? 'tv' : mediaType;
-  
-  // Get the active streaming source
-  const source = streamingSources.find(source => source.id === sourceId);
-  if (!source || !source.isActive) {
-    console.error(`Source ${sourceId} not found or not active`);
-    return ''; // Return empty string if source not found or not active
-  }
-  
-  const tmdbId = id.toString();
-  const seasonParam = seasonNumber ? seasonNumber.toString() : '1';
-  const episodeParam = episodeNumber ? episodeNumber.toString() : '1';
-  
-  // Log parameters for debugging
-  console.log(`getStreamingUrl called with: mediaType=${mediaType}, id=${id}, season=${seasonNumber}, episode=${episodeNumber}, sourceId=${sourceId}`);
-  
-  switch(sourceId) {
-    case 'embedsu':
-      if (actualMediaType === 'movie') {
-        return `https://embed.su/embed/movie/${tmdbId}`;
-      } else {
-        // For TV shows and anime, use the TV endpoint
-        return `https://embed.su/embed/tv/${tmdbId}/${seasonParam}/${episodeParam}`;
-      }
-    
-    case 'vidsrcto':
-      if (actualMediaType === 'movie') {
-        return `https://vidsrc.to/embed/movie/${tmdbId}`;
-      } else {
-        // For TV shows and anime, use the TV endpoint
-        return `https://vidsrc.to/embed/tv/${tmdbId}/${seasonParam}/${episodeParam}`;
-      }
+export const getStreamingUrl = (mediaType: 'movie' | 'tv' | 'anime', id: string, source: StreamingSource, season?: number, episode?: number): string => {
+  // Debug logging to track parameters
+  console.log('getStreamingUrl called with:', {
+    mediaType,
+    id,
+    sourceId: source.id,
+    season,
+    episode
+  });
 
-    case 'superembed':
-      if (actualMediaType === 'movie') {
-        return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1`;
-      } else {
-        // For TV shows and anime, use the TV endpoint
-        return `https://multiembed.mov/directstream.php?video_id=${tmdbId}&tmdb=1&s=${seasonParam}&e=${episodeParam}`;
-      }
-    
-    case 'smashystream':
-      if (actualMediaType === 'movie') {
-        return `https://embed.smashystream.com/playere.php?tmdb=${tmdbId}`;
-      } else {
-        // For TV shows and anime
-        return `https://embed.smashystream.com/playere.php?tmdb=${tmdbId}&season=${seasonParam}&episode=${episodeParam}`;
-      }
-    
-    default:
-      return getStreamingUrl(mediaType, id, seasonNumber, episodeNumber, 'vidsrcto');
+  const baseUrls: Record<string, string> = {
+    // VidSrc sources - most reliable
+    vidsrcto: 'https://vidsrc.to/embed',
+    // Secondary reliable sources
+    embedsu: 'https://embed.su/embed',
+    // Vidking Player - additional source for better availability
+    vidking: 'https://www.vidking.net/embed'
+  };
+
+  const baseUrl = baseUrls[source.id];
+  if (!baseUrl) {
+    throw new Error(`Unsupported source: ${source.id}`);
   }
+
+  switch (source.id) {
+    // VidSrc sources - all use same URL pattern
+    case 'vidsrcto':
+      let generatedUrl;
+      if (mediaType === 'movie') {
+        generatedUrl = `${baseUrl}/movie/${id}`;
+      } else if (mediaType === 'tv') {
+        generatedUrl = `${baseUrl}/tv/${id}/${season}/${episode}`;
+      } else if (mediaType === 'anime') {
+        generatedUrl = `${baseUrl}/tv/${id}/${season}/${episode}`;
+      } else {
+        throw new Error(`Invalid media type: ${mediaType}`);
+      }
+      console.log(`Generated URL for ${source.id}:`, generatedUrl);
+      return generatedUrl;
+
+    case 'embedsu':
+      if (mediaType === 'movie') {
+        return `${baseUrl}/movie/${id}`;
+      } else if (mediaType === 'tv') {
+        return `${baseUrl}/tv/${id}/${season}/${episode}`;
+      } else if (mediaType === 'anime') {
+        return `${baseUrl}/tv/${id}/${season}/${episode}`;
+      }
+      throw new Error(`Invalid media type: ${mediaType}`);
+
+    case 'vidking':
+      if (mediaType === 'movie') {
+        return `${baseUrl}/movie/${id}`;
+      } else if (mediaType === 'tv') {
+        return `${baseUrl}/tv/${id}/${season}/${episode}`;
+      } else if (mediaType === 'anime') {
+        return `${baseUrl}/tv/${id}/${season}/${episode}`;
+      }
+      throw new Error(`Invalid media type: ${mediaType}`);
+
+    default:
+      throw new Error(`Unsupported source: ${source.id}`);
+  }
+
+  throw new Error(`Invalid media type: ${mediaType}`);
 };
 
 // Helper function to format anime titles for URL usage (keeping for backward compatibility)
