@@ -320,7 +320,7 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
   };
 
   return (
-    <div ref={playerRef} className="relative w-full h-full min-h-[75vh] bg-black rounded-xl overflow-hidden">
+    <div ref={playerRef} className="relative w-full h-full min-h-[250px] sm:min-h-[300px] md:min-h-[400px] lg:min-h-[500px] xl:min-h-[600px] bg-black rounded-lg sm:rounded-xl overflow-hidden">
       {/* Glassmorphism overlay container */}
       <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/20 backdrop-blur-[1px]">
         
@@ -385,16 +385,16 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
         {!isLoading && !error && (
           <>
             {/* Top controls */}
-            <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-30">
+            <div className="absolute top-2 sm:top-4 left-2 sm:left-4 right-2 sm:right-4 flex justify-between items-center z-30">
               {/* Source indicator */}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="frosted-glass px-4 py-2 rounded-full"
+                className="frosted-glass px-2 sm:px-4 py-1 sm:py-2 rounded-full"
               >
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 sm:space-x-2">
                   {getSourceStatusIcon(sources.find(s => s.id === currentSource)?.status || 'testing')}
-                  <span className="text-sm font-medium text-white">
+                  <span className="text-xs sm:text-sm font-medium text-white">
                     {sources.find(s => s.id === currentSource)?.name || 'Loading...'}
                   </span>
                 </div>
@@ -405,23 +405,23 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 onClick={() => setShowSettings(!showSettings)}
-                className="frosted-glass p-3 rounded-full hover:bg-white/20 transition-all duration-300"
+                className="frosted-glass p-2 sm:p-3 rounded-full hover:bg-white/20 transition-all duration-300"
               >
-                <Settings className="w-5 h-5 text-white" />
+                <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </motion.button>
             </div>
 
             {/* Bottom controls */}
-            <div className="absolute bottom-4 left-4 right-4 flex justify-end items-center z-30">
+            <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 right-2 sm:right-4 flex justify-end items-center z-30">
               {/* Right controls */}
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1 sm:space-x-2">
                 <motion.button
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   onClick={toggleFullscreen}
-                  className="frosted-glass p-3 rounded-full hover:bg-white/20 transition-all duration-300"
+                  className="frosted-glass p-2 sm:p-3 rounded-full hover:bg-white/20 transition-all duration-300"
                 >
-                  <Maximize className="w-5 h-5 text-white" />
+                  <Maximize className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </motion.button>
               </div>
             </div>
@@ -435,11 +435,11 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="absolute top-16 right-4 z-40 frosted-glass p-6 rounded-2xl w-80"
+              className="absolute top-16 right-4 z-40 frosted-glass p-4 sm:p-6 rounded-2xl w-72 sm:w-80 max-h-[70vh] overflow-y-auto"
             >
-              <h3 className="text-lg font-semibold text-white mb-4 title-glow">Player Settings</h3>
+              <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 title-glow">Player Settings</h3>
               
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <label className="text-sm font-medium text-white">Sandbox Mode</label>

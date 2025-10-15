@@ -527,16 +527,16 @@ export default function WatchNew() {
       <NavBar />
 
       {/* Main Content */}
-      <div className="relative z-10 container mx-auto px-4 pt-28 pb-6">
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-          {/* Video Player - Takes up 3 columns on xl screens */}
-          <div className="xl:col-span-3 space-y-6 xl:-ml-4">
+      <div className="relative z-10 container mx-auto px-2 sm:px-4 pt-20 sm:pt-28 pb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-8">
+          {/* Video Player - Takes up 3 columns on lg+ screens */}
+          <div className="lg:col-span-3 space-y-4 lg:space-y-6 lg:-ml-4">
             {/* Video Player */}
             <motion.div
               ref={playerRef}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="relative aspect-video rounded-2xl overflow-hidden min-h-[400px] md:min-h-[500px] lg:min-h-[600px]"
+              className="relative aspect-video rounded-xl lg:rounded-2xl overflow-hidden min-h-[250px] sm:min-h-[300px] md:min-h-[400px] lg:min-h-[500px] xl:min-h-[600px]"
             >
               {mediaDetails ? (
                 <GlassmorphismVideoPlayer
@@ -566,13 +566,13 @@ export default function WatchNew() {
 
             {/* Seasons & Episodes (TV) - under player, full width */}
             {mediaType === 'tv' && tvSeasons.length > 0 && (
-              <Card className="w-full p-4 rounded-2xl floating-navbar-glass border border-purple-400/30">
-                <div className="flex items-center justify-between mb-4">
+              <Card className="w-full p-3 sm:p-4 rounded-xl lg:rounded-2xl floating-navbar-glass border border-purple-400/30">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
                   <div>
-                    <h3 className="text-white font-semibold">Seasons & Episodes</h3>
+                    <h3 className="text-white font-semibold text-lg">Seasons & Episodes</h3>
                     <p className="text-white/70 text-sm">Season {selectedSeason} • {seasonEpisodes.length} Episodes</p>
                   </div>
-                  <div className="flex gap-2 flex-wrap justify-end">
+                  <div className="flex gap-2 flex-wrap">
                     {tvSeasons.map((s) => (
                       <Button
                         key={s.season_number}
@@ -583,7 +583,7 @@ export default function WatchNew() {
                           navigate(`/watch/tv/${id}/${s.season_number}/1`, { replace: true });
                           loadSeasonEpisodes(s.season_number);
                         }}
-                        className="text-white"
+                        className="text-white text-xs sm:text-sm"
                       >
                         Season {s.season_number}
                       </Button>
@@ -591,22 +591,22 @@ export default function WatchNew() {
                   </div>
                 </div>
 
-                <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                <div className="space-y-3 max-h-80 sm:max-h-96 overflow-y-auto pr-1">
                   {episodesLoading ? (
                     <p className="text-white/70">Loading episodes…</p>
                   ) : (
                     seasonEpisodes.map((ep) => (
                       <div
                         key={ep.id ?? `${selectedSeason}-${ep.episode_number}`}
-                        className={`p-4 rounded-lg transition-all duration-200 ${
+                        className={`p-3 sm:p-4 rounded-lg transition-all duration-200 ${
                           episodeInfo?.episodeNumber === ep.episode_number
                             ? 'bg-purple-500/10 border border-purple-400/60 shadow-md shadow-purple-500/20'
                             : 'border border-purple-400/20 hover:border-purple-400/40'
                         } cursor-pointer relative group`}
                         onClick={() => navigate(`/watch/tv/${id}/${selectedSeason}/${ep.episode_number}`, { replace: true })}
                       >
-                        <div className="flex flex-col md:flex-row gap-4">
-                          <div className="md:w-1/4 lg:w-1/5 relative rounded-md overflow-hidden">
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                          <div className="w-full sm:w-1/3 md:w-1/4 lg:w-1/5 relative rounded-md overflow-hidden">
                             {ep.still_path ? (
                               <img
                                 src={`https://image.tmdb.org/t/p/w300${ep.still_path}`}
@@ -615,7 +615,7 @@ export default function WatchNew() {
                               />
                             ) : (
                               <div className="w-full aspect-video bg-black/50 rounded-md flex items-center justify-center">
-                                <span className="text-white/70">No Preview</span>
+                                <span className="text-white/70 text-sm">No Preview</span>
                               </div>
                             )}
                             <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
@@ -628,9 +628,9 @@ export default function WatchNew() {
                             )}
                           </div>
 
-                          <div className="md:w-3/4 lg:w-4/5">
-                            <div className="flex justify-between mb-2">
-                              <h3 className="text-lg font-medium group-hover:text-purple-400 transition-colors">
+                          <div className="flex-1 sm:w-2/3 md:w-3/4 lg:w-4/5">
+                            <div className="flex flex-col sm:flex-row sm:justify-between mb-2 gap-2">
+                              <h3 className="text-base sm:text-lg font-medium group-hover:text-purple-400 transition-colors line-clamp-2">
                                 {ep.name}
                               </h3>
                             </div>
@@ -639,9 +639,9 @@ export default function WatchNew() {
                               {ep.air_date ? new Date(ep.air_date).toLocaleDateString() : 'TBA'}
                             </div>
 
-                            <p className="text-white/70 text-sm line-clamp-2 md:line-clamp-none">{ep.overview || 'No description available.'}</p>
+                            <p className="text-white/70 text-sm line-clamp-2 sm:line-clamp-3 mb-3">{ep.overview || 'No description available.'}</p>
 
-                            <div className="mt-3 flex justify-end">
+                            <div className="flex justify-end">
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -667,40 +667,40 @@ export default function WatchNew() {
             {mediaType === 'anime' && (
               <Card className="w-full p-4 rounded-2xl floating-navbar-glass border border-purple-400/30">
                 <h3 className="text-white font-semibold mb-3">Episodes</h3>
-                <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                <div className="space-y-3 max-h-80 sm:max-h-96 overflow-y-auto pr-1">
                   {animeEpisodesLoading ? (
                     <p className="text-white/70">Loading episodes…</p>
                   ) : (
                     animeEpisodes.map((ep) => (
                       <div
                         key={`anime-${ep.episode}`}
-                        className={`p-4 rounded-lg transition-all duration-200 ${
+                        className={`p-3 sm:p-4 rounded-lg transition-all duration-200 ${
                           episodeInfo?.episodeNumber === ep.episode
                             ? 'bg-purple-500/10 border border-purple-400/60 shadow-md shadow-purple-500/20'
                             : 'border border-purple-400/20 hover:border-purple-400/40'
                         } cursor-pointer relative group`}
                         onClick={() => navigate(`/watch/anime/${id}/${ep.episode}`, { replace: true })}
                       >
-                        <div className="flex flex-col md:flex-row gap-4">
-                          <div className="md:w-1/4 lg:w-1/5 relative rounded-md overflow-hidden">
+                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                          <div className="w-full sm:w-1/3 md:w-1/4 lg:w-1/5 relative rounded-md overflow-hidden">
                             <div className="w-full aspect-video bg-black/50 rounded-md flex items-center justify-center">
-                              <span className="text-white/70">No Preview</span>
+                              <span className="text-white/70 text-sm">No Preview</span>
                             </div>
                             <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
                               Episode {ep.episode}
                             </div>
                           </div>
 
-                          <div className="md:w-3/4 lg:w-4/5">
-                            <div className="flex justify-between mb-2">
-                              <h3 className="text-lg font-medium group-hover:text-purple-400 transition-colors">
+                          <div className="flex-1 sm:w-2/3 md:w-3/4 lg:w-4/5">
+                            <div className="flex flex-col sm:flex-row sm:justify-between mb-2 gap-2">
+                              <h3 className="text-base sm:text-lg font-medium group-hover:text-purple-400 transition-colors line-clamp-2">
                                 {ep.title || `Episode ${ep.episode}`}
                               </h3>
                             </div>
 
-                            <p className="text-white/70 text-sm">No description available.</p>
+                            <p className="text-white/70 text-sm line-clamp-2 sm:line-clamp-3 mb-3">No description available.</p>
 
-                            <div className="mt-3 flex justify-end">
+                            <div className="flex justify-end">
                               <Button
                                 variant="ghost"
                                 size="sm"
