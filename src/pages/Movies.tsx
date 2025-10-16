@@ -76,7 +76,7 @@ const Movies: React.FC = () => {
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-8 gradient-text">Movies</h1>
+        <h1 className="text-4xl font-bold mb-8 gradient-text">🎬 Movies</h1>
         
         {loading ? (
           <div className="flex justify-center items-center h-64">
@@ -114,4 +114,4 @@ const Movies: React.FC = () => {
   );
 };
 
-export default Movies; 
+export default Movies;

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import MainLayout from '@/layouts/MainLayout';
 import ContentSection from '@/components/home/ContentSection';
 import tmdbApi, { getPosterUrl } from '@/integrations/api/tmdb';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import axios from 'axios';
 
 interface AnimeItem {
@@ -113,54 +112,42 @@ const Anime: React.FC = () => {
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-8 gradient-text">Anime</h1>
+        <h1 className="text-4xl font-bold mb-8 gradient-text">🎌 Anime</h1>
         
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="loading-spinner"></div>
           </div>
         ) : (
-          <Tabs defaultValue="popular" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-8">
-              <TabsTrigger value="popular">Popular</TabsTrigger>
-              <TabsTrigger value="toprated">Top Rated</TabsTrigger>
-              <TabsTrigger value="onair">Currently Airing</TabsTrigger>
-            </TabsList>
+          <>
+            <ContentSection
+              title="Popular Anime"
+              items={popularAnime.slice(0, 12)}
+              viewMoreLink="/view-all/anime/popular"
+              showViewMore={true}
+              className="mb-12"
+            />
             
-            <TabsContent value="popular">
-              <ContentSection
-                title="Popular Anime"
-                items={popularAnime.slice(0, 12)}
-                viewMoreLink="/view-all/anime/popular"
-                showViewMore={true}
-                className="mb-12"
-              />
-            </TabsContent>
+            <ContentSection
+              title="Top Rated Anime"
+              items={topRatedAnime.slice(0, 12)}
+              viewMoreLink="/view-all/anime/top-rated"
+              showViewMore={true}
+              className="mb-12"
+            />
             
-            <TabsContent value="toprated">
-              <ContentSection
-                title="Top Rated Anime"
-                items={topRatedAnime.slice(0, 12)}
-                viewMoreLink="/view-all/anime/top-rated"
-                showViewMore={true}
-                className="mb-12"
-              />
-            </TabsContent>
-            
-            <TabsContent value="onair">
-              <ContentSection
-                title="Currently Airing Anime"
-                items={onAirAnime.slice(0, 12)}
-                viewMoreLink="/view-all/anime/on-air"
-                showViewMore={true}
-                className="mb-12"
-              />
-            </TabsContent>
-          </Tabs>
+            <ContentSection
+              title="Currently Airing Anime"
+              items={onAirAnime.slice(0, 12)}
+              viewMoreLink="/view-all/anime/on-air"
+              showViewMore={true}
+              className="mb-12"
+            />
+          </>
         )}
       </div>
     </MainLayout>
   );
 };
 
-export default Anime; 
+export default Anime;

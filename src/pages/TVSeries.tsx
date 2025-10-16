@@ -61,7 +61,7 @@ const TVSeries: React.FC = () => {
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold mb-8 gradient-text">TV Series</h1>
+        <h1 className="text-4xl font-bold mb-8 gradient-text">📺 TV Series</h1>
         
         {loading ? (
           <div className="flex justify-center items-center h-64">
@@ -91,4 +91,4 @@ const TVSeries: React.FC = () => {
   );
 };
 
-export default TVSeries; 
+export default TVSeries;

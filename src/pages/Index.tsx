@@ -357,18 +357,8 @@ const Index: React.FC = () => {
         />
       ) : (
         <div className="hero-banner">
-          <div className="w-full h-full bg-gradient-to-r from-wolzi-dark-gray to-wolzi-bg flex items-center">
-            <div className="container mx-auto px-4">
-              <div className="hero-banner-content">
-                <h1 className="text-4xl font-bold mb-2">Welcome to WolziFlix</h1>
-                <p className="text-wolzi-text mb-6">
-                  Discover and stream thousands of movies, TV shows, and anime in one place
-                </p>
-                <Button asChild className="glow-button">
-                  <Link to="/movies">Start Exploring</Link>
-                </Button>
-              </div>
-            </div>
+          <div className="w-full h-full bg-gradient-to-r from-wolzi-dark-gray to-wolzi-bg flex items-center justify-center">
+            <div className="loading-spinner"></div>
           </div>
         </div>
       )}

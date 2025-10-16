@@ -341,6 +341,10 @@ const NavBar: React.FC<NavBarProps> = ({
     }
   }, [user, isReallyLoggedIn, isLoggedIn]);
 
+  function handleResultClick(result: any): void {
+    throw new Error("Function not implemented.");
+  }
+
   return (
     <header
       className={cn(
@@ -382,28 +386,16 @@ const NavBar: React.FC<NavBarProps> = ({
           >
             <Link to="/" className="flex items-center group">
               <div className="relative">
-                <h1 className="text-xl sm:text-2xl font-bold mr-2 flex items-center">
-                  <motion.span 
-                    className="inline-block text-wolzi-accent"
+                <motion.img
+                  src="/website-logo.png"
+                  alt="WolziFlix"
+                  className="h-20 sm:h-20 lg:h-16 w-auto object-contain"
                   whileHover={{ 
-                    scale: 1.05, 
-                    textShadow: "0 0 8px rgba(168, 85, 247, 0.8)" 
+                    scale: 1.05,
+                    filter: "drop-shadow(0 0 8px rgba(168, 85, 247, 0.6))"
                   }}
-                    transition={{ type: "spring", stiffness: 500, damping: 10 }}
-                  >
-                    Wolzi
-                  </motion.span>
-                  <motion.span 
-                    className="inline-block text-white ml-1"
-                    whileHover={{ 
-                      scale: 1.05, 
-                      textShadow: "0 0 8px rgba(255, 255, 255, 0.8)" 
-                    }}
-                    transition={{ type: "spring", stiffness: 500, damping: 10 }}
-                  >
-                    Flix
-                  </motion.span>
-                </h1>
+                  transition={{ type: "spring", stiffness: 500, damping: 10 }}
+                />
               </div>
             </Link>
           </motion.div>
@@ -590,9 +582,9 @@ const NavBar: React.FC<NavBarProps> = ({
           )}
 
           {/* Right side: Search, Login, User */}
-          <div className="flex items-center space-x-1 relative z-10 flex-shrink-0 min-w-[200px]">
-            {/* Search Input and Icon */}
-            <div className="flex items-center relative w-full" ref={searchContainerRef}>
+          <div className="flex items-center space-x-2 relative z-10 flex-shrink-0 min-w-[140px] lg:min-w-[200px]">
+            {/* Search Icon - Desktop only */}
+            <div className="hidden lg:flex items-center relative w-full" ref={searchContainerRef}>
               <AnimatePresence>
                 {showSearch ? (
                   <motion.form
@@ -721,38 +713,56 @@ const NavBar: React.FC<NavBarProps> = ({
               </AnimatePresence>
             </div>
             
-            {/* GitHub Icon */}
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-              <motion.a 
-                href="https://github.com/DiaeEddineJamal" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="flex items-center"
-                whileHover={{ 
-                  scale: 1.05,
-                  textShadow: "0 0 8px rgba(168, 85, 247, 0.6)"
-                }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="text-wolzi-light-gray hover:text-white hover:bg-wolzi-accent/10 transition-all duration-300 ease-in-out rounded-full h-10 w-10 hover:shadow-lg hover:shadow-wolzi-accent/30"
-                  aria-label="GitHub Profile"
-                >
-                  <motion.span
-                    whileHover={{ 
-                      scale: 1.1,
-                      color: "#a855f7",
-                      textShadow: "0 0 8px rgba(168, 85, 247, 0.8)"
-                    }}
-                    transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            {/* Mobile Icons: Search and GitHub */}
+            <div className="flex items-center space-x-1">
+              {/* Search Icon - Mobile only */}
+              <div className="lg:hidden">
+                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={toggleSearch}
+                    className="text-wolzi-light-gray hover:text-white hover:bg-wolzi-accent/10 transition-colors rounded-full h-10 w-10"
+                    aria-label="Toggle search"
                   >
-                    <Github className="h-[1.2rem] w-[1.2rem]" />
-                  </motion.span>
-                </Button>
-              </motion.a>
-            </motion.div>
+                    <Search className="h-[1.2rem] w-[1.2rem]" />
+                  </Button>
+                </motion.div>
+              </div>
+              
+              {/* GitHub Icon */}
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                <motion.a 
+                  href="https://github.com/DiaeEddineJamal" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center"
+                  whileHover={{ 
+                    scale: 1.05,
+                    textShadow: "0 0 8px rgba(168, 85, 247, 0.6)"
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-wolzi-light-gray hover:text-white hover:bg-wolzi-accent/10 transition-all duration-300 ease-in-out rounded-full h-10 w-10 hover:shadow-lg hover:shadow-wolzi-accent/30"
+                    aria-label="GitHub Profile"
+                  >
+                    <motion.span
+                      whileHover={{ 
+                        scale: 1.1,
+                        color: "#a855f7",
+                        textShadow: "0 0 8px rgba(168, 85, 247, 0.8)"
+                      }}
+                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
+                    >
+                      <Github className="h-[1.2rem] w-[1.2rem]" />
+                    </motion.span>
+                  </Button>
+                </motion.a>
+              </motion.div>
+            </div>
             
             {/* Auth Buttons or User Menu */}
             <div className="hidden sm:block">
@@ -802,6 +812,98 @@ const NavBar: React.FC<NavBarProps> = ({
           </div>
       </motion.div>
       </div>
+
+      {/* Mobile Search Bar */}
+      <AnimatePresence>
+        {showSearch && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="lg:hidden floating-navbar-glass mt-2 mx-4 rounded-2xl overflow-hidden"
+          >
+            <div className="container mx-auto px-4 py-4">
+              <motion.form
+                onSubmit={handleSearchSubmit}
+                className="relative"
+              >
+                <div className="relative">
+                  <Input
+                    ref={searchInputRef}
+                    type="text"
+                    placeholder="Search movies, TV shows..."
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    className="w-full bg-black/20 border-wolzi-accent/30 text-white placeholder-wolzi-light-gray focus:border-wolzi-accent focus:ring-wolzi-accent/20 rounded-full pl-4 pr-10 py-3 backdrop-blur-sm"
+                    autoComplete="off"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleSearch}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-wolzi-light-gray hover:text-white hover:bg-wolzi-accent/10 transition-colors rounded-full h-8 w-8"
+                    aria-label="Close search"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Mobile Search Results */}
+                <AnimatePresence>
+                  {searchQuery && searchResults.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="mt-4 bg-black/95 backdrop-blur-md border border-wolzi-accent/20 rounded-xl shadow-2xl max-h-80 overflow-y-auto"
+                    >
+                      <div className="p-2">
+                        {searchResults.slice(0, 6).map((result) => (
+                          <>
+                            <motion.div
+                              key={`${result.media_type}-${result.id}`}
+                              whileHover={{ backgroundColor: "rgba(168, 85, 247, 0.1)" }}
+                              className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors"
+                              onClick={() => handleResultClick(result)}
+                            >
+                              <div className="flex-shrink-0 w-12 h-16 bg-wolzi-dark-gray rounded-md overflow-hidden">
+                                {result.poster_path ? (
+                                  <img
+                                    src={getPosterUrl(result.poster_path, 'w92')}
+                                    alt={result.title || result.name}
+                                    className="w-full h-full object-cover"
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center bg-wolzi-dark-gray">
+                                    <Film className="h-6 w-6 text-wolzi-light-gray" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-white font-medium truncate">
+                                  {result.title || result.name}
+                                </p>
+                                <p className="text-wolzi-light-gray text-sm">
+                                  {result.media_type === 'movie' ? 'Movie' : 'TV Show'} • {result.release_date || result.first_air_date ? new Date(result.release_date || result.first_air_date).getFullYear() : 'N/A'}
+                                </p>
+                              </div>
+                            </motion.div>
+                            <div className="h-px bg-wolzi-accent/10 mx-3" />
+                          </>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.form>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Mobile menu */}
       <AnimatePresence>

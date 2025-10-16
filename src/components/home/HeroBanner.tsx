@@ -230,7 +230,7 @@ const HeroBanner: React.FC<HeroBannerProps> = ({
   }, [currentIndex, featuredItems]);
   
   return (
-    <div className="hero-banner relative h-[80vh] min-h-[500px] overflow-hidden">
+    <div className="hero-banner relative h-[100vh] min-h-[600px] overflow-hidden -mt-24 lg:-mt-28">
       <AnimatePresence custom={direction} initial={false} mode="wait">
         <motion.div
           key={currentIndex}
@@ -516,7 +516,7 @@ const SingleHeroBanner: React.FC<HeroBannerItem> = ({
   };
 
   return (
-    <div className="hero-banner relative h-[80vh] min-h-[500px] overflow-hidden">
+    <div className="hero-banner relative h-[100vh] min-h-[600px] overflow-hidden -mt-24 lg:-mt-28">
       {/* Background Image or Trailer */}
       {trailerKey ? (
         <div className="hero-banner-video">

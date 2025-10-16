@@ -15,13 +15,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
+
+  // Check if current page is home page
+  const isHomePage = location.pathname === '/';
   
   return (
     <div className="flex flex-col min-h-screen bg-black text-white overflow-hidden">
       {/* Global NavBar - appears on all pages */}
       <NavBar />
       
-      {/* Main content with responsive padding that adjusts for mobile */}
+      {/* Main content with conditional padding - no padding for home page to allow seamless hero banner */}
       <AnimatePresence mode="wait" initial={false}>
         <motion.main 
           key={location.pathname}
@@ -36,7 +39,9 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             willChange: "opacity",
             position: "relative" 
           }}
-          className="flex-grow transition-all duration-300 overflow-x-hidden"
+          className={`flex-grow transition-all duration-300 overflow-x-hidden ${
+            isHomePage ? '' : 'pt-24 lg:pt-28'
+          }`}
         >
           {children}
         </motion.main>
