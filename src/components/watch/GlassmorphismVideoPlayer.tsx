@@ -385,44 +385,43 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
         {!isLoading && !error && (
           <>
             {/* Top controls */}
-            <div className="absolute top-2 sm:top-4 left-2 sm:left-4 right-2 sm:right-4 flex justify-between items-center z-30">
-              {/* Source indicator */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="frosted-glass px-2 sm:px-4 py-1 sm:py-2 rounded-full"
-              >
-                <div className="flex items-center space-x-1 sm:space-x-2">
-                  {getSourceStatusIcon(sources.find(s => s.id === currentSource)?.status || 'testing')}
-                  <span className="text-xs sm:text-sm font-medium text-white">
-                    {sources.find(s => s.id === currentSource)?.name || 'Loading...'}
-                  </span>
+            <div className="absolute top-0 left-0 right-0 z-30 p-3 sm:p-4 md:p-6 bg-gradient-to-b from-black/60 via-black/20 to-transparent">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2 sm:space-x-3">
+                  <div className="frosted-glass px-2 sm:px-3 py-1 rounded-full">
+                    <span className="text-xs sm:text-sm text-white font-medium">
+                      {sources.find(s => s.id === currentSource)?.name || 'Loading...'}
+                    </span>
+                  </div>
+                  {currentSource && (
+                    <div className="flex items-center space-x-1">
+                      {getSourceStatusIcon(sources.find(s => s.id === currentSource)?.status || 'pending')}
+                    </div>
+                  )}
                 </div>
-              </motion.div>
-
-              {/* Settings button */}
-              <motion.button
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                onClick={() => setShowSettings(!showSettings)}
-                className="frosted-glass p-2 sm:p-3 rounded-full hover:bg-white/20 transition-all duration-300"
-              >
-                <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-              </motion.button>
+                
+                <Button
+                  onClick={() => setShowSettings(!showSettings)}
+                  size="sm"
+                  variant="ghost"
+                  className="text-white hover:bg-white/10 frosted-glass min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] touch-manipulation"
+                >
+                  <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
+                </Button>
+              </div>
             </div>
 
             {/* Bottom controls */}
-            <div className="absolute bottom-2 sm:bottom-4 left-2 sm:left-4 right-2 sm:right-4 flex justify-end items-center z-30">
-              {/* Right controls */}
-              <div className="flex items-center space-x-1 sm:space-x-2">
-                <motion.button
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+            <div className="absolute bottom-0 left-0 right-0 z-30 p-3 sm:p-4 md:p-6 bg-gradient-to-t from-black/60 via-black/20 to-transparent">
+              <div className="flex items-center justify-end">
+                <Button
                   onClick={toggleFullscreen}
-                  className="frosted-glass p-2 sm:p-3 rounded-full hover:bg-white/20 transition-all duration-300"
+                  size="sm"
+                  variant="ghost"
+                  className="text-white hover:bg-white/10 frosted-glass min-w-[44px] min-h-[44px] sm:min-w-[48px] sm:min-h-[48px] touch-manipulation"
                 >
-                  <Maximize className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </motion.button>
+                  <Maximize className="w-5 h-5 sm:w-6 sm:h-6" />
+                </Button>
               </div>
             </div>
           </>

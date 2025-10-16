@@ -372,13 +372,13 @@ const NavBar: React.FC<NavBarProps> = ({
           }}
         >
           <div className="px-6 py-4">
-        <div className="flex items-center justify-between relative">
+        <div className="flex items-center justify-between relative min-h-[60px]">
           {/* Logo */}
           <motion.div
             initial={shouldAnimate ? { opacity: 0, x: -20 } : { opacity: 1, x: 0 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, type: "spring", stiffness: 300 }}
-            className="relative z-10"
+            className="relative z-10 flex-shrink-0 min-w-[120px]"
           >
             <Link to="/" className="flex items-center group">
               <div className="relative">
@@ -590,14 +590,19 @@ const NavBar: React.FC<NavBarProps> = ({
           )}
 
           {/* Right side: Search, Login, User */}
-          <div className="flex items-center space-x-1 relative z-10">
+          <div className="flex items-center space-x-1 relative z-10 flex-shrink-0 min-w-[200px]">
             {/* Search Input and Icon */}
-            <div className="flex items-center relative" ref={searchContainerRef}>
+            <div className="flex items-center relative w-full" ref={searchContainerRef}>
               <AnimatePresence>
                 {showSearch ? (
                   <motion.form
                     initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: "260px", opacity: 1 }}
+                    animate={{ 
+                      width: "auto", 
+                      opacity: 1,
+                      minWidth: "200px",
+                      maxWidth: "min(400px, calc(100vw - 400px))"
+                    }}
                     exit={{ width: 0, opacity: 0 }}
                     transition={{ 
                       type: "spring", 
@@ -605,10 +610,13 @@ const NavBar: React.FC<NavBarProps> = ({
                       damping: 30,
                       opacity: { duration: 0.2 }
                     }}
-                    className="absolute right-0 top-1/2 transform -translate-y-1/2"
+                    className="absolute right-0 top-1/2 transform -translate-y-1/2 z-50"
                     onSubmit={handleSearchSubmit}
+                    style={{
+                      width: "clamp(200px, 30vw, min(400px, calc(100vw - 400px)))"
+                    }}
                   >
-                    <div className="relative">
+                    <div className="relative w-full">
                       <Input
                         ref={searchInputRef}
                         id="search-input"
@@ -616,8 +624,9 @@ const NavBar: React.FC<NavBarProps> = ({
                         placeholder="Search for movies, TV shows..."
                         value={searchQuery}
                         onChange={handleSearchChange}
-                        className="pr-10 bg-black/30 border-wolzi-accent/30 focus:border-wolzi-accent 
-                                  focus-visible:ring-1 focus-visible:ring-wolzi-accent/50 rounded-full text-sm h-10"
+                        className="w-full pr-10 bg-black/30 border-wolzi-accent/30 focus:border-wolzi-accent 
+                                  focus-visible:ring-1 focus-visible:ring-wolzi-accent/50 rounded-full text-sm h-10
+                                  placeholder:text-white/50"
                       />
                       <Button
                         type="button"
@@ -638,11 +647,12 @@ const NavBar: React.FC<NavBarProps> = ({
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: 10 }}
                           transition={{ duration: 0.2 }}
-                          className="glassmorphism-dropdown absolute top-full right-0 mt-2 w-80 max-h-96 overflow-y-auto rounded-lg bg-white/20 backdrop-blur-md border border-white/30 shadow-lg z-50 transition-all duration-300"
+                          className="glassmorphism-dropdown absolute top-full right-0 mt-2 w-full min-w-[300px] max-w-[400px] max-h-96 overflow-y-auto rounded-lg bg-white/20 backdrop-blur-md border border-white/30 shadow-lg z-50 transition-all duration-300"
                           style={{
                             backdropFilter: 'blur(15px)',
                             WebkitBackdropFilter: 'blur(15px)',
-                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)'
+                            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)',
+                            width: "clamp(300px, 100%, 400px)"
                           }}
                         >
                           <div className="p-2">

@@ -148,18 +148,18 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
           className="absolute bottom-0 left-0 right-0 z-50"
         >
           {/* Progress Bar */}
-          <div className="px-6 pb-2">
+          <div className="px-3 sm:px-4 md:px-6 pb-2">
             <div className="relative">
               <Slider
                 value={[progressPercentage]}
                 onValueChange={handleProgressChange}
                 onValueCommit={() => setIsDragging(false)}
                 onPointerDown={() => setIsDragging(true)}
-                className="w-full cursor-pointer"
+                className="w-full cursor-pointer touch-manipulation"
                 max={100}
                 step={0.1}
               />
-              <div className="flex justify-between text-xs text-white/70 mt-1">
+              <div className="flex justify-between text-xs sm:text-sm text-white/70 mt-1">
                 <span>{formatTime(currentTime)}</span>
                 <span>{formatTime(duration)}</span>
               </div>
@@ -168,18 +168,18 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
 
           {/* Main Controls */}
           <div className="frosted-glass-strong backdrop-blur-xl bg-black/40 border-t border-white/10">
-            <div className="flex items-center justify-between px-6 py-4">
+            <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 py-3 sm:py-4">
               {/* Left Controls */}
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 sm:space-x-3">
                 {/* Previous Episode */}
                 <Button
                   onClick={onPrevious}
                   disabled={!canGoPrevious}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 disabled:opacity-50"
+                  className="text-white hover:bg-white/10 disabled:opacity-50 min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] touch-manipulation"
                 >
-                  <ChevronLeft className="w-5 h-5" />
+                  <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
 
                 {/* Skip Back */}
@@ -187,23 +187,27 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                   onClick={() => onSeek?.(Math.max(0, currentTime - 10))}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10"
+                  className="text-white hover:bg-white/10 min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] touch-manipulation"
                 >
-                  <SkipBack className="w-4 h-4" />
+                  <SkipBack className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
 
                 {/* Play/Pause */}
                 <Button
                   onClick={isPlaying ? onPause : onPlay}
                   size="lg"
-                  className="frosted-glass border-white/20 hover:bg-white/10 text-white w-12 h-12 rounded-full"
+                  className="frosted-glass border-white/20 hover:bg-white/10 active:bg-white/20 text-white w-16 h-16 sm:w-18 sm:h-18 md:w-20 md:h-20 rounded-full touch-manipulation active:scale-95 transition-all duration-150 select-none"
+                  style={{ 
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation'
+                  }}
                 >
                   {isLoading ? (
-                    <Loader2 className="w-6 h-6 animate-spin" />
+                    <Loader2 className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 animate-spin" />
                   ) : isPlaying ? (
-                    <Pause className="w-6 h-6" />
+                    <Pause className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9" />
                   ) : (
-                    <Play className="w-6 h-6 ml-1" />
+                    <Play className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 ml-1" />
                   )}
                 </Button>
 
@@ -212,9 +216,9 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                   onClick={() => onSeek?.(Math.min(duration, currentTime + 10))}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10"
+                  className="text-white hover:bg-white/10 min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] touch-manipulation"
                 >
-                  <SkipForward className="w-4 h-4" />
+                  <SkipForward className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
 
                 {/* Next Episode */}
@@ -223,14 +227,14 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                   disabled={!canGoNext}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 disabled:opacity-50"
+                  className="text-white hover:bg-white/10 disabled:opacity-50 min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] touch-manipulation"
                 >
-                  <ChevronRight className="w-5 h-5" />
+                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
 
                 {/* Volume Controls */}
                 <div 
-                  className="flex items-center space-x-2"
+                  className="hidden sm:flex items-center space-x-2"
                   onMouseEnter={() => setShowVolumeSlider(true)}
                   onMouseLeave={() => setShowVolumeSlider(false)}
                 >
@@ -238,12 +242,12 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                     onClick={onMute}
                     size="sm"
                     variant="ghost"
-                    className="text-white hover:bg-white/10"
+                    className="text-white hover:bg-white/10 min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] touch-manipulation"
                   >
                     {isMuted || volume === 0 ? (
-                      <VolumeX className="w-4 h-4" />
+                      <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />
                     ) : (
-                      <Volume2 className="w-4 h-4" />
+                      <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
                     )}
                   </Button>
                   
@@ -258,7 +262,7 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                         <Slider
                           value={[volume]}
                           onValueChange={handleVolumeChange}
-                          className="w-20"
+                          className="w-20 touch-manipulation"
                           max={100}
                           step={1}
                         />
@@ -267,54 +271,54 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                   </AnimatePresence>
                 </div>
 
-                {/* Time Display */}
-                <div className="glass-card px-3 py-1 rounded-full">
-                  <span className="text-sm text-white font-mono">
+                {/* Time Display - Hidden on mobile to save space */}
+                <div className="hidden md:block glass-card px-2 sm:px-3 py-1 rounded-full">
+                  <span className="text-xs sm:text-sm text-white font-mono">
                     {formatTime(currentTime)} / {formatTime(duration)}
                   </span>
                 </div>
               </div>
 
               {/* Right Controls */}
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1 sm:space-x-2">
                 {/* Reload */}
                 <Button
                   onClick={onReload}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10"
+                  className="text-white hover:bg-white/10 min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] touch-manipulation"
                 >
-                  <RotateCcw className="w-4 h-4" />
+                  <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
 
-                {/* Download */}
+                {/* Download - Hidden on mobile */}
                 <Button
                   onClick={onDownload}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10"
+                  className="hidden sm:flex text-white hover:bg-white/10 min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] touch-manipulation"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
 
-                {/* Add to Watchlist */}
+                {/* Add to Watchlist - Hidden on mobile */}
                 <Button
                   onClick={onAddToWatchlist}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10"
+                  className="hidden sm:flex text-white hover:bg-white/10 min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] touch-manipulation"
                 >
-                  <Heart className="w-4 h-4" />
+                  <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
 
-                {/* Share */}
+                {/* Share - Hidden on mobile */}
                 <Button
                   onClick={onShare}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10"
+                  className="hidden sm:flex text-white hover:bg-white/10 min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] touch-manipulation"
                 >
-                  <Share2 className="w-4 h-4" />
+                  <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
 
                 {/* Settings */}
@@ -322,9 +326,9 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                   onClick={onSettings}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10"
+                  className="text-white hover:bg-white/10 min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] touch-manipulation"
                 >
-                  <Settings className="w-4 h-4" />
+                  <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
 
                 {/* Fullscreen */}
@@ -332,12 +336,12 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                   onClick={onFullscreen}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10"
+                  className="text-white hover:bg-white/10 min-w-[44px] min-h-[44px] sm:min-w-[48px] sm:min-h-[48px] touch-manipulation"
                 >
                   {isFullscreen ? (
-                    <Minimize className="w-4 h-4" />
+                    <Minimize className="w-5 h-5 sm:w-6 sm:h-6" />
                   ) : (
-                    <Maximize className="w-4 h-4" />
+                    <Maximize className="w-5 h-5 sm:w-6 sm:h-6" />
                   )}
                 </Button>
               </div>
