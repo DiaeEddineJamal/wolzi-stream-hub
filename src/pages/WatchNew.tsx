@@ -480,14 +480,14 @@ export default function WatchNew() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen min-w-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center overflow-hidden">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="frosted-glass p-8 rounded-2xl text-center"
+          className="frosted-glass p-4 sm:p-6 md:p-8 rounded-2xl text-center mx-4"
         >
-          <div className="animate-spin w-12 h-12 border-4 border-white/20 border-t-white rounded-full mx-auto mb-4"></div>
-          <p className="text-white text-lg">Loading content...</p>
+          <div className="animate-spin w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 border-4 border-white/20 border-t-white rounded-full mx-auto mb-4"></div>
+          <p className="text-white text-sm sm:text-base md:text-lg">Loading content...</p>
         </motion.div>
       </div>
     );
@@ -495,15 +495,15 @@ export default function WatchNew() {
 
   if (error && !activeSource) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen min-w-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center overflow-hidden px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="frosted-glass p-8 rounded-2xl text-center max-w-md"
+          className="frosted-glass p-4 sm:p-6 md:p-8 rounded-2xl text-center max-w-sm sm:max-w-md w-full"
         >
-          <h2 className="text-2xl font-bold text-white mb-4">Error</h2>
-          <p className="text-white/80 mb-6">{error}</p>
-          <Button onClick={goBack} className="frosted-glass border-white/20 hover:bg-white/10 text-white">
+          <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Error</h2>
+          <p className="text-white/80 mb-6 text-sm sm:text-base">{error}</p>
+          <Button onClick={goBack} className="frosted-glass border-white/20 hover:bg-white/10 text-white w-full sm:w-auto">
             Go Back
           </Button>
         </motion.div>
@@ -512,13 +512,14 @@ export default function WatchNew() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen min-w-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-x-hidden">
       {/* Background Image */}
       {mediaDetails?.backdropPath && (
         <div 
-          className="fixed inset-0 opacity-20 bg-cover bg-center bg-no-repeat"
+          className="fixed inset-0 w-full h-full opacity-10 sm:opacity-15 md:opacity-20 bg-cover bg-center bg-no-repeat z-0"
           style={{ 
-            backgroundImage: `url(https://image.tmdb.org/t/p/original${mediaDetails.backdropPath})` 
+            backgroundImage: `url(https://image.tmdb.org/t/p/w1280${mediaDetails.backdropPath})`,
+            backgroundAttachment: 'fixed'
           }}
         />
       )}
@@ -527,17 +528,18 @@ export default function WatchNew() {
       <NavBar />
 
       {/* Main Content */}
-      <div className="relative z-10 container mx-auto px-2 sm:px-4 pt-20 sm:pt-28 pb-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-8">
-          {/* Video Player - Takes up 3 columns on lg+ screens */}
-          <div className="lg:col-span-3 space-y-4 lg:space-y-6 lg:-ml-4">
-            {/* Video Player */}
-            <motion.div
-              ref={playerRef}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="relative aspect-video rounded-xl lg:rounded-2xl overflow-hidden min-h-[250px] sm:min-h-[300px] md:min-h-[400px] lg:min-h-[500px] xl:min-h-[600px]"
-            >
+      <div className="relative z-10 w-full max-w-none">
+        <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pt-16 sm:pt-20 md:pt-24 lg:pt-28 pb-4 sm:pb-6 md:pb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
+            {/* Video Player - Takes up 3 columns on lg+ screens */}
+            <div className="lg:col-span-3 space-y-3 sm:space-y-4 md:space-y-6">
+              {/* Video Player */}
+              <motion.div
+                ref={playerRef}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative aspect-video rounded-lg sm:rounded-xl lg:rounded-2xl overflow-hidden min-h-[200px] xs:min-h-[250px] sm:min-h-[300px] md:min-h-[400px] lg:min-h-[500px] xl:min-h-[600px]"
+              >
               {mediaDetails ? (
                 <GlassmorphismVideoPlayer
                   mediaType={mediaType}
@@ -741,10 +743,10 @@ export default function WatchNew() {
             )}
           </div>
 
-          {/* Content Info Panel - Takes up 1 column on xl screens */}
-          <div className="xl:col-span-1 xl:ml-2">
+          {/* Content Info Panel - Takes up 1 column on lg screens */}
+          <div className="lg:col-span-1 space-y-3 sm:space-y-4 md:space-y-6">
             {/* Watch Page Controls */}
-            <div className="flex items-center justify-between mb-6 p-4 frosted-glass rounded-xl border border-white/10">
+            <div className="flex items-center justify-between mb-4 sm:mb-6 p-3 sm:p-4 frosted-glass rounded-lg sm:rounded-xl border border-white/10">
               <Button
                 onClick={() => navigate(-1)}
                 variant="ghost"
@@ -793,7 +795,7 @@ export default function WatchNew() {
 
             
             {/* Compact Source Selector */}
-            <div className="mt-6">
+            <div className="mt-4 sm:mt-6">
               <SourceSelector
                 sources={sources}
                 activeSourceId={activeSource?.id}
@@ -806,6 +808,7 @@ export default function WatchNew() {
           </div>
         </div>
       </div>
+    </div>
 
       {/* Settings Modal */}
       <AnimatePresence>

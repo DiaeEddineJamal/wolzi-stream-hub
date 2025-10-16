@@ -461,6 +461,7 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
                   />
                 </div>
               </div>
+             
             </motion.div>
           )}
         </AnimatePresence>
