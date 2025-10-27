@@ -204,6 +204,13 @@
   height: 80vh;
   width: 100%;
   overflow: hidden;
+  margin-top: -6rem; /* -24 in Tailwind */
+}
+
+@media (min-width: 1024px) {
+  .hero-banner {
+    margin-top: -7rem; /* -28 in Tailwind for lg screens */
+  }
 }
 
 .hero-banner-image {

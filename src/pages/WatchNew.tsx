@@ -529,10 +529,10 @@ export default function WatchNew() {
 
       {/* Main Content */}
       <div className="relative z-10 w-full max-w-none">
-        <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pt-16 sm:pt-20 md:pt-24 lg:pt-28 pb-4 sm:pb-6 md:pb-8">
+        <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pt-20 sm:pt-24 md:pt-28 lg:pt-32 pb-4 sm:pb-6 md:pb-8">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
-            {/* Video Player - Takes up 3 columns on lg+ screens */}
-            <div className="lg:col-span-3 space-y-3 sm:space-y-4 md:space-y-6">
+            {/* Video Player - Takes up 3 columns on lg+ screens, positioned slightly left */}
+            <div className="lg:col-span-3 space-y-3 sm:space-y-4 md:space-y-6 lg:pr-4">
               {/* Video Player */}
               <motion.div
                 ref={playerRef}
@@ -743,8 +743,8 @@ export default function WatchNew() {
             )}
           </div>
 
-          {/* Content Info Panel - Takes up 1 column on lg screens */}
-          <div className="lg:col-span-1 space-y-3 sm:space-y-4 md:space-y-6">
+          {/* Content Info Panel - Takes up 1 column on lg screens with left padding for spacing */}
+          <div className="lg:col-span-1 space-y-3 sm:space-y-4 md:space-y-6 lg:pl-4">
             {/* Watch Page Controls */}
             <div className="flex items-center justify-between mb-4 sm:mb-6 p-3 sm:p-4 frosted-glass rounded-lg sm:rounded-xl border border-white/10">
               <Button
