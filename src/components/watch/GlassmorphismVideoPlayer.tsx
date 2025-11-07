@@ -322,7 +322,7 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
   return (
     <div ref={playerRef} className="relative w-full h-full min-h-[300px] sm:min-h-[380px] md:min-h-[450px] lg:min-h-[500px] xl:min-h-[600px] bg-black rounded-lg sm:rounded-xl overflow-hidden max-w-full">
       {/* Glassmorphism overlay container */}
-      <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/20 backdrop-blur-[1px]">
+      <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/20 backdrop-blur-[1px] pointer-events-none">
         
         {/* Loading overlay */}
         <AnimatePresence>
@@ -369,11 +369,12 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
             key={`${currentSource}-${sourceUrl}`} // Force re-render when source changes
             ref={iframeRef}
             src={sourceUrl}
-            className="w-full h-full"
+            className="w-full h-full pointer-events-auto"
             frameBorder="0"
             allowFullScreen
             onLoad={handleIframeLoad}
             onError={handleIframeError}
+            style={{ pointerEvents: 'auto' }}
             {...(!disableSandbox ? {
               sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups allow-popups-to-escape-sandbox allow-fullscreen allow-pointer-lock"
             } : {})}
@@ -385,8 +386,8 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
         {!isLoading && !error && (
           <>
             {/* Top controls */}
-            <div className="absolute top-0 left-0 right-0 z-30 p-3 sm:p-4 md:p-6 bg-gradient-to-b from-black/60 via-black/20 to-transparent">
-              <div className="flex items-center justify-between">
+            <div className="absolute top-0 left-0 right-0 z-30 p-3 sm:p-4 md:p-6 bg-gradient-to-b from-black/60 via-black/20 to-transparent pointer-events-none">
+              <div className="flex items-center justify-between pointer-events-auto">
                 <div className="flex items-center space-x-2 sm:space-x-3">
                   <div className="frosted-glass px-2 sm:px-3 py-1 rounded-full">
                     <span className="text-xs sm:text-sm text-white font-medium">
