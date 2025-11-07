@@ -480,14 +480,14 @@ export default function WatchNew() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen min-w-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center overflow-hidden">
+      <div className="min-h-screen min-w-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center overflow-hidden px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="frosted-glass p-4 sm:p-6 md:p-8 rounded-2xl text-center mx-4"
+          className="frosted-glass p-6 sm:p-8 md:p-10 rounded-2xl text-center mx-4 max-w-md w-full"
         >
-          <div className="animate-spin w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 border-4 border-white/20 border-t-white rounded-full mx-auto mb-4"></div>
-          <p className="text-white text-sm sm:text-base md:text-lg">Loading content...</p>
+          <div className="animate-spin w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 border-4 border-white/20 border-t-white rounded-full mx-auto mb-6"></div>
+          <p className="text-white text-base sm:text-lg md:text-xl">Loading content...</p>
         </motion.div>
       </div>
     );
@@ -495,15 +495,15 @@ export default function WatchNew() {
 
   if (error && !activeSource) {
     return (
-      <div className="min-h-screen min-w-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center overflow-hidden px-4">
+      <div className="min-h-screen min-w-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center overflow-hidden px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="frosted-glass p-4 sm:p-6 md:p-8 rounded-2xl text-center max-w-sm sm:max-w-md w-full"
+          className="frosted-glass p-6 sm:p-8 md:p-10 rounded-2xl text-center max-w-sm sm:max-w-md w-full"
         >
-          <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">Error</h2>
-          <p className="text-white/80 mb-6 text-sm sm:text-base">{error}</p>
-          <Button onClick={goBack} className="frosted-glass border-white/20 hover:bg-white/10 text-white w-full sm:w-auto">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-5 sm:mb-6">Error</h2>
+          <p className="text-white/80 mb-6 sm:mb-8 text-sm sm:text-base md:text-lg">{error}</p>
+          <Button onClick={goBack} className="frosted-glass border-white/20 hover:bg-white/10 text-white w-full sm:w-auto px-6 py-3 text-sm sm:text-base">
             Go Back
           </Button>
         </motion.div>
@@ -529,16 +529,16 @@ export default function WatchNew() {
 
       {/* Main Content */}
       <div className="relative z-10 w-full max-w-none">
-        <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pt-20 sm:pt-24 md:pt-28 lg:pt-32 pb-4 sm:pb-6 md:pb-8">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
+        <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 pt-28 sm:pt-32 md:pt-36 lg:pt-40 pb-6 sm:pb-8 md:pb-10 lg:pb-12">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-16">
             {/* Video Player - Takes up 3 columns on lg+ screens, positioned slightly left */}
-            <div className="lg:col-span-3 space-y-3 sm:space-y-4 md:space-y-6 lg:pr-4">
+            <div className="lg:col-span-3 space-y-4 sm:space-y-6 md:space-y-8">
               {/* Video Player */}
               <motion.div
                 ref={playerRef}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative aspect-video rounded-lg sm:rounded-xl lg:rounded-2xl overflow-hidden min-h-[200px] xs:min-h-[250px] sm:min-h-[300px] md:min-h-[400px] lg:min-h-[500px] xl:min-h-[600px]"
+                className="relative aspect-video rounded-lg sm:rounded-xl lg:rounded-2xl overflow-hidden min-h-[300px] xs:min-h-[320px] sm:min-h-[380px] md:min-h-[450px] lg:min-h-[550px] xl:min-h-[650px] shadow-2xl w-full"
               >
               {mediaDetails ? (
                 <GlassmorphismVideoPlayer
@@ -568,13 +568,13 @@ export default function WatchNew() {
 
             {/* Seasons & Episodes (TV) - under player, full width */}
             {mediaType === 'tv' && tvSeasons.length > 0 && (
-              <Card className="w-full p-3 sm:p-4 rounded-xl lg:rounded-2xl floating-navbar-glass border border-purple-400/30">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
-                  <div>
-                    <h3 className="text-white font-semibold text-lg">Seasons & Episodes</h3>
-                    <p className="text-white/70 text-sm">Season {selectedSeason} • {seasonEpisodes.length} Episodes</p>
+              <Card className="w-full p-4 sm:p-5 md:p-6 rounded-xl lg:rounded-2xl floating-navbar-glass border border-purple-400/30">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-5 sm:mb-6 gap-4">
+                  <div className="space-y-1">
+                    <h3 className="text-white font-semibold text-lg sm:text-xl">Seasons & Episodes</h3>
+                    <p className="text-white/70 text-sm sm:text-base">Season {selectedSeason} • {seasonEpisodes.length} Episodes</p>
                   </div>
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="flex gap-2 sm:gap-3 flex-wrap">
                     {tvSeasons.map((s) => (
                       <Button
                         key={s.season_number}
@@ -585,7 +585,11 @@ export default function WatchNew() {
                           navigate(`/watch/tv/${id}/${s.season_number}/1`, { replace: true });
                           loadSeasonEpisodes(s.season_number);
                         }}
-                        className="text-white text-xs sm:text-sm"
+                        className={`text-xs sm:text-sm transition-all ${
+                          selectedSeason === s.season_number
+                            ? 'bg-purple-600 hover:bg-purple-700 text-white border-purple-500'
+                            : 'text-white border-white/30 hover:border-white/50 hover:bg-white/10'
+                        }`}
                       >
                         Season {s.season_number}
                       </Button>
@@ -593,61 +597,64 @@ export default function WatchNew() {
                   </div>
                 </div>
 
-                <div className="space-y-3 max-h-80 sm:max-h-96 overflow-y-auto pr-1">
+                <div className="space-y-4 sm:space-y-5 md:space-y-6 max-h-80 sm:max-h-96 md:max-h-[500px] overflow-y-auto pr-2">
                   {episodesLoading ? (
-                    <p className="text-white/70">Loading episodes…</p>
+                    <p className="text-white/70 text-center py-4">Loading episodes…</p>
                   ) : (
                     seasonEpisodes.map((ep) => (
                       <div
                         key={ep.id ?? `${selectedSeason}-${ep.episode_number}`}
-                        className={`p-3 sm:p-4 rounded-lg transition-all duration-200 ${
+                        className={`p-4 sm:p-5 md:p-6 rounded-lg sm:rounded-xl transition-all duration-200 ${
                           episodeInfo?.episodeNumber === ep.episode_number
-                            ? 'bg-purple-500/10 border border-purple-400/60 shadow-md shadow-purple-500/20'
+                            ? 'bg-purple-500/10 border-2 border-purple-400/60 shadow-md shadow-purple-500/20'
                             : 'border border-purple-400/20 hover:border-purple-400/40'
                         } cursor-pointer relative group`}
                         onClick={() => navigate(`/watch/tv/${id}/${selectedSeason}/${ep.episode_number}`, { replace: true })}
                       >
-                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                          <div className="w-full sm:w-1/3 md:w-1/4 lg:w-1/5 relative rounded-md overflow-hidden">
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 md:gap-6">
+                          <div className="w-full sm:w-1/3 md:w-1/4 lg:w-1/5 relative rounded-lg overflow-hidden flex-shrink-0">
                             {ep.still_path ? (
                               <img
                                 src={`https://image.tmdb.org/t/p/w300${ep.still_path}`}
+                                srcSet={`https://image.tmdb.org/t/p/w185${ep.still_path} 185w, https://image.tmdb.org/t/p/w300${ep.still_path} 300w, https://image.tmdb.org/t/p/w500${ep.still_path} 500w`}
+                                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 33vw, 20vw"
                                 alt={ep.name}
-                                className="w-full h-auto rounded-md object-cover transition-transform duration-500 group-hover:scale-105"
+                                className="w-full h-auto rounded-lg object-cover transition-transform duration-500 group-hover:scale-105"
+                                loading="lazy"
                               />
                             ) : (
-                              <div className="w-full aspect-video bg-black/50 rounded-md flex items-center justify-center">
+                              <div className="w-full aspect-video bg-black/50 rounded-lg flex items-center justify-center">
                                 <span className="text-white/70 text-sm">No Preview</span>
                               </div>
                             )}
-                            <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
+                            <div className="absolute top-2 left-2 bg-black/80 backdrop-blur-sm text-white text-xs sm:text-sm px-2 py-1 rounded-md font-medium">
                               Episode {ep.episode_number}
                             </div>
                             {ep.runtime && (
-                              <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
+                              <div className="absolute bottom-2 right-2 bg-black/80 backdrop-blur-sm text-white text-xs sm:text-sm px-2 py-1 rounded-md font-medium">
                                 {ep.runtime} min
                               </div>
                             )}
                           </div>
 
-                          <div className="flex-1 sm:w-2/3 md:w-3/4 lg:w-4/5">
-                            <div className="flex flex-col sm:flex-row sm:justify-between mb-2 gap-2">
-                              <h3 className="text-base sm:text-lg font-medium group-hover:text-purple-400 transition-colors line-clamp-2">
+                          <div className="flex-1 sm:w-2/3 md:w-3/4 lg:w-4/5 space-y-2 sm:space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
+                              <h3 className="text-base sm:text-lg md:text-xl font-medium group-hover:text-purple-400 transition-colors line-clamp-2">
                                 {ep.name}
                               </h3>
                             </div>
 
-                            <div className="text-sm text-white/80 mb-2">
+                            <div className="text-sm sm:text-base text-white/80">
                               {ep.air_date ? new Date(ep.air_date).toLocaleDateString() : 'TBA'}
                             </div>
 
-                            <p className="text-white/70 text-sm line-clamp-2 sm:line-clamp-3 mb-3">{ep.overview || 'No description available.'}</p>
+                            <p className="text-white/70 text-sm sm:text-base line-clamp-2 sm:line-clamp-3">{ep.overview || 'No description available.'}</p>
 
-                            <div className="flex justify-end">
+                            <div className="flex justify-end pt-2">
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="glassmorphism-button bg-white/20 hover:bg-white/30 text-white text-xs border border-white/30 shadow-lg backdrop-blur-sm transition-all duration-300"
+                                className="glassmorphism-button bg-white/20 hover:bg-white/30 text-white text-xs sm:text-sm px-4 py-2 border border-white/30 shadow-lg backdrop-blur-sm transition-all duration-300"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   navigate(`/watch/tv/${id}/${selectedSeason}/${ep.episode_number}`, { replace: true });
@@ -667,46 +674,46 @@ export default function WatchNew() {
 
             {/* Episodes (Anime) - under player, full width */}
             {mediaType === 'anime' && (
-              <Card className="w-full p-4 rounded-2xl floating-navbar-glass border border-purple-400/30">
-                <h3 className="text-white font-semibold mb-3">Episodes</h3>
-                <div className="space-y-3 max-h-80 sm:max-h-96 overflow-y-auto pr-1">
+              <Card className="w-full p-4 sm:p-5 md:p-6 rounded-xl lg:rounded-2xl floating-navbar-glass border border-purple-400/30">
+                <h3 className="text-white font-semibold text-lg sm:text-xl mb-4 sm:mb-5">Episodes</h3>
+                <div className="space-y-4 sm:space-y-5 md:space-y-6 max-h-80 sm:max-h-96 md:max-h-[500px] overflow-y-auto pr-2">
                   {animeEpisodesLoading ? (
-                    <p className="text-white/70">Loading episodes…</p>
+                    <p className="text-white/70 text-center py-4">Loading episodes…</p>
                   ) : (
                     animeEpisodes.map((ep) => (
                       <div
                         key={`anime-${ep.episode}`}
-                        className={`p-3 sm:p-4 rounded-lg transition-all duration-200 ${
+                        className={`p-4 sm:p-5 md:p-6 rounded-lg sm:rounded-xl transition-all duration-200 ${
                           episodeInfo?.episodeNumber === ep.episode
-                            ? 'bg-purple-500/10 border border-purple-400/60 shadow-md shadow-purple-500/20'
+                            ? 'bg-purple-500/10 border-2 border-purple-400/60 shadow-md shadow-purple-500/20'
                             : 'border border-purple-400/20 hover:border-purple-400/40'
                         } cursor-pointer relative group`}
                         onClick={() => navigate(`/watch/anime/${id}/${ep.episode}`, { replace: true })}
                       >
-                        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                          <div className="w-full sm:w-1/3 md:w-1/4 lg:w-1/5 relative rounded-md overflow-hidden">
-                            <div className="w-full aspect-video bg-black/50 rounded-md flex items-center justify-center">
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 md:gap-6">
+                          <div className="w-full sm:w-1/3 md:w-1/4 lg:w-1/5 relative rounded-lg overflow-hidden flex-shrink-0">
+                            <div className="w-full aspect-video bg-black/50 rounded-lg flex items-center justify-center">
                               <span className="text-white/70 text-sm">No Preview</span>
                             </div>
-                            <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
+                            <div className="absolute top-2 left-2 bg-black/80 backdrop-blur-sm text-white text-xs sm:text-sm px-2 py-1 rounded-md font-medium">
                               Episode {ep.episode}
                             </div>
                           </div>
 
-                          <div className="flex-1 sm:w-2/3 md:w-3/4 lg:w-4/5">
-                            <div className="flex flex-col sm:flex-row sm:justify-between mb-2 gap-2">
-                              <h3 className="text-base sm:text-lg font-medium group-hover:text-purple-400 transition-colors line-clamp-2">
+                          <div className="flex-1 sm:w-2/3 md:w-3/4 lg:w-4/5 space-y-2 sm:space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
+                              <h3 className="text-base sm:text-lg md:text-xl font-medium group-hover:text-purple-400 transition-colors line-clamp-2">
                                 {ep.title || `Episode ${ep.episode}`}
                               </h3>
                             </div>
 
-                            <p className="text-white/70 text-sm line-clamp-2 sm:line-clamp-3 mb-3">No description available.</p>
+                            <p className="text-white/70 text-sm sm:text-base line-clamp-2 sm:line-clamp-3">No description available.</p>
 
-                            <div className="flex justify-end">
+                            <div className="flex justify-end pt-2">
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="glassmorphism-button bg-white/20 hover:bg-white/30 text-white text-xs border border-white/30 shadow-lg backdrop-blur-sm transition-all duration-300"
+                                className="glassmorphism-button bg-white/20 hover:bg-white/30 text-white text-xs sm:text-sm px-4 py-2 border border-white/30 shadow-lg backdrop-blur-sm transition-all duration-300"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   navigate(`/watch/anime/${id}/${ep.episode}`, { replace: true });
@@ -730,6 +737,7 @@ export default function WatchNew() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
+                className="mt-4 sm:mt-6"
               >
                 <SourceSelector
                   sources={sources}
@@ -743,59 +751,62 @@ export default function WatchNew() {
             )}
           </div>
 
-          {/* Content Info Panel - Takes up 1 column on lg screens with left padding for spacing */}
-          <div className="lg:col-span-1 space-y-3 sm:space-y-4 md:space-y-6 lg:pl-4">
+          {/* Content Info Panel - Takes up 1 column on lg screens with proper spacing */}
+          <div className="lg:col-span-1 space-y-4 sm:space-y-5 md:space-y-6 lg:space-y-8 mt-6 sm:mt-8 md:mt-10 lg:mt-0 w-full">
             {/* Watch Page Controls */}
-            <div className="flex items-center justify-between mb-4 sm:mb-6 p-3 sm:p-4 frosted-glass rounded-lg sm:rounded-xl border border-white/10">
+            <div className="flex items-center justify-between p-4 sm:p-5 md:p-6 frosted-glass rounded-lg sm:rounded-xl lg:rounded-2xl border border-white/10 w-full">
               <Button
                 onClick={() => navigate(-1)}
                 variant="ghost"
-                className="text-white hover:bg-white/10 flex items-center gap-2"
+                className="text-white hover:bg-white/10 flex items-center gap-2 text-sm sm:text-base"
               >
-                <ArrowLeft className="w-5 h-5" />
-                Back
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Back</span>
               </Button>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <Button
                   onClick={() => setShowSourceSelector(!showSourceSelector)}
                   variant="ghost"
-                  className="text-white hover:bg-white/10"
+                  className="text-white hover:bg-white/10 text-xs sm:text-sm"
                 >
-                  Sources ({sources.length})
+                  <span className="hidden sm:inline">Sources </span>({sources.length})
                 </Button>
                 
                 <Button
                   onClick={() => setShowSettings(!showSettings)}
                   variant="ghost"
                   className="text-white hover:bg-white/10"
+                  size="sm"
                 >
-                  <Settings className="w-5 h-5" />
+                  <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
                 </Button>
               </div>
             </div>
 
             {mediaDetails && (
-              <ContentInfoPanel
-                title={mediaDetails.title}
-                overview={episodeInfo?.episodeOverview || mediaDetails.overview}
-                releaseDate={mediaDetails.releaseDate}
-                runtime={episodeInfo?.runtime || mediaDetails.runtime}
-                rating={mediaDetails.rating}
-                genres={mediaDetails.genres}
-                mediaType={mediaType}
-                seasonNumber={episodeInfo?.seasonNumber}
-                episodeNumber={episodeInfo?.episodeNumber}
-                episodeTitle={episodeInfo?.episodeTitle}
-                onDownload={handleDownload}
-                onAddToWatchlist={handleAddToWatchlist}
-                onShare={handleShare}
-              />
+              <div className="mt-4 sm:mt-6">
+                <ContentInfoPanel
+                  title={mediaDetails.title}
+                  overview={episodeInfo?.episodeOverview || mediaDetails.overview}
+                  releaseDate={mediaDetails.releaseDate}
+                  runtime={episodeInfo?.runtime || mediaDetails.runtime}
+                  rating={mediaDetails.rating}
+                  genres={mediaDetails.genres}
+                  mediaType={mediaType}
+                  seasonNumber={episodeInfo?.seasonNumber}
+                  episodeNumber={episodeInfo?.episodeNumber}
+                  episodeTitle={episodeInfo?.episodeTitle}
+                  onDownload={handleDownload}
+                  onAddToWatchlist={handleAddToWatchlist}
+                  onShare={handleShare}
+                />
+              </div>
             )}
 
             
             {/* Compact Source Selector */}
-            <div className="mt-4 sm:mt-6">
+            <div className="mt-6 sm:mt-8">
               <SourceSelector
                 sources={sources}
                 activeSourceId={activeSource?.id}
@@ -817,16 +828,16 @@ export default function WatchNew() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6"
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="frosted-glass p-6 rounded-2xl max-w-md w-full"
+              className="frosted-glass p-6 sm:p-8 rounded-2xl max-w-md w-full mx-4"
             >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-white">Settings</h3>
+              <div className="flex items-center justify-between mb-6 sm:mb-8">
+                <h3 className="text-xl sm:text-2xl font-semibold text-white">Settings</h3>
                 <Button
                   onClick={() => setShowSettings(false)}
                   variant="ghost"
@@ -837,24 +848,24 @@ export default function WatchNew() {
                 </Button>
               </div>
               
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-white">Auto-play next episode</label>
+              <div className="space-y-5 sm:space-y-6">
+                <div className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors">
+                  <label className="text-white text-sm sm:text-base cursor-pointer">Auto-play next episode</label>
                   <input
                     type="checkbox"
                     checked={autoNextEnabled}
                     onChange={(e) => setAutoNextEnabled(e.target.checked)}
-                    className="rounded"
+                    className="rounded w-5 h-5 cursor-pointer"
                   />
                 </div>
                 
-                <div className="flex items-center justify-between">
-                  <label className="text-white">Disable sandbox mode</label>
+                <div className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors">
+                  <label className="text-white text-sm sm:text-base cursor-pointer">Disable sandbox mode</label>
                   <input
                     type="checkbox"
                     checked={disableSandbox}
                     onChange={(e) => setDisableSandbox(e.target.checked)}
-                    className="rounded"
+                    className="rounded w-5 h-5 cursor-pointer"
                   />
                 </div>
               </div>
@@ -870,16 +881,16 @@ export default function WatchNew() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 sm:p-6"
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className="frosted-glass p-6 rounded-2xl max-w-md w-full"
+              className="frosted-glass p-6 sm:p-8 rounded-2xl max-w-md w-full mx-4"
             >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-semibold text-white">Download</h3>
+              <div className="flex items-center justify-between mb-6 sm:mb-8">
+                <h3 className="text-xl sm:text-2xl font-semibold text-white">Download</h3>
                 <Button
                   onClick={() => setShowDownloadModal(false)}
                   variant="ghost"
@@ -890,29 +901,29 @@ export default function WatchNew() {
                 </Button>
               </div>
               
-              <div className="space-y-4">
-                <div className="text-center">
-                  <Download className="w-12 h-12 text-white/70 mx-auto mb-3" />
-                  <p className="text-white/80">Select a quality to download from external file hosting services.</p>
-                  <p className="text-sm text-white/60 mt-2">Files are hosted on VikingFile and similar services.</p>
+              <div className="space-y-5 sm:space-y-6">
+                <div className="text-center space-y-3">
+                  <Download className="w-12 h-12 sm:w-14 sm:h-14 text-white/70 mx-auto" />
+                  <p className="text-white/80 text-sm sm:text-base">Select a quality to download from external file hosting services.</p>
+                  <p className="text-xs sm:text-sm text-white/60">Files are hosted on VikingFile and similar services.</p>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-3 sm:gap-4">
                   {downloadOptions.map((opt) => (
                     <Button
                       key={opt.quality}
                       onClick={() => openDownloadUrl(opt.url)}
-                      className="frosted-glass border-white/20 hover:bg-white/10 text-white"
+                      className="frosted-glass border-white/20 hover:bg-white/10 text-white text-sm sm:text-base py-3 sm:py-4"
                     >
                       {opt.quality}
                     </Button>
                   ))}
                 </div>
 
-                <div className="flex justify-end pt-2">
+                <div className="flex justify-end pt-4">
                   <Button
                     onClick={() => setShowDownloadModal(false)}
-                    className="frosted-glass border-white/20 hover:bg-white/10 text-white"
+                    className="frosted-glass border-white/20 hover:bg-white/10 text-white px-6 py-2"
                   >
                     Close
                   </Button>

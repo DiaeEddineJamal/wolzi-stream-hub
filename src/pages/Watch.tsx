@@ -2373,7 +2373,7 @@ const Watch: React.FC = () => {
                 ))}
               </div>
             </div>
-          </div>
+          </div>  
 
           {/* Source compatibility note */}
           <div className="mt-4 text-xs text-wolzi-light-gray bg-wolzi-dark-gray/30 p-3 rounded-md border border-wolzi-gray/20 max-w-4xl">

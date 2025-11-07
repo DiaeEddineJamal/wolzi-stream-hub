@@ -303,24 +303,24 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
   const getSourceStatusIcon = (status: SourceStatus['status']) => {
     switch (status) {
       case 'testing':
-        return <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />;
+        return <div className="w-3 h-3 sm:w-3.5 sm:h-3.5 bg-yellow-400 rounded-full animate-pulse flex-shrink-0" />;
       case 'available':
-        return <div className="w-2 h-2 bg-wolzi-accent rounded-full" />;
+        return <div className="w-3 h-3 sm:w-3.5 sm:h-3.5 bg-wolzi-accent rounded-full flex-shrink-0" />;
       case 'unavailable':
-        return <div className="w-2 h-2 bg-red-400 rounded-full" />;
+        return <div className="w-3 h-3 sm:w-3.5 sm:h-3.5 bg-red-400 rounded-full flex-shrink-0" />;
       case 'active':
-        return <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />;
+        return <div className="w-3 h-3 sm:w-3.5 sm:h-3.5 bg-blue-400 rounded-full animate-pulse flex-shrink-0" />;
       case 'failed':
-        return <div className="w-2 h-2 bg-red-600 rounded-full" />;
+        return <div className="w-3 h-3 sm:w-3.5 sm:h-3.5 bg-red-600 rounded-full flex-shrink-0" />;
       case 'pending':
-        return <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse" />;
+        return <div className="w-3 h-3 sm:w-3.5 sm:h-3.5 bg-gray-500 rounded-full animate-pulse flex-shrink-0" />;
       default:
-        return <div className="w-2 h-2 bg-gray-400 rounded-full" />;
+        return <div className="w-3 h-3 sm:w-3.5 sm:h-3.5 bg-gray-400 rounded-full flex-shrink-0" />;
     }
   };
 
   return (
-    <div ref={playerRef} className="relative w-full h-full min-h-[250px] sm:min-h-[300px] md:min-h-[400px] lg:min-h-[500px] xl:min-h-[600px] bg-black rounded-lg sm:rounded-xl overflow-hidden">
+    <div ref={playerRef} className="relative w-full h-full min-h-[300px] sm:min-h-[380px] md:min-h-[450px] lg:min-h-[500px] xl:min-h-[600px] bg-black rounded-lg sm:rounded-xl overflow-hidden max-w-full">
       {/* Glassmorphism overlay container */}
       <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/20 backdrop-blur-[1px]">
         
@@ -404,23 +404,23 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
                   onClick={() => setShowSettings(!showSettings)}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 frosted-glass min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px] touch-manipulation"
+                  className="text-white hover:bg-white/10 frosted-glass w-[40px] h-[40px] sm:w-[44px] sm:h-[44px] p-0 flex items-center justify-center touch-manipulation flex-shrink-0"
                 >
-                  <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Settings className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
                 </Button>
               </div>
             </div>
 
             {/* Bottom controls */}
-            <div className="absolute bottom-0 left-0 right-0 z-30 p-3 sm:p-4 md:p-6 bg-gradient-to-t from-black/60 via-black/20 to-transparent">
-              <div className="flex items-center justify-end">
+            <div className="absolute bottom-0 left-0 right-0 z-30 p-3 sm:p-4 md:p-6 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none">
+              <div className="flex items-center justify-end w-auto pointer-events-auto">
                 <Button
                   onClick={toggleFullscreen}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 frosted-glass min-w-[44px] min-h-[44px] sm:min-w-[48px] sm:min-h-[48px] touch-manipulation"
+                  className="text-white hover:bg-white/10 frosted-glass w-[44px] h-[44px] sm:w-[48px] sm:h-[48px] p-0 flex items-center justify-center touch-manipulation flex-shrink-0 max-w-[48px] max-h-[48px]"
                 >
-                  <Maximize className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <Maximize className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
                 </Button>
               </div>
             </div>
