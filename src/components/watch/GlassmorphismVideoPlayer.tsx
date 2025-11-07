@@ -37,6 +37,7 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showPlayOverlay, setShowPlayOverlay] = useState(true);
   const [currentSource, setCurrentSource] = useState<string>('');
   const [sourceUrl, setSourceUrl] = useState<string>('');
   const [sources, setSources] = useState<SourceStatus[]>([]);
@@ -109,6 +110,8 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
           ));
           setTestingProgress('');
           setIsLoading(false);
+          setShowPlayOverlay(true); // Show play overlay for new source
+          setIsPlaying(false); // Reset playing state
           onSourceChange?.(bestSource.id);
         } else {
           // No working sources found
@@ -147,6 +150,8 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
     setIsLoading(true);
     setError(null); // Clear any previous errors
     setCurrentSource(sourceId);
+    setShowPlayOverlay(true); // Show play overlay for new source
+    setIsPlaying(false); // Reset playing state
     
     // If source doesn't have a URL, generate it
     let sourceUrl = source.url;
@@ -199,6 +204,58 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
   // Handle iframe load
   const handleIframeLoad = () => {
     setIsLoading(false);
+    setShowPlayOverlay(true); // Show play overlay when iframe loads
+  };
+
+  // Handle play button click - simulate click on iframe to trigger play
+  const handlePlayClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (iframeRef.current) {
+      const iframe = iframeRef.current;
+      
+      // Hide overlay immediately for better UX
+      setShowPlayOverlay(false);
+      setIsPlaying(true);
+      
+      // Try multiple methods to trigger play
+      // Method 1: Focus the iframe
+      iframe.focus();
+      
+      // Method 2: Programmatically click the iframe
+      try {
+        iframe.click();
+      } catch (err) {
+        console.log('Direct click not possible, trying alternative method');
+      }
+      
+      // Method 3: Simulate a click event at the center of the iframe
+      const rect = iframe.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      
+      // Create and dispatch click events
+      const clickEvents = ['mousedown', 'mouseup', 'click', 'touchstart', 'touchend'];
+      clickEvents.forEach(eventType => {
+        const event = new MouseEvent(eventType, {
+          view: window,
+          bubbles: true,
+          cancelable: true,
+          clientX: centerX,
+          clientY: centerY,
+          button: 0
+        });
+        iframe.dispatchEvent(event);
+      });
+      
+      // Method 4: Try to send a postMessage (if iframe supports it)
+      try {
+        iframe.contentWindow?.postMessage('play', '*');
+      } catch (err) {
+        // Cross-origin restrictions may prevent this
+      }
+    }
   };
 
   // Handle iframe error with automatic fallback
@@ -379,8 +436,51 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
               sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups allow-popups-to-escape-sandbox allow-fullscreen allow-pointer-lock"
             } : {})}
             allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share; pointer-lock"
+            onClick={() => {
+              // Hide overlay when iframe is clicked directly
+              setShowPlayOverlay(false);
+              setIsPlaying(true);
+            }}
           />
         )}
+
+        {/* Play Overlay Button - Shows when video is not playing */}
+        <AnimatePresence>
+          {!isLoading && !error && showPlayOverlay && sourceUrl && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 z-20 flex items-center justify-center pointer-events-auto"
+            >
+              <motion.button
+                onClick={handlePlayClick}
+                className="frosted-glass border-2 border-white/30 hover:border-white/50 rounded-full p-6 sm:p-8 md:p-10 shadow-2xl backdrop-blur-xl transition-all duration-300 hover:scale-110 active:scale-95 touch-manipulation"
+                style={{
+                  background: 'rgba(0, 0, 0, 0.4)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitTapHighlightColor: 'transparent'
+                }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Play className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 text-white fill-white ml-1 sm:ml-2" />
+              </motion.button>
+              
+              {/* Hint text for all screen sizes */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="absolute bottom-20 sm:bottom-24 md:bottom-28 left-1/2 transform -translate-x-1/2 text-white/90 text-sm sm:text-base md:text-lg font-medium text-center px-4 py-2 rounded-lg bg-black/50 backdrop-blur-sm"
+              >
+                <span className="hidden sm:inline">Click</span>
+                <span className="sm:hidden">Tap</span> to play
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Control overlays */}
         {!isLoading && !error && (
