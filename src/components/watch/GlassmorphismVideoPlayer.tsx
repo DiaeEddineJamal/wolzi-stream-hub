@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { streamingSources, getStreamingUrl } from '@/integrations/api/streamingSources';
 import { createStreamingSources, autoSelectBestSource, testStreamingSource, SourceTestResult } from '@/utils/sourceTestUtils';
 import { StreamingSource } from './SourceSelector';
+import { useAdBlocker } from '@/hooks/useAdBlocker';
 
 interface GlassmorphismVideoPlayerProps {
   mediaType: 'movie' | 'tv' | 'anime';
@@ -49,6 +50,9 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
   
   const playerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Enable ad blocking for the iframe
+  useAdBlocker(iframeRef, true);
 
   // Initialize sources and test them automatically (P-Stream approach)
   useEffect(() => {
@@ -505,9 +509,14 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
                   onClick={() => setShowSettings(!showSettings)}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 frosted-glass w-[40px] h-[40px] sm:w-[44px] sm:h-[44px] p-0 flex items-center justify-center touch-manipulation flex-shrink-0"
+                  className="text-white hover:bg-white/10 frosted-glass !w-[40px] !h-[40px] sm:!w-[44px] sm:!h-[44px] !p-0 !m-0 !min-w-0 !min-h-0 !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+                  style={{ 
+                    pointerEvents: 'auto',
+                    boxSizing: 'border-box',
+                    lineHeight: '1'
+                  }}
                 >
-                  <Settings className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
+                  <Settings className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 pointer-events-none" />
                 </Button>
               </div>
             </div>
@@ -519,9 +528,14 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
                   onClick={toggleFullscreen}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 frosted-glass w-[44px] h-[44px] sm:w-[48px] sm:h-[48px] p-0 flex items-center justify-center touch-manipulation flex-shrink-0 max-w-[48px] max-h-[48px]"
+                  className="text-white hover:bg-white/10 frosted-glass !w-[44px] !h-[44px] sm:!w-[48px] sm:!h-[48px] !p-0 !m-0 !min-w-0 !min-h-0 !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 max-w-[48px] max-h-[48px] cursor-pointer"
+                  style={{ 
+                    pointerEvents: 'auto',
+                    boxSizing: 'border-box',
+                    lineHeight: '1'
+                  }}
                 >
-                  <Maximize className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
+                  <Maximize className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 pointer-events-none" />
                 </Button>
               </div>
             </div>

@@ -24,17 +24,27 @@
     <link rel="icon" href="/favicon.ico?v=3" />
     <link rel="shortcut icon" href="/favicon.ico?v=3" type="image/x-icon" />
     
-    <!-- Register auth service worker for better auth management -->
+    <!-- Register service workers for auth management and ad blocking -->
     <script>
-      // Register service worker for auth management
+      // Register service workers
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
+          // Register auth service worker
           navigator.serviceWorker.register('/auth-service-worker.js')
             .then(registration => {
               console.log('Auth service worker registered:', registration.scope);
             })
             .catch(error => {
               console.log('Auth service worker registration failed:', error);
+            });
+          
+          // Register ad-blocking service worker
+          navigator.serviceWorker.register('/ad-block-service-worker.js')
+            .then(registration => {
+              console.log('Ad-block service worker registered:', registration.scope);
+            })
+            .catch(error => {
+              console.log('Ad-block service worker registration failed:', error);
             });
         });
       }
