@@ -23,11 +23,6 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Switch } from "@/components/ui/switch";
-import { blockServerAds } from "@/utils/server-ad-blocker";
-import {
-  applyAdBlockerToIframes,
-  createIframeAdBlockerScript,
-} from "@/utils/iframe-ad-blocker";
 import MainLayout from "@/layouts/MainLayout";
 
 type MediaType = "movie" | "tv" | "anime";
@@ -1132,36 +1127,17 @@ const Watch: React.FC = () => {
     };
   }, []);
 
-  // Modify the handleIframeLoad function to apply ad blocking
+  // Modify the handleIframeLoad function
   const handleIframeLoad = () => {
     console.log("Iframe loaded successfully");
 
     // Reset the VidSrc.to network error state
     setVidsrcNetworkError(false);
 
-    // Apply ad blocking to the iframe
+    // Send a message to the iframe asking for video events
     try {
       const iframe = document.querySelector("iframe");
       if (iframe && iframe.contentWindow) {
-        // Try to inject the ad blocker script directly
-        try {
-          if (iframe.contentDocument && iframe.contentDocument.head) {
-            const script = document.createElement("script");
-            script.textContent = createIframeAdBlockerScript();
-            iframe.contentDocument.head.appendChild(script);
-            console.log("Successfully injected ad blocker script into iframe");
-          }
-        } catch (e) {
-          // Cross-origin restrictions prevent direct access
-          console.log(
-            "Cross-origin restrictions prevented direct script injection",
-          );
-
-          // Use message passing to communicate with the iframe
-          iframe.contentWindow.postMessage("run-ad-blocker", "*");
-        }
-
-        // Send a message to the iframe asking for video events
         // This won't work with all players due to CORS, but worth trying
         iframe.contentWindow.postMessage(
           {

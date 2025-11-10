@@ -6,7 +6,6 @@ import { Switch } from '@/components/ui/switch';
 import { streamingSources, getStreamingUrl } from '@/integrations/api/streamingSources';
 import { createStreamingSources, autoSelectBestSource, testStreamingSource, SourceTestResult } from '@/utils/sourceTestUtils';
 import { StreamingSource } from './SourceSelector';
-import { useAdBlocker } from '@/hooks/useAdBlocker';
 
 interface GlassmorphismVideoPlayerProps {
   mediaType: 'movie' | 'tv' | 'anime';
@@ -50,9 +49,6 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
   
   const playerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  // Enable ad blocking for the iframe
-  useAdBlocker(iframeRef, true);
 
   // Initialize sources and test them automatically (P-Stream approach)
   useEffect(() => {

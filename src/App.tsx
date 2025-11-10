@@ -6,13 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Analytics } from "@vercel/analytics/react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import { useEffect } from "react";
-import { initPerformanceOptimizer } from "@/utils/performance-optimizer";
-import { initServerAdBlocker } from "@/utils/server-ad-blocker";
-import { preloadAdBlockerScript, applyAdBlockerToIframes } from "@/utils/iframe-ad-blocker";
-import { setupGoogleAds } from "@/utils/ad-whitelist";
-import { registerAdBlockerServiceWorker } from "@/utils/service-worker-register";
-import { initNetworkAdBlocker } from "@/utils/network-ad-blocker";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
@@ -254,39 +247,6 @@ const fetchSearchResultsPage = async (page: number, query: string, type: string)
 };
 
 const App = () => {
-  // Initialize performance optimizer and ad blockers on component mount
-  useEffect(() => {
-    // Register service worker for network-level ad blocking (works for cross-origin iframes)
-    registerAdBlockerServiceWorker().then((registration) => {
-      if (registration) {
-        console.log("Ad blocker service worker registered successfully");
-      }
-    }).catch((error) => {
-      console.error("Failed to register ad blocker service worker:", error);
-    });
-    
-    // Initialize network-level ad blocking (fallback for when service worker isn't available)
-    initNetworkAdBlocker();
-    
-    // Initialize performance optimizer (includes general ad blocking)
-    initPerformanceOptimizer();
-    
-    // Initialize server-specific ad blocker
-    initServerAdBlocker();
-    
-    // Preload ad blocker script for iframes
-    preloadAdBlockerScript();
-    
-    // Apply ad blocker to any existing iframes
-    applyAdBlockerToIframes();
-    
-    // Prepare for Google Ads implementation
-    // When ready to monetize with Google Ads, uncomment the line below 
-    // and replace 'YOUR_GOOGLE_ADS_CLIENT_ID' with your actual Google AdSense client ID
-    // setupGoogleAds('YOUR_GOOGLE_ADS_CLIENT_ID');
-    
-    console.log("Performance and ad blocking optimizations initialized");
-  }, []);
 
   return (
   <QueryClientProvider client={queryClient}>

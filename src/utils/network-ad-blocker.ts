@@ -168,27 +168,44 @@ function blockXHRRequests(): void {
 function blockAdScripts(): void {
   if (typeof document === 'undefined') return;
   
-  const originalCreateElement = document.createElement;
-  
-  document.createElement = function(tagName: string, options?: ElementCreationOptions): HTMLElement {
-    const element = originalCreateElement.call(document, tagName, options);
+  try {
+    const originalCreateElement = document.createElement;
     
-    if (tagName.toLowerCase() === 'script') {
-      const originalSetAttribute = element.setAttribute.bind(element);
-      
-      element.setAttribute = function(name: string, value: string): void {
-        if (name === 'src' && typeof value === 'string') {
-          if (isAdDomain(value)) {
-            console.log('[Network Ad Blocker] Blocked script with ad domain src:', value);
-            return; // Don't set the src attribute
+    // Use Object.defineProperty to safely override createElement
+    Object.defineProperty(document, 'createElement', {
+      value: function(tagName: string, options?: ElementCreationOptions): HTMLElement {
+        const element = originalCreateElement.call(document, tagName, options);
+        
+        if (tagName.toLowerCase() === 'script') {
+          try {
+            const originalSetAttribute = element.setAttribute.bind(element);
+            
+            Object.defineProperty(element, 'setAttribute', {
+              value: function(name: string, value: string): void {
+                if (name === 'src' && typeof value === 'string') {
+                  if (isAdDomain(value)) {
+                    console.log('[Network Ad Blocker] Blocked script with ad domain src:', value);
+                    return; // Don't set the src attribute
+                  }
+                }
+                return originalSetAttribute(name, value);
+              },
+              writable: true,
+              configurable: true
+            });
+          } catch (error) {
+            console.error('[Network Ad Blocker] Error overriding setAttribute:', error);
           }
         }
-        return originalSetAttribute(name, value);
-      };
-    }
-    
-    return element;
-  };
+        
+        return element;
+      },
+      writable: true,
+      configurable: true
+    });
+  } catch (error) {
+    console.error('[Network Ad Blocker] Error overriding createElement:', error);
+  }
 }
 
 /**
