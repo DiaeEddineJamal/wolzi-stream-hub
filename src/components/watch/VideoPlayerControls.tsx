@@ -100,6 +100,7 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
     resetTimeout();
 
     const handleMouseMove = () => resetTimeout();
+    const handleTouchStart = () => resetTimeout();
     const handleMouseLeave = () => {
       if (!isDragging && isPlaying) {
         setControlsVisible(false);
@@ -107,11 +108,13 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
     };
 
     document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('touchstart', handleTouchStart, { passive: true } as EventListenerOptions);
     document.addEventListener('mouseleave', handleMouseLeave);
 
     return () => {
       clearTimeout(timeout);
       document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('touchstart', handleTouchStart as EventListener);
       document.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, [showControls, isDragging, isPlaying, autoHideDelay]);
@@ -145,7 +148,7 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
-          className="absolute bottom-0 left-0 right-0 z-50 pointer-events-auto video-player-controls"
+          className="absolute bottom-0 left-0 right-0 z-[70] pointer-events-auto video-player-controls"
           style={{ overflow: 'visible' }}
         >
           {/* Progress Bar (hidden here - moved inside main controls to prevent overlap) */}
@@ -161,7 +164,7 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                   onValueChange={handleProgressChange}
                   onValueCommit={() => setIsDragging(false)}
                   onPointerDown={() => setIsDragging(true)}
-                  className="w-full cursor-pointer touch-manipulation"
+                  className="w-full cursor-pointer touch-manipulation py-2"
                   max={100}
                   step={0.1}
                 />
@@ -176,11 +179,12 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
               <div className="flex items-center space-x-2 sm:space-x-3 pointer-events-auto" style={{ overflow: 'visible', position: 'relative', zIndex: 50 }}>
                 {/* Previous Episode */}
                 <Button
+                  aria-label="Previous episode"
                   onClick={onPrevious}
                   disabled={!canGoPrevious}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 disabled:opacity-50 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
+                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 disabled:opacity-50 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
@@ -201,10 +205,11 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
 
                 {/* Skip Back */}
                 <Button
+                  aria-label="Skip back 10 seconds"
                   onClick={() => onSeek?.(Math.max(0, currentTime - 10))}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
+                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
@@ -225,6 +230,7 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
 
                 {/* Play/Pause */}
                 <Button
+                  aria-label={isPlaying ? 'Pause' : 'Play'}
                   onClick={isPlaying ? onPause : onPlay}
                   size="lg"
                   className="frosted-glass border-white/20 hover:bg-white/10 active:bg-white/20 text-white !w-[64px] !h-[64px] sm:!w-[72px] sm:!h-[72px] md:!w-[80px] md:!h-[80px] !p-0 !m-0 !min-w-[64px] !min-h-[64px] sm:!min-w-[72px] sm:!min-h-[72px] md:!min-w-[80px] md:!min-h-[80px] !leading-none rounded-full touch-manipulation active:scale-95 transition-all duration-150 select-none flex items-center justify-center flex-shrink-0 cursor-pointer relative"
@@ -254,10 +260,11 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
 
                 {/* Skip Forward */}
                 <Button
+                  aria-label="Skip forward 10 seconds"
                   onClick={() => onSeek?.(Math.min(duration, currentTime + 10))}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
+                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
@@ -278,11 +285,12 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
 
                 {/* Next Episode */}
                 <Button
+                  aria-label="Next episode"
                   onClick={onNext}
                   disabled={!canGoNext}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 disabled:opacity-50 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
+                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 disabled:opacity-50 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
@@ -308,10 +316,11 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                   onMouseLeave={() => setShowVolumeSlider(false)}
                 >
                   <Button
+                    aria-label={isMuted || volume === 0 ? 'Unmute' : 'Mute'}
                     onClick={onMute}
                     size="sm"
                     variant="ghost"
-                    className="text-white hover:bg-white/10 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
+                    className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                     style={{ 
                       pointerEvents: 'auto',
                       boxSizing: 'border-box',
@@ -345,7 +354,7 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                         <Slider
                           value={[volume]}
                           onValueChange={handleVolumeChange}
-                          className="w-20 touch-manipulation"
+                          className="w-24 touch-manipulation py-2"
                           max={100}
                           step={1}
                         />
@@ -366,10 +375,11 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
               <div className="flex items-center space-x-1 sm:space-x-2 pointer-events-auto" style={{ overflow: 'visible', position: 'relative', zIndex: 50 }}>
                 {/* Reload */}
                 <Button
+                  aria-label="Reload player"
                   onClick={onReload}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
+                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
@@ -390,10 +400,11 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
 
                 {/* Download - Hidden on mobile */}
                 <Button
+                  aria-label="Download video"
                   onClick={onDownload}
                   size="sm"
                   variant="ghost"
-                  className="hidden sm:flex text-white hover:bg-white/10 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
+                  className="hidden sm:flex text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
@@ -414,10 +425,11 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
 
                 {/* Add to Watchlist - Hidden on mobile */}
                 <Button
+                  aria-label="Add to watchlist"
                   onClick={onAddToWatchlist}
                   size="sm"
                   variant="ghost"
-                  className="hidden sm:flex text-white hover:bg-white/10 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
+                  className="hidden sm:flex text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
@@ -438,10 +450,11 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
 
                 {/* Share - Hidden on mobile */}
                 <Button
+                  aria-label="Share"
                   onClick={onShare}
                   size="sm"
                   variant="ghost"
-                  className="hidden sm:flex text-white hover:bg-white/10 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
+                  className="hidden sm:flex text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
@@ -462,10 +475,11 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
 
                 {/* Settings */}
                 <Button
+                  aria-label="Settings"
                   onClick={onSettings}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
+                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
@@ -486,10 +500,11 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
 
                 {/* Fullscreen */}
                 <Button
+                  aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
                   onClick={onFullscreen}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 !w-[44px] !h-[44px] sm:!w-[48px] sm:!h-[48px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] sm:!min-w-[48px] sm:!min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
+                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] sm:!w-[48px] sm:!h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] sm:!min-w-[48px] sm:!min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',

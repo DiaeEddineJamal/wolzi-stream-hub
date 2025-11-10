@@ -486,7 +486,7 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
         {!isLoading && !error && (
           <>
             {/* Top controls */}
-            <div className="absolute top-0 left-0 right-0 z-30 p-3 sm:p-4 md:p-6 bg-gradient-to-b from-black/60 via-black/20 to-transparent pointer-events-none">
+            <div className="absolute top-0 left-0 right-0 z-[60] p-3 sm:p-4 md:p-6 bg-gradient-to-b from-black/60 via-black/20 to-transparent pointer-events-none">
               <div className="flex items-center justify-between pointer-events-auto">
                 <div className="flex items-center space-x-2 sm:space-x-3">
                   <div className="frosted-glass px-2 sm:px-3 py-1 rounded-full">
@@ -502,10 +502,11 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
                 </div>
                 
                 <Button
+                  aria-label="Open player settings"
                   onClick={() => setShowSettings(!showSettings)}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 frosted-glass !w-[44px] !h-[44px] !p-2 !m-0 !min-w-[44px] !min-h-[44px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
+                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 frosted-glass !w-[48px] !h-[48px] !p-2 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
@@ -520,13 +521,14 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
             </div>
 
             {/* Bottom controls */}
-            <div className="absolute bottom-0 left-0 right-0 z-30 p-3 sm:p-4 md:p-6 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none">
+            <div className="absolute bottom-0 left-0 right-0 z-[60] p-3 sm:p-4 md:p-6 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none">
               <div className="flex items-center justify-end w-auto pointer-events-auto">
                 <Button
+                  aria-label="Toggle fullscreen"
                   onClick={toggleFullscreen}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 frosted-glass !w-[44px] !h-[44px] sm:!w-[48px] sm:!h-[48px] !p-2 !m-0 !min-w-[44px] !min-h-[44px] sm:!min-w-[48px] sm:!min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
+                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 frosted-glass !w-[48px] !h-[48px] !p-2 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
