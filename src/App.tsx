@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Analytics } from "@vercel/analytics/react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import { useGoogleAds } from "@/hooks/useGoogleAds";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
@@ -247,6 +248,9 @@ const fetchSearchResultsPage = async (page: number, query: string, type: string)
 };
 
 const App = () => {
+  // Initialize Google AdSense
+  const googleAdsClientId = import.meta.env.VITE_GOOGLE_ADS_CLIENT_ID;
+  useGoogleAds(googleAdsClientId);
 
   return (
   <QueryClientProvider client={queryClient}>
