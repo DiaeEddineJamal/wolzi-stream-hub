@@ -56,33 +56,57 @@ export const GoogleAd: React.FC<GoogleAdProps> = ({
   const isLoaded = useRef(false);
 
   useEffect(() => {
-    // Ensure Google AdSense script is loaded
-    if (!window.adsbygoogle) {
-      window.adsbygoogle = [];
-    }
+    let timer: NodeJS.Timeout;
+    
+    try {
+      // Ensure Google AdSense script is loaded
+      if (typeof window !== 'undefined') {
+        if (!window.adsbygoogle) {
+          window.adsbygoogle = [];
+        }
 
-    // Only push the ad once
-    if (!isLoaded.current && adRef.current) {
-      try {
-        (window.adsbygoogle = window.adsbygoogle || []).push({});
-        isLoaded.current = true;
-      } catch (error) {
-        console.error('Error loading Google Ad:', error);
+        // Only push the ad once, with a delay to allow script to load
+        if (!isLoaded.current && adRef.current) {
+          timer = setTimeout(() => {
+            try {
+              if (window.adsbygoogle && Array.isArray(window.adsbygoogle)) {
+                window.adsbygoogle.push({});
+                isLoaded.current = true;
+              }
+            } catch (error) {
+              // Silently handle - ad blockers will prevent this
+            }
+          }, 100);
+        }
       }
+    } catch (error) {
+      // Silently handle any errors
     }
+    
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [adClient, adSlot]);
 
   // Load Google AdSense script if not already loaded
   useEffect(() => {
-    if (!document.querySelector('script[src*="adsbygoogle"]')) {
-      const script = document.createElement('script');
-      script.async = true;
-      script.crossOrigin = 'anonymous';
-      script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adClient}`;
-      script.onerror = () => {
-        console.error('Failed to load Google AdSense script');
-      };
-      document.head.appendChild(script);
+    try {
+      if (!document.querySelector('script[src*="adsbygoogle"]')) {
+        const script = document.createElement('script');
+        script.async = true;
+        script.crossOrigin = 'anonymous';
+        script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adClient}`;
+        script.onerror = () => {
+          // Silently handle - ad blockers will block this
+        };
+        try {
+          document.head.appendChild(script);
+        } catch (error) {
+          // Silently handle append errors
+        }
+      }
+    } catch (error) {
+      // Silently handle any errors
     }
   }, [adClient]);
 

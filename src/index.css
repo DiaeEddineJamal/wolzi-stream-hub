@@ -424,6 +424,124 @@
   display: none; /* Chrome, Safari and Opera */
 }
 
+/* Video player controls button fix - ensure full clickable area */
+.video-player-controls button {
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 60 !important;
+  isolation: isolate;
+}
+
+/* Ensure button containers don't clip */
+.video-player-controls > * {
+  overflow: visible !important;
+}
+
+/* Make sure buttons are fully clickable and centered */
+.video-player-controls button,
+.video-player-controls [role="button"] {
+  min-height: 48px !important;
+  min-width: 48px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Ensure icons are perfectly centered within buttons */
+.video-player-controls button svg,
+.video-player-controls button [class*="lucide"] {
+  margin: 0 !important;
+  display: block !important;
+}
+
+/* Prevent progress bar section from overlapping buttons */
+.video-player-controls > div:first-child {
+  z-index: 10 !important;
+  pointer-events: none !important;
+  max-height: 36px !important;
+  height: 36px !important;
+  overflow: hidden !important;
+  position: relative !important;
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Slider container should be clickable but contained */
+.video-player-controls > div:first-child > div {
+  pointer-events: auto !important;
+  max-height: 34px !important;
+  height: 34px !important;
+  overflow: hidden !important;
+}
+
+/* Slider itself */
+.video-player-controls > div:first-child [role="slider"],
+.video-player-controls > div:first-child [data-radix-slider-root] {
+  max-height: 20px !important;
+  height: 20px !important;
+  overflow: visible !important;
+  pointer-events: auto !important;
+}
+
+/* Slider track and thumb - ensure they don't extend beyond container */
+.video-player-controls > div:first-child [data-radix-slider-track] {
+  max-height: 8px !important;
+  height: 8px !important;
+  overflow: hidden !important;
+}
+
+.video-player-controls > div:first-child [data-radix-slider-thumb] {
+  max-height: 20px !important;
+  height: 20px !important;
+  width: 20px !important;
+  max-width: 20px !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure time display doesn't overlap buttons */
+.video-player-controls .flex.justify-between {
+  height: 14px !important;
+  max-height: 14px !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  margin-top: 4px !important;
+  line-height: 14px !important;
+}
+
+/* Main controls container should be above progress bar */
+.video-player-controls > div:last-child {
+  z-index: 30 !important;
+  position: relative !important;
+  isolation: isolate !important;
+  margin-top: 0 !important;
+}
+
+/* Ensure buttons are completely isolated and clickable */
+.video-player-controls > div:last-child > div {
+  position: relative !important;
+  z-index: 40 !important;
+  isolation: isolate !important;
+}
+
+.video-player-controls > div:last-child button {
+  position: relative !important;
+  z-index: 60 !important;
+  isolation: isolate !important;
+}
+
+/* Critical: Ensure progress bar section cannot overlap buttons */
+.video-player-controls > div:first-child {
+  clip-path: inset(0 0 0 0) !important;
+}
+
+/* Ensure buttons container starts right after progress bar */
+.video-player-controls > div:last-child {
+  transform: translateZ(0) !important;
+  will-change: transform !important;
+}
+
 /* Mobile tab improvements */
 @media (max-width: 640px) {
   .TabsList {

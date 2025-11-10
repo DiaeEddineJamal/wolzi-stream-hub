@@ -1,3 +1,4 @@
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -248,7 +249,7 @@ const fetchSearchResultsPage = async (page: number, query: string, type: string)
 };
 
 const App = () => {
-  // Initialize Google AdSense
+  // Initialize Google AdSense (silently fail if blocked by ad blockers)
   const googleAdsClientId = import.meta.env.VITE_GOOGLE_ADS_CLIENT_ID;
   useGoogleAds(googleAdsClientId);
 

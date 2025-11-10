@@ -1,6 +1,5 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { AdBanner } from "@/components/ads";
 
 const Footer: React.FC = () => {
   // Get Google AdSense client ID from environment variables
@@ -8,10 +7,27 @@ const Footer: React.FC = () => {
   // Replace with your actual footer ad slot ID from Google AdSense dashboard
   const footerAdSlot = import.meta.env.VITE_GOOGLE_ADS_FOOTER_SLOT || '';
 
+  // Dynamically import ad component to prevent crashes if blocked
+  const [AdBanner, setAdBanner] = React.useState<React.ComponentType<any> | null>(null);
+
+  React.useEffect(() => {
+    if (adClientId && footerAdSlot) {
+      // Dynamically import to prevent module loading errors
+      import('@/components/ads')
+        .then((module) => {
+          setAdBanner(() => module.AdBanner);
+        })
+        .catch((error) => {
+          // Silently handle - ad blockers may prevent module loading
+          console.log('Ad component could not be loaded (may be blocked)');
+        });
+    }
+  }, [adClientId, footerAdSlot]);
+
   return (
     <footer className="mt-auto py-8 bg-black/60 backdrop-blur-md">
       {/* Example: Add banner ad above footer content */}
-      {adClientId && footerAdSlot && (
+      {adClientId && footerAdSlot && AdBanner && (
         <div className="container mx-auto px-4 mb-6">
           <AdBanner
             adClient={adClientId}

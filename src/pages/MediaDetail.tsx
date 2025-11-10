@@ -132,7 +132,7 @@ const MediaDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [mediaDetails, setMediaDetails] = useState<MediaDetails | null>(null);
   const [seasonDetails, setSeasonDetails] = useState<SeasonDetails | null>(null);
-  const [activeTab, setActiveTab] = useState('stream');
+  const [activeTab, setActiveTab] = useState('trailer'); // Will be set to 'details' if no trailer
   const [selectedSeason, setSelectedSeason] = useState<number | null>(seasonNumber ? parseInt(seasonNumber) : 1);
   const [selectedEpisode, setSelectedEpisode] = useState<number | null>(episodeNumber ? parseInt(episodeNumber) : 1);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -210,10 +210,15 @@ const MediaDetail: React.FC = () => {
           
           if (officialTrailer) {
             setTrailerKey(officialTrailer.key);
+            setActiveTab('trailer');
           } else if (anyTrailer) {
             setTrailerKey(anyTrailer.key);
+            setActiveTab('trailer');
           } else if (anyVideo) {
             setTrailerKey(anyVideo.key);
+            setActiveTab('trailer');
+          } else {
+            setActiveTab('details');
           }
         }
         
@@ -677,7 +682,7 @@ const MediaDetail: React.FC = () => {
     } else if (actualMediaType === 'movie') {
       navigate(`/watch/movie/${id}`);
     } else {
-      setActiveTab('stream');
+      setActiveTab('trailer');
       setIsPlaying(true);
     }
   };
@@ -873,15 +878,7 @@ const MediaDetail: React.FC = () => {
           <div className="overflow-x-auto pb-2 no-scrollbar">
             <TabsList className="flex w-full md:w-auto min-w-max">
               {trailerKey && <TabsTrigger value="trailer" className="text-sm md:text-base px-4 py-2">Trailer</TabsTrigger>}
-              <TabsTrigger value="stream" className="text-sm md:text-base px-4 py-2">Watch</TabsTrigger>
               <TabsTrigger value="details" className="text-sm md:text-base px-4 py-2">Details</TabsTrigger>
-              {actualMediaType === 'tv' && (
-                <TabsTrigger value="episodes" className="text-sm md:text-base px-4 py-2">Episodes</TabsTrigger>
-              )}
-              {actualMediaType === 'anime' && (
-                <TabsTrigger value="episodes" className="text-sm md:text-base px-4 py-2">Episodes</TabsTrigger>
-              )}
-              <TabsTrigger value="sources" className="text-sm md:text-base px-4 py-2">Sources</TabsTrigger>
             </TabsList>
           </div>
           
@@ -925,216 +922,6 @@ const MediaDetail: React.FC = () => {
             </TabsContent>
           )}
           
-          {/* Stream Tab */}
-          <TabsContent value="stream" className="mt-4 md:mt-6">
-            <Card className="p-3 md:p-6">
-              <h2 className="text-lg md:text-xl font-medium mb-3 md:mb-4">Watch {title}</h2>
-              <div className="aspect-video w-full bg-black rounded-md overflow-hidden min-h-[400px] md:min-h-[500px] lg:min-h-[600px]">
-                {actualMediaType === 'movie' && (
-                  <iframe
-                    src={getStreamUrl()}
-                    className="w-full h-full"
-                    frameBorder="0"
-                    allowFullScreen
-                    title={`${title} stream`}
-                    {...(!disableSandbox ? {
-                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups allow-popups-to-escape-sandbox allow-fullscreen allow-pointer-lock"
-                    } : {})}
-                    allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share; pointer-lock"
-                  ></iframe>
-                )}
-                
-                {actualMediaType === 'tv' && selectedSeason && selectedEpisode && (
-                  <iframe
-                    src={getStreamUrl()}
-                    className="w-full h-full"
-                    frameBorder="0"
-                    allowFullScreen
-                    title={`${title} S${selectedSeason}E${selectedEpisode} stream`}
-                    {...(!disableSandbox ? {
-                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups allow-popups-to-escape-sandbox allow-fullscreen allow-pointer-lock"
-                    } : {})}
-                    allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share; pointer-lock"
-                  ></iframe>
-                )}
-                
-                {actualMediaType === 'anime' && selectedEpisode && streamingLinks.length > 0 && (
-                  <iframe
-                    src={streamingLinks[0].url}
-                    className="w-full h-full"
-                    frameBorder="0"
-                    allowFullScreen
-                    title={`${title} episode ${selectedEpisode} stream`}
-                    {...(!disableSandbox ? {
-                      sandbox: "allow-scripts allow-same-origin allow-forms allow-presentation allow-top-navigation allow-popups allow-popups-to-escape-sandbox allow-fullscreen allow-pointer-lock"
-                    } : {})}
-                    allow="autoplay; fullscreen; picture-in-picture; encrypted-media; web-share; pointer-lock"
-                  ></iframe>
-                )}
-              </div>
-              
-              <div className="mt-3 md:mt-4 flex justify-center">
-                <Button 
-                  className="glow-button w-full md:w-64 py-4 md:py-6 text-base md:text-lg font-medium" 
-                  onClick={handleWatchNow}
-                >
-                  <Play className="mr-2 h-5 w-5" />
-                  Open Full Player
-                </Button>
-              </div>
-              
-              {/* Player Settings */}
-              <div className="mt-6 border border-purple-400/20 rounded-md p-3 md:p-4">
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between">
-                  <div className="mb-3 md:mb-0">
-                    <h3 className="text-sm font-medium text-white">Player Settings</h3>
-                    <p className="text-xs text-white/70 mt-1">
-                      Configure your stream playback options
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto">
-                    <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-start p-2 rounded-md">
-                      <label className="text-sm text-white/80">Sandbox Mode:</label>
-                      <div className="flex items-center gap-2">
-                        <Switch 
-                          checked={!disableSandbox}
-                          onCheckedChange={(value) => {
-                            setDisableSandbox(!value);
-                            // Force iframe reload
-                            const tempActiveTab = activeTab;
-                            setActiveTab('details');
-                            setTimeout(() => setActiveTab(tempActiveTab), 50);
-                          }}
-                        />
-                        <span className={`text-xs ${!disableSandbox ? "text-purple-400" : "text-red-400"}`}> 
-                          {!disableSandbox ? "Enabled" : "Disabled"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-2 block md:hidden">
-                  <p className="text-xs text-white/60">
-                    <span className="text-white/80">Sandbox Mode</span>: Provides secure playback (recommended). 
-                    If you experience issues with certain servers, try disabling this feature temporarily.
-                  </p>
-                </div>
-              </div>
-              
-              {/* TV Show Episode Navigation */}
-              {actualMediaType === 'tv' && mediaDetails?.seasons && mediaDetails.seasons.length > 0 && (
-                <div className="mt-8">
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {mediaDetails.seasons.map((season) => (
-                      <Button
-                        key={season.season_number}
-                        variant={selectedSeason === season.season_number ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setSelectedSeason(season.season_number)}
-                      >
-                        Season {season.season_number}
-                      </Button>
-                    ))}
-                  </div>
-                  
-                  {seasonDetails ? (
-                    <div className="space-y-4">
-                      <div className="mb-6 p-4 rounded-md border border-purple-400/30">
-                        <h2 className="text-xl font-bold text-white">{seasonDetails.name}</h2>
-                        {seasonDetails.episodes && (
-                          <div className="flex items-center mt-1">
-                            <p className="text-white/90">{seasonDetails.episodes.length} Episodes</p>
-                            <div className="mx-2 w-1 h-1 rounded-full bg-white/40"></div>
-                            <p className="text-white/80 text-sm">{seasonDetails.episodes[0]?.air_date ? new Date(seasonDetails.episodes[0].air_date).getFullYear() : ''}</p>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-3">
-                        {seasonDetails.episodes?.map((episode) => (
-                          <div 
-                            key={episode.id}
-                            className={`p-4 rounded-lg transition-all duration-200 ${
-                              selectedEpisode === episode.episode_number 
-                                ? 'bg-purple-500/10 border border-purple-500/60 shadow-md shadow-purple-500/20' 
-                                : 'border border-purple-400/20 hover:border-purple-400/40'
-                            } cursor-pointer relative group`}
-                            onClick={() => {
-                              handleEpisodeSelect(episode.episode_number);
-                              setActiveTab('stream');
-                              setIsPlaying(true);
-                            }}
-                          >
-                            <div className="flex flex-col md:flex-row gap-4">
-                              <div className="md:w-1/4 lg:w-1/5 relative rounded-md overflow-hidden">
-                                {episode.still_path ? (
-                                  <img 
-                                    src={`https://image.tmdb.org/t/p/w300${episode.still_path}`}
-                                    alt={episode.name}
-                                    className="w-full h-auto rounded-md object-cover transition-transform duration-500 group-hover:scale-105"
-                                  />
-                                ) : (
-                                  <div className="w-full aspect-video bg-black/50 rounded-md flex items-center justify-center">
-                                    <span className="text-white/70">No Preview</span>
-                                  </div>
-                                )}
-                                <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
-                                  Episode {episode.episode_number}
-                                </div>
-                                {episode.runtime && (
-                                  <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
-                                    {episode.runtime} min
-                                  </div>
-                                )}
-                              </div>
-                              
-                              <div className="md:w-3/4 lg:w-4/5">
-                                <div className="flex justify-between mb-2">
-                                  <h3 className="text-lg font-medium group-hover:text-purple-400 transition-colors">
-                                    {episode.name}
-                                  </h3>
-                                </div>
-                                
-                                <div className="text-sm text-white/80 mb-2">
-                                  {episode.air_date ? new Date(episode.air_date).toLocaleDateString() : 'TBA'}
-                                </div>
-                                
-                                <p className="text-white/70 text-sm line-clamp-2 md:line-clamp-none">{episode.overview || 'No description available.'}</p>
-                                
-                                <div className="mt-3 flex justify-end">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm"
-                                    className="glassmorphism-button bg-white/20 hover:bg-white/30 text-white text-xs border border-white/30 shadow-lg backdrop-blur-sm transition-all duration-300"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleEpisodeSelect(episode.episode_number);
-                                      handleWatchNow();
-                                    }}
-                                  >
-                                    <Play className="w-3 h-3 mr-1" /> Watch Now
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {selectedEpisode === episode.episode_number && (
-                              <div className="absolute top-0 left-0 w-1 h-full bg-purple-500 rounded-l-lg"></div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex justify-center p-12">
-                      <div className="loading-spinner"></div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </Card>
-          </TabsContent>
-          
           {/* Details Tab */}
           <TabsContent value="details" className="mt-6">
             <Card className="p-6">
@@ -1142,180 +929,6 @@ const MediaDetail: React.FC = () => {
             </Card>
           </TabsContent>
           
-          {/* Episodes Tab (TV only) */}
-          {actualMediaType === 'tv' && (
-            <TabsContent value="episodes" className="mt-6">
-              <Card className="p-6">
-                <div className="flex flex-wrap gap-2 mb-6">
-                  {mediaDetails?.seasons?.map((season) => (
-                    <Button
-                      key={season.season_number}
-                      variant={selectedSeason === season.season_number ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedSeason(season.season_number)}
-                    >
-                      Season {season.season_number}
-                    </Button>
-                  ))}
-                </div>
-                
-                {seasonDetails ? (
-                  <div className="space-y-4">
-                    <div className="mb-6 p-4 rounded-md border border-purple-400/30">
-                      <h2 className="text-xl font-bold text-white">{seasonDetails.name}</h2>
-                      {seasonDetails.episodes && (
-                        <div className="flex items-center mt-1">
-                          <p className="text-white/90">{seasonDetails.episodes.length} Episodes</p>
-                          <div className="mx-2 w-1 h-1 rounded-full bg-white/40"></div>
-                          <p className="text-white/80 text-sm">{seasonDetails.episodes[0]?.air_date ? new Date(seasonDetails.episodes[0].air_date).getFullYear() : ''}</p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {seasonDetails.episodes?.map((episode) => (
-                        <div 
-                          key={episode.id}
-                          className={`p-4 rounded-lg transition-all duration-200 ${
-                            selectedEpisode === episode.episode_number 
-                              ? 'bg-purple-500/10 border border-purple-500/60 shadow-md shadow-purple-500/20' 
-                              : 'border border-purple-400/20 hover:border-purple-400/40'
-                          } cursor-pointer relative group`}
-                          onClick={() => {
-                            handleEpisodeSelect(episode.episode_number);
-                            setActiveTab('stream');
-                            setIsPlaying(true);
-                          }}
-                        >
-                          <div className="flex flex-col md:flex-row gap-4">
-                            <div className="md:w-1/4 lg:w-1/5 relative rounded-md overflow-hidden">
-                              {episode.still_path ? (
-                                <img 
-                                  src={`https://image.tmdb.org/t/p/w300${episode.still_path}`}
-                                  alt={episode.name}
-                                  className="w-full h-auto rounded-md object-cover transition-transform duration-500 group-hover:scale-105"
-                                />
-                              ) : (
-                                <div className="w-full aspect-video bg-black/50 rounded-md flex items-center justify-center">
-                                  <span className="text-white/70">No Preview</span>
-                                </div>
-                              )}
-                              <div className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
-                                Episode {episode.episode_number}
-                              </div>
-                              {episode.runtime && (
-                                <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-md">
-                                  {episode.runtime} min
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div className="md:w-3/4 lg:w-4/5">
-                              <div className="flex justify-between mb-2">
-                                <h3 className="text-lg font-medium group-hover:text-purple-400 transition-colors">
-                                  {episode.name}
-                                </h3>
-                              </div>
-                              
-                              <div className="text-sm text-white/80 mb-2">
-                                {episode.air_date ? new Date(episode.air_date).toLocaleDateString() : 'TBA'}
-                              </div>
-                              
-                              <p className="text-white/70 text-sm line-clamp-2 md:line-clamp-none">{episode.overview || 'No description available.'}</p>
-                              
-                              <div className="mt-3 flex justify-end">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  className="glassmorphism-button bg-white/20 hover:bg-white/30 text-white text-xs border border-white/30 shadow-lg backdrop-blur-sm transition-all duration-300"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleEpisodeSelect(episode.episode_number);
-                                    handleWatchNow();
-                                  }}
-                                >
-                                  <Play className="w-3 h-3 mr-1" /> Watch Now
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {selectedEpisode === episode.episode_number && (
-                            <div className="absolute top-0 left-0 w-1 h-full bg-purple-500 rounded-l-lg"></div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex justify-center p-12">
-                    <div className="loading-spinner"></div>
-                  </div>
-                )}
-              </Card>
-            </TabsContent>
-          )}
-          
-          {/* Episodes Tab for Anime */}
-          {actualMediaType === 'anime' && (
-            <TabsContent value="episodes" className="mt-6">
-              <Card className="p-6">
-                {renderAnimeEpisodes()}
-              </Card>
-            </TabsContent>
-          )}
-          
-          {/* Streaming Sources Tab */}
-          <TabsContent value="sources" className="mt-6">
-            <Card className="p-6">
-              <h2 className="text-xl font-bold mb-6">Video Sources</h2>
-              <p className="mb-6 text-wolzi-light-gray">Select your preferred streaming source</p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {streamingSources
-                  .map((source) => (
-                  <div 
-                    key={source.id}
-                    className={`p-4 rounded-md cursor-pointer border transition-all duration-200 hover:shadow-md ${
-                      source.isActive 
-                        ? 'bg-wolzi-accent/20 border-wolzi-accent' 
-                        : 'bg-wolzi-dark-gray/50 border-wolzi-gray/30 hover:bg-wolzi-dark-gray'
-                    }`}
-                    onClick={() => handleSourceChange(source.id)}
-                  >
-                    <h3 className="font-medium">{source.name}</h3>
-                    {source.description && (
-                      <p className="text-sm text-wolzi-light-gray mt-1">{source.description}</p>
-                    )}
-                    <div className="flex justify-between mt-2">
-                      <div className="text-xs">
-                        {source.id === 'embedsu' && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-500/30 text-blue-200">
-                            Premium Quality
-                          </span>
-                        )}
-                        {source.id === 'vidsrcto' && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-500/30 text-purple-200">
-                            Fast Streaming
-                          </span>
-                        )}
-                      </div>
-                      {source.isActive && (
-                        <span className="text-xs bg-wolzi-accent px-2 py-1 rounded-full text-white">Active</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="mt-8 pt-4 border-t border-wolzi-border">
-                <p className="text-sm text-wolzi-light-gray">
-                  Recommended source: 
-                  <span className="font-medium text-purple-400 ml-1">VidSrc.to</span> for fast loading streams
-                </p>
-              </div>
-            </Card>
-          </TabsContent>
         </Tabs>
       </div>
       

@@ -505,11 +505,13 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
                   onClick={() => setShowSettings(!showSettings)}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 frosted-glass !w-[40px] !h-[40px] sm:!w-[44px] sm:!h-[44px] !p-0 !m-0 !min-w-0 !min-h-0 !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+                  className="text-white hover:bg-white/10 frosted-glass !w-[44px] !h-[44px] !p-2 !m-0 !min-w-[44px] !min-h-[44px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
-                    lineHeight: '1'
+                    lineHeight: '1',
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation'
                   }}
                 >
                   <Settings className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 pointer-events-none" />
@@ -524,11 +526,13 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
                   onClick={toggleFullscreen}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 frosted-glass !w-[44px] !h-[44px] sm:!w-[48px] sm:!h-[48px] !p-0 !m-0 !min-w-0 !min-h-0 !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 max-w-[48px] max-h-[48px] cursor-pointer"
+                  className="text-white hover:bg-white/10 frosted-glass !w-[44px] !h-[44px] sm:!w-[48px] sm:!h-[48px] !p-2 !m-0 !min-w-[44px] !min-h-[44px] sm:!min-w-[48px] sm:!min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
-                    lineHeight: '1'
+                    lineHeight: '1',
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation'
                   }}
                 >
                   <Maximize className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 pointer-events-none" />

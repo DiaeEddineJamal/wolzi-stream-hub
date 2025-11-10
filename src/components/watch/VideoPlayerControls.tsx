@@ -145,46 +145,58 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
-          className="absolute bottom-0 left-0 right-0 z-50"
+          className="absolute bottom-0 left-0 right-0 z-50 pointer-events-auto video-player-controls"
+          style={{ overflow: 'visible' }}
         >
-          {/* Progress Bar */}
-          <div className="px-3 sm:px-4 md:px-6 pb-2">
-            <div className="relative">
-              <Slider
-                value={[progressPercentage]}
-                onValueChange={handleProgressChange}
-                onValueCommit={() => setIsDragging(false)}
-                onPointerDown={() => setIsDragging(true)}
-                className="w-full cursor-pointer touch-manipulation"
-                max={100}
-                step={0.1}
-              />
-              <div className="flex justify-between text-xs sm:text-sm text-white/70 mt-1">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
-            </div>
-          </div>
+          {/* Progress Bar (hidden here - moved inside main controls to prevent overlap) */}
+          <div className="hidden" />
 
           {/* Main Controls */}
-          <div className="frosted-glass-strong backdrop-blur-xl bg-black/40 border-t border-white/10">
-            <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 py-3 sm:py-4">
+          <div className="frosted-glass-strong backdrop-blur-xl bg-black/40 border-t border-white/10 pointer-events-auto relative z-30" style={{ overflow: 'visible', marginTop: '0', isolation: 'isolate', position: 'relative' }}>
+            {/* Progress Bar INSIDE controls (prevents any overlap) */}
+            <div className="px-3 sm:px-4 md:px-6 pt-2">
+              <div className="relative">
+                <Slider
+                  value={[progressPercentage]}
+                  onValueChange={handleProgressChange}
+                  onValueCommit={() => setIsDragging(false)}
+                  onPointerDown={() => setIsDragging(true)}
+                  className="w-full cursor-pointer touch-manipulation"
+                  max={100}
+                  step={0.1}
+                />
+                <div className="flex justify-between text-xs sm:text-sm text-white/70 mt-1 select-none">
+                  <span>{formatTime(currentTime)}</span>
+                  <span>{formatTime(duration)}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 py-3 sm:py-4 pointer-events-auto" style={{ overflow: 'visible', position: 'relative', zIndex: 40 }}>
               {/* Left Controls */}
-              <div className="flex items-center space-x-2 sm:space-x-3">
+              <div className="flex items-center space-x-2 sm:space-x-3 pointer-events-auto" style={{ overflow: 'visible', position: 'relative', zIndex: 50 }}>
                 {/* Previous Episode */}
                 <Button
                   onClick={onPrevious}
                   disabled={!canGoPrevious}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 disabled:opacity-50 !w-[40px] !h-[40px] sm:!w-[44px] sm:!h-[44px] !p-0 !m-0 !min-w-0 !min-h-0 !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+                  className="text-white hover:bg-white/10 disabled:opacity-50 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
-                    lineHeight: '1'
+                    lineHeight: '1',
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                    position: 'relative',
+                    zIndex: 60,
+                    padding: '0',
+                    margin: '0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
                 >
-                  <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 pointer-events-none" />
+                  <ChevronLeft className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
                 </Button>
 
                 {/* Skip Back */}
@@ -192,35 +204,51 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                   onClick={() => onSeek?.(Math.max(0, currentTime - 10))}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 !w-[40px] !h-[40px] sm:!w-[44px] sm:!h-[44px] !p-0 !m-0 !min-w-0 !min-h-0 !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+                  className="text-white hover:bg-white/10 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
-                    lineHeight: '1'
+                    lineHeight: '1',
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                    position: 'relative',
+                    zIndex: 60,
+                    padding: '0',
+                    margin: '0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
                 >
-                  <SkipBack className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 pointer-events-none" />
+                  <SkipBack className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
                 </Button>
 
                 {/* Play/Pause */}
                 <Button
                   onClick={isPlaying ? onPause : onPlay}
                   size="lg"
-                  className="frosted-glass border-white/20 hover:bg-white/10 active:bg-white/20 text-white !w-16 !h-16 sm:!w-18 sm:!h-18 md:!w-20 md:!h-20 !p-0 !m-0 !min-w-0 !min-h-0 !leading-none rounded-full touch-manipulation active:scale-95 transition-all duration-150 select-none flex items-center justify-center flex-shrink-0 cursor-pointer"
+                  className="frosted-glass border-white/20 hover:bg-white/10 active:bg-white/20 text-white !w-[64px] !h-[64px] sm:!w-[72px] sm:!h-[72px] md:!w-[80px] md:!h-[80px] !p-0 !m-0 !min-w-[64px] !min-h-[64px] sm:!min-w-[72px] sm:!min-h-[72px] md:!min-w-[80px] md:!min-h-[80px] !leading-none rounded-full touch-manipulation active:scale-95 transition-all duration-150 select-none flex items-center justify-center flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     WebkitTapHighlightColor: 'transparent',
                     touchAction: 'manipulation',
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
-                    lineHeight: '1'
+                    lineHeight: '1',
+                    position: 'relative',
+                    zIndex: 60,
+                    padding: '0',
+                    margin: '0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
                 >
                   {isLoading ? (
-                    <Loader2 className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 animate-spin flex-shrink-0 pointer-events-none" />
+                    <Loader2 className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 animate-spin flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
                   ) : isPlaying ? (
-                    <Pause className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 flex-shrink-0 pointer-events-none" />
+                    <Pause className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
                   ) : (
-                    <Play className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 ml-1 flex-shrink-0 pointer-events-none" />
+                    <Play className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex-shrink-0 pointer-events-none" style={{ margin: '0', marginLeft: '2px' }} />
                   )}
                 </Button>
 
@@ -229,14 +257,23 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                   onClick={() => onSeek?.(Math.min(duration, currentTime + 10))}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 !w-[40px] !h-[40px] sm:!w-[44px] sm:!h-[44px] !p-0 !m-0 !min-w-0 !min-h-0 !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+                  className="text-white hover:bg-white/10 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
-                    lineHeight: '1'
+                    lineHeight: '1',
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                    position: 'relative',
+                    zIndex: 60,
+                    padding: '0',
+                    margin: '0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
                 >
-                  <SkipForward className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 pointer-events-none" />
+                  <SkipForward className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
                 </Button>
 
                 {/* Next Episode */}
@@ -245,14 +282,23 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                   disabled={!canGoNext}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 disabled:opacity-50 !w-[40px] !h-[40px] sm:!w-[44px] sm:!h-[44px] !p-0 !m-0 !min-w-0 !min-h-0 !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+                  className="text-white hover:bg-white/10 disabled:opacity-50 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
-                    lineHeight: '1'
+                    lineHeight: '1',
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                    position: 'relative',
+                    zIndex: 60,
+                    padding: '0',
+                    margin: '0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
                 >
-                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 pointer-events-none" />
+                  <ChevronRight className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
                 </Button>
 
                 {/* Volume Controls */}
@@ -265,17 +311,26 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                     onClick={onMute}
                     size="sm"
                     variant="ghost"
-                    className="text-white hover:bg-white/10 !w-[40px] !h-[40px] sm:!w-[44px] sm:!h-[44px] !p-0 !m-0 !min-w-0 !min-h-0 !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+                    className="text-white hover:bg-white/10 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                     style={{ 
                       pointerEvents: 'auto',
                       boxSizing: 'border-box',
-                      lineHeight: '1'
+                      lineHeight: '1',
+                      WebkitTapHighlightColor: 'transparent',
+                      touchAction: 'manipulation',
+                      position: 'relative',
+                      zIndex: 60,
+                      padding: '0',
+                      margin: '0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}
                   >
                     {isMuted || volume === 0 ? (
-                      <VolumeX className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 pointer-events-none" />
+                      <VolumeX className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
                     ) : (
-                      <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 pointer-events-none" />
+                      <Volume2 className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
                     )}
                   </Button>
                   
@@ -308,20 +363,29 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
               </div>
 
               {/* Right Controls */}
-              <div className="flex items-center space-x-1 sm:space-x-2">
+              <div className="flex items-center space-x-1 sm:space-x-2 pointer-events-auto" style={{ overflow: 'visible', position: 'relative', zIndex: 50 }}>
                 {/* Reload */}
                 <Button
                   onClick={onReload}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 !w-[40px] !h-[40px] sm:!w-[44px] sm:!h-[44px] !p-0 !m-0 !min-w-0 !min-h-0 !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+                  className="text-white hover:bg-white/10 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
-                    lineHeight: '1'
+                    lineHeight: '1',
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                    position: 'relative',
+                    zIndex: 60,
+                    padding: '0',
+                    margin: '0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
                 >
-                  <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 pointer-events-none" />
+                  <RotateCcw className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
                 </Button>
 
                 {/* Download - Hidden on mobile */}
@@ -329,14 +393,23 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                   onClick={onDownload}
                   size="sm"
                   variant="ghost"
-                  className="hidden sm:flex text-white hover:bg-white/10 !w-[40px] !h-[40px] sm:!w-[44px] sm:!h-[44px] !p-0 !m-0 !min-w-0 !min-h-0 !leading-none items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+                  className="hidden sm:flex text-white hover:bg-white/10 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
-                    lineHeight: '1'
+                    lineHeight: '1',
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                    position: 'relative',
+                    zIndex: 60,
+                    padding: '0',
+                    margin: '0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
                 >
-                  <Download className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 pointer-events-none" />
+                  <Download className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
                 </Button>
 
                 {/* Add to Watchlist - Hidden on mobile */}
@@ -344,14 +417,23 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                   onClick={onAddToWatchlist}
                   size="sm"
                   variant="ghost"
-                  className="hidden sm:flex text-white hover:bg-white/10 !w-[40px] !h-[40px] sm:!w-[44px] sm:!h-[44px] !p-0 !m-0 !min-w-0 !min-h-0 !leading-none items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+                  className="hidden sm:flex text-white hover:bg-white/10 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
-                    lineHeight: '1'
+                    lineHeight: '1',
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                    position: 'relative',
+                    zIndex: 60,
+                    padding: '0',
+                    margin: '0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
                 >
-                  <Heart className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 pointer-events-none" />
+                  <Heart className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
                 </Button>
 
                 {/* Share - Hidden on mobile */}
@@ -359,14 +441,23 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                   onClick={onShare}
                   size="sm"
                   variant="ghost"
-                  className="hidden sm:flex text-white hover:bg-white/10 !w-[40px] !h-[40px] sm:!w-[44px] sm:!h-[44px] !p-0 !m-0 !min-w-0 !min-h-0 !leading-none items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+                  className="hidden sm:flex text-white hover:bg-white/10 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
-                    lineHeight: '1'
+                    lineHeight: '1',
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                    position: 'relative',
+                    zIndex: 60,
+                    padding: '0',
+                    margin: '0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
                 >
-                  <Share2 className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 pointer-events-none" />
+                  <Share2 className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
                 </Button>
 
                 {/* Settings */}
@@ -374,14 +465,23 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                   onClick={onSettings}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 !w-[40px] !h-[40px] sm:!w-[44px] sm:!h-[44px] !p-0 !m-0 !min-w-0 !min-h-0 !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+                  className="text-white hover:bg-white/10 !w-[44px] !h-[44px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
-                    lineHeight: '1'
+                    lineHeight: '1',
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                    position: 'relative',
+                    zIndex: 60,
+                    padding: '0',
+                    margin: '0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
                 >
-                  <Settings className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 pointer-events-none" />
+                  <Settings className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
                 </Button>
 
                 {/* Fullscreen */}
@@ -389,17 +489,26 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                   onClick={onFullscreen}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 !w-[44px] !h-[44px] sm:!w-[48px] sm:!h-[48px] !p-0 !m-0 !min-w-0 !min-h-0 !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+                  className="text-white hover:bg-white/10 !w-[44px] !h-[44px] sm:!w-[48px] sm:!h-[48px] !p-0 !m-0 !min-w-[44px] !min-h-[44px] sm:!min-w-[48px] sm:!min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
-                    lineHeight: '1'
+                    lineHeight: '1',
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                    position: 'relative',
+                    zIndex: 60,
+                    padding: '0',
+                    margin: '0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
                   }}
                 >
                   {isFullscreen ? (
-                    <Minimize className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 pointer-events-none" />
+                    <Minimize className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
                   ) : (
-                    <Maximize className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 pointer-events-none" />
+                    <Maximize className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
                   )}
                 </Button>
               </div>
