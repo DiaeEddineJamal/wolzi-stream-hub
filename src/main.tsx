@@ -1,6 +1,8 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import { initPerformanceOptimizer } from './utils/performance-optimizer'
+import { initAnalytics } from './utils/analytics'
 
 // Detect if we need to complete a logout
 const urlParams = new URLSearchParams(window.location.search);
@@ -38,5 +40,8 @@ if (needsCacheClear) {
     window.history.replaceState(null, '', window.location.pathname);
   }
 }
+
+initPerformanceOptimizer()
+initAnalytics()
 
 createRoot(document.getElementById("root")!).render(<App />);

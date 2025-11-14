@@ -29,4 +29,27 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    minify: 'esbuild',
+    cssCodeSplit: true,
+    sourcemap: false,
+    modulePreload: {
+      polyfill: true
+    },
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          router: ['react-router-dom'],
+          vendor: ['axios']
+        },
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: ({ name }) => {
+          if (name && /\.css$/i.test(name)) return 'assets/[name]-[hash][extname]';
+          return 'assets/[name]-[hash][extname]';
+        }
+      }
+    }
+  }
 }));

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSEO } from '@/hooks/useSEO';
 import MainLayout from '@/layouts/MainLayout';
 import ContentSection from '@/components/home/ContentSection';
 import tmdbApi, { getPosterUrl } from '@/integrations/api/tmdb';
@@ -16,6 +17,13 @@ const TVSeries: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [popularShows, setPopularShows] = useState<TVShow[]>([]);
   const [topRatedShows, setTopRatedShows] = useState<TVShow[]>([]);
+
+  useSEO({
+    title: 'Popular and Top-Rated TV Series – WolziFlix',
+    description: 'Explore popular and top-rated TV series. Watch episodes and discover new shows on WolziFlix.',
+    keywords: ['tv series', 'popular tv', 'top rated shows', 'watch tv online'],
+    type: 'website'
+  })
 
   useEffect(() => {
     const fetchTVShows = async () => {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useSEO } from '@/hooks/useSEO';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +15,7 @@ import { Tables } from '@/types/supabase';
 import YouTube from 'react-youtube';
 import { Play, PlayCircle, ArrowUpRight, Volume2, VolumeX, Plus } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { trackEvent } from '@/utils/analytics';
 
 type MediaType = 'movie' | 'tv' | 'anime';
 
@@ -163,6 +165,31 @@ const MediaDetail: React.FC = () => {
   console.log("Resolved media type:", actualMediaType);
   
   const title = mediaDetails?.title || mediaDetails?.name || '';
+
+  useSEO(mediaDetails ? {
+    title: `${title} – WolziFlix`,
+    description: mediaDetails.overview || '',
+    image: mediaDetails.backdrop_path ? getBackdropUrl(mediaDetails.backdrop_path) : (mediaDetails.poster_path ? getPosterUrl(mediaDetails.poster_path) : '/wolziflix-social-card.png'),
+    type: 'article',
+    keywords: [
+      ...(mediaDetails.genres?.map(g => g.name) || []),
+      actualMediaType === 'movie' ? 'movie' : actualMediaType === 'tv' ? 'tv series' : 'anime'
+    ],
+    schema: {
+      '@context': 'https://schema.org',
+      '@type': actualMediaType === 'movie' ? 'Movie' : 'TVSeries',
+      'name': title,
+      'image': mediaDetails.poster_path ? getPosterUrl(mediaDetails.poster_path) : undefined,
+      'description': mediaDetails.overview || '',
+      'aggregateRating': mediaDetails.vote_average ? {
+        '@type': 'AggregateRating',
+        'ratingValue': mediaDetails.vote_average,
+        'bestRating': 10,
+        'ratingCount': 1
+      } : undefined,
+      'genre': mediaDetails.genres?.map(g => g.name)
+    }
+  } : {})
 
   useEffect(() => {
     const fetchMediaDetails = async () => {
@@ -685,6 +712,7 @@ const MediaDetail: React.FC = () => {
       setActiveTab('trailer');
       setIsPlaying(true);
     }
+    trackEvent('watch_start', { id, type: actualMediaType, title })
   };
 
   // YouTube trailer options

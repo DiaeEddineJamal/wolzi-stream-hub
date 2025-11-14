@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useSEO } from "@/hooks/useSEO";
 import MainLayout from "@/layouts/MainLayout";
 import HeroBanner from "@/components/home/HeroBanner";
 import ContentSection from "@/components/home/ContentSection";
@@ -347,8 +348,27 @@ const Index: React.FC = () => {
     fetchData();
   }, []);
 
+  useSEO({
+    title: "WolziFlix – Stream Movies, TV Shows & Anime",
+    description: "Stream popular movies, top-rated TV series, and trending anime. Watch trailers, browse categories, and continue watching across devices.",
+    keywords: ["streaming", "movies", "tv series", "anime", "watch online", "trailers"],
+    type: "website",
+    schema: {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "url": (import.meta.env.VITE_SITE_URL || window.location.origin),
+      "name": "WolziFlix",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": (import.meta.env.VITE_SITE_URL || window.location.origin) + "/search?query={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+  })
+
   return (
     <MainLayout>
+      <h1 className="sr-only">WolziFlix – Stream Movies, TV Series and Anime</h1>
       {/* Hero Banner */}
       {featuredItems.length > 0 ? (
         <HeroBanner

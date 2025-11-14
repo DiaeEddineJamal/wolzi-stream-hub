@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSEO } from '@/hooks/useSEO';
 import MainLayout from '@/layouts/MainLayout';
 import ContentSection from '@/components/home/ContentSection';
 import tmdbApi, { getPosterUrl } from '@/integrations/api/tmdb';
@@ -17,6 +18,13 @@ const Movies: React.FC = () => {
   const [popularMovies, setPopularMovies] = useState<Movie[]>([]);
   const [topRatedMovies, setTopRatedMovies] = useState<Movie[]>([]);
   const [upcomingMovies, setUpcomingMovies] = useState<Movie[]>([]);
+
+  useSEO({
+    title: 'Popular, Top-Rated and Upcoming Movies – WolziFlix',
+    description: 'Browse popular, top-rated and upcoming movies. Watch trailers and stream instantly on WolziFlix.',
+    keywords: ['movies', 'popular movies', 'top rated films', 'upcoming movies', 'watch movies online'],
+    type: 'website'
+  })
 
   useEffect(() => {
     const fetchMovies = async () => {

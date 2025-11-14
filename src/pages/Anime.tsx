@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSEO } from '@/hooks/useSEO';
 import MainLayout from '@/layouts/MainLayout';
 import ContentSection from '@/components/home/ContentSection';
 import tmdbApi, { getPosterUrl } from '@/integrations/api/tmdb';
@@ -28,6 +29,12 @@ const Anime: React.FC = () => {
   const [popularAnime, setPopularAnime] = useState<AnimeItem[]>([]);
   const [topRatedAnime, setTopRatedAnime] = useState<AnimeItem[]>([]);
   const [onAirAnime, setOnAirAnime] = useState<AnimeItem[]>([]);
+  useSEO({
+    title: 'Popular, Top-Rated and On-Air Anime – WolziFlix',
+    description: 'Discover trending, top-rated and currently airing anime. Stream episodes and follow your favorite series on WolziFlix.',
+    keywords: ['anime', 'popular anime', 'top rated anime', 'on-air anime', 'watch anime'],
+    type: 'website'
+  })
   
   useEffect(() => {
     const fetchAnimeData = async () => {

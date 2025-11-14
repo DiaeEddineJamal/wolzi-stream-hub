@@ -230,6 +230,7 @@ const MediaCard: React.FC<MediaCardProps> = ({
               sizeClasses[size],
               className
             )}
+            aria-label={`View details for ${title}`}
           >
             {/* Enhanced image with 3D effect */}
             <motion.div 
