@@ -148,16 +148,16 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
-          className="absolute bottom-0 left-0 right-0 z-[70] pointer-events-auto video-player-controls"
+          className="absolute bottom-0 left-0 right-0 z-[9999] pointer-events-auto video-player-controls"
           style={{ overflow: 'visible' }}
         >
           {/* Progress Bar (hidden here - moved inside main controls to prevent overlap) */}
           <div className="hidden" />
 
           {/* Main Controls */}
-          <div className="frosted-glass-strong backdrop-blur-xl bg-black/40 border-t border-white/10 pointer-events-auto relative z-30" style={{ overflow: 'visible', marginTop: '0', isolation: 'isolate', position: 'relative' }}>
+          <div className="frosted-glass-strong backdrop-blur-xl bg-black/40 border-t border-white/10 pointer-events-auto relative z-[9999]" style={{ overflow: 'visible', marginTop: '0', position: 'relative' }}>
             {/* Progress Bar INSIDE controls (prevents any overlap) */}
-            <div className="px-3 sm:px-4 md:px-6 pt-2">
+            <div className="px-3 sm:px-4 md:px-6 pt-2 mb-3 sm:mb-4 relative z-[10000]">
               <div className="relative">
                 <Slider
                   value={[progressPercentage]}
@@ -174,9 +174,9 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 py-3 sm:py-4 pointer-events-auto" style={{ overflow: 'visible', position: 'relative', zIndex: 40 }}>
+            <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 py-3 sm:py-4 pointer-events-auto" style={{ overflow: 'visible', position: 'relative', zIndex: 10001 }}>
               {/* Left Controls */}
-              <div className="flex items-center space-x-2 sm:space-x-3 pointer-events-auto" style={{ overflow: 'visible', position: 'relative', zIndex: 50 }}>
+              <div className="flex items-center space-x-2 sm:space-x-3 pointer-events-auto" style={{ overflow: 'visible', position: 'relative', zIndex: 10002 }}>
                 {/* Previous Episode */}
                 <Button
                   aria-label="Previous episode"
@@ -192,12 +192,13 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
                     WebkitTapHighlightColor: 'transparent',
                     touchAction: 'manipulation',
                     position: 'relative',
-                    zIndex: 60,
+                    zIndex: 10003,
                     padding: '0',
                     margin: '0',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    overflow: 'visible'
                   }}
                 >
                   <ChevronLeft className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />

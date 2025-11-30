@@ -428,13 +428,14 @@
 .video-player-controls button {
   overflow: visible !important;
   position: relative !important;
-  z-index: 60 !important;
+  z-index: 10003 !important;
   isolation: isolate;
 }
 
 /* Ensure button containers don't clip */
 .video-player-controls > * {
   overflow: visible !important;
+  z-index: 10001 !important;
 }
 
 /* Make sure buttons are fully clickable and centered */
@@ -447,6 +448,7 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  pointer-events: auto !important;
 }
 
 /* Ensure icons are perfectly centered within buttons */
