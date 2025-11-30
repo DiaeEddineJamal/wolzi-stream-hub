@@ -54,6 +54,24 @@ interface MediaDetails {
       job: string;
     }[];
   };
+  reviews?: {
+    results: {
+      id: string;
+      author: string;
+      content: string;
+      created_at: string;
+      author_details?: {
+        rating?: number;
+        avatar_path?: string | null;
+      };
+    }[];
+  };
+  recommendations?: {
+    results: any[];
+  };
+  similar?: {
+    results: any[];
+  };
   seasons?: {
     id: number;
     name: string;
@@ -649,51 +667,134 @@ const MediaDetail: React.FC = () => {
     );
   };
 
-  const renderAnimeDetails = () => {
+  const renderMediaDetails = () => {
     if (!mediaDetails) return null;
     
+    const releaseDate = mediaDetails.release_date || mediaDetails.first_air_date;
+    const dateLabel = actualMediaType === 'movie' ? 'Release Date' : 'First Aired';
+    
     return (
-      <div className="mt-4 space-y-6">
-        <div>
-          <h3 className="text-lg font-medium mb-2">Synopsis</h3>
-          <p className="text-wolzi-text">{mediaDetails.overview}</p>
+      <div className="mt-4 space-y-8">
+        {/* Synopsis */}
+        <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+          <h3 className="text-lg font-medium mb-2 text-white">Synopsis</h3>
+          <p className="text-gray-300 leading-relaxed">{mediaDetails.overview}</p>
         </div>
         
+        {/* Key Details */}
         <div>
-          <h3 className="text-lg font-medium mb-2">Details</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p><span className="font-medium">Episodes:</span> {mediaDetails.number_of_episodes || 'Unknown'}</p>
-              <p><span className="font-medium">Score:</span> {mediaDetails.vote_average ? `${mediaDetails.vote_average}/10` : 'Not rated'}</p>
+          <h3 className="text-lg font-medium mb-3 text-white">Information</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-black/20 p-3 rounded-md border border-white/5">
+              <p className="text-gray-400 text-xs mb-1">{dateLabel}</p>
+              <p className="font-medium">{releaseDate ? new Date(releaseDate).toLocaleDateString() : 'Unknown'}</p>
             </div>
-            <div>
-              <p><span className="font-medium">Genres:</span> {mediaDetails.genres?.map(g => g.name).join(', ')}</p>
-              <p><span className="font-medium">First Aired:</span> {mediaDetails.first_air_date ? new Date(mediaDetails.first_air_date).toLocaleDateString() : 'Unknown'}</p>
+            <div className="bg-black/20 p-3 rounded-md border border-white/5">
+              <p className="text-gray-400 text-xs mb-1">Genre</p>
+              <p className="font-medium truncate">{mediaDetails.genres?.slice(0, 2).map(g => g.name).join(', ')}</p>
+            </div>
+            <div className="bg-black/20 p-3 rounded-md border border-white/5">
+              <p className="text-gray-400 text-xs mb-1">Rating</p>
+              <p className="font-medium text-yellow-400">★ {mediaDetails.vote_average ? mediaDetails.vote_average.toFixed(1) : 'N/A'}</p>
+            </div>
+            <div className="bg-black/20 p-3 rounded-md border border-white/5">
+              <p className="text-gray-400 text-xs mb-1">{actualMediaType === 'movie' ? 'Runtime' : 'Episodes'}</p>
+              <p className="font-medium">
+                {actualMediaType === 'movie' 
+                  ? (mediaDetails.runtime ? `${Math.floor(mediaDetails.runtime / 60)}h ${mediaDetails.runtime % 60}m` : 'Unknown')
+                  : (mediaDetails.number_of_episodes || 'Unknown')
+                }
+              </p>
             </div>
           </div>
         </div>
         
-        {mediaDetails.credits && mediaDetails.credits.cast && mediaDetails.credits.cast.length > 0 && (
+        {/* Cast */}
+        {mediaDetails.credits?.cast?.length > 0 && (
           <div>
-            <h3 className="text-lg font-medium mb-2">Cast</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {mediaDetails.credits.cast.slice(0, 12).map((actor) => (
-                <div key={actor.id} className="text-center">
-                  {actor.profile_path ? (
-                    <img 
-                      src={`https://image.tmdb.org/t/p/w200${actor.profile_path}`} 
-                      alt={actor.name}
-                      className="rounded-md w-full h-40 object-cover mb-2"
-                    />
-                  ) : (
-                    <div className="rounded-md w-full h-40 bg-black/50 flex items-center justify-center mb-2">
-                      <span className="text-white/60 text-sm">No Image</span>
-                    </div>
-                  )}
-                  <p className="font-medium text-sm">{actor.name}</p>
-                  <p className="text-xs text-wolzi-light-gray">{actor.character}</p>
+            <h3 className="text-lg font-medium mb-4 text-white">Top Cast</h3>
+            <div className="flex overflow-x-auto pb-4 gap-4 no-scrollbar">
+              {mediaDetails.credits.cast.slice(0, 10).map((actor) => (
+                <div key={actor.id} className="flex-none w-32 text-center group">
+                  <div className="relative overflow-hidden rounded-lg mb-2 shadow-lg">
+                    {actor.profile_path ? (
+                      <img 
+                        src={`https://image.tmdb.org/t/p/w185${actor.profile_path}`} 
+                        alt={actor.name}
+                        className="w-full h-40 object-cover transform group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-40 bg-gray-800 flex items-center justify-center">
+                        <span className="text-xs text-gray-500">No Image</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="font-medium text-sm truncate text-white group-hover:text-purple-400 transition-colors">{actor.name}</p>
+                  <p className="text-xs text-gray-400 truncate">{actor.character}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Reviews */}
+        {mediaDetails.reviews?.results && mediaDetails.reviews.results.length > 0 && (
+          <div>
+            <h3 className="text-lg font-medium mb-4 text-white">User Reviews</h3>
+            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              {mediaDetails.reviews.results.slice(0, 3).map((review) => (
+                <div key={review.id} className="bg-black/20 p-4 rounded-lg border border-white/5">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 font-bold text-sm">
+                        {review.author.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="font-medium text-white">{review.author}</span>
+                    </div>
+                    {review.author_details?.rating && (
+                      <span className="text-xs bg-yellow-500/10 text-yellow-400 px-2 py-1 rounded border border-yellow-500/20">
+                        ★ {review.author_details.rating}/10
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-300 line-clamp-4">{review.content}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Recommendations/Similar */}
+        {((mediaDetails.recommendations?.results && mediaDetails.recommendations.results.length > 0) || 
+           (mediaDetails.similar?.results && mediaDetails.similar.results.length > 0)) && (
+          <div>
+            <h3 className="text-lg font-medium mb-4 text-white">You May Also Like</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {(mediaDetails.recommendations?.results || mediaDetails.similar?.results || [])
+                .slice(0, 5)
+                .filter((item: any) => item.poster_path) // Only show items with posters
+                .map((item: any) => (
+                  <Link 
+                    key={item.id} 
+                    to={`/${actualMediaType === 'movie' ? 'movie' : 'tv'}/${item.id}`}
+                    className="block group"
+                  >
+                    <div className="relative aspect-[2/3] rounded-lg overflow-hidden mb-2 shadow-lg">
+                      <img 
+                        src={getPosterUrl(item.poster_path)} 
+                        alt={item.title || item.name}
+                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                    </div>
+                    <p className="text-sm font-medium truncate text-white group-hover:text-purple-400 transition-colors">
+                      {item.title || item.name}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {new Date(item.release_date || item.first_air_date || Date.now()).getFullYear()}
+                    </p>
+                  </Link>
+                ))}
             </div>
           </div>
         )}
@@ -953,7 +1054,7 @@ const MediaDetail: React.FC = () => {
           {/* Details Tab */}
           <TabsContent value="details" className="mt-6">
             <Card className="p-6">
-              {renderAnimeDetails()}
+              {renderMediaDetails()}
             </Card>
           </TabsContent>
           

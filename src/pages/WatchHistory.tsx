@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import MainLayout from '@/layouts/MainLayout';
 import { Play } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface WatchHistoryItem {
   id: string;
@@ -48,9 +49,8 @@ const WatchHistory: React.FC = () => {
         // Map data to correct interface fields if needed
         const processedHistory = data?.map(item => ({
           ...item,
-          // Handle possible field name differences
-          content_type: item.content_type || item.media_type,
-          content_id: item.content_id || item.media_id,
+          // Ensure type safety for content_type
+          content_type: item.content_type as 'movie' | 'tv' | 'anime',
         })) || [];
         
         if (processedHistory.length > 0) {
@@ -161,7 +161,19 @@ const WatchHistory: React.FC = () => {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {history.map((item) => (
-              <div key={item.id} className="media-card group relative">
+              <motion.div 
+                key={item.id} 
+                className="media-card group relative rounded-md bg-gray-900"
+                initial={{ scale: 1, y: 0, zIndex: 0, boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)" }}
+                whileHover={{ 
+                  scale: 1.05, 
+                  y: -6, 
+                  zIndex: 10,
+                  boxShadow: "0 20px 40px rgba(0, 0, 0, 0.4), 0 0 25px rgba(168, 85, 247, 0.4)",
+                  transition: { duration: 0.3, ease: "easeOut" }
+                }}
+                whileTap={{ scale: 0.98, y: -2, transition: { duration: 0.1 } }}
+              >
                 <Link 
                   to={`/${item.content_type}/${item.content_id}${item.season && item.episode ? `/season/${item.season}/episode/${item.episode}` : ''}`}
                   className="block"
@@ -170,7 +182,7 @@ const WatchHistory: React.FC = () => {
                     <img 
                       src={item.poster_path || 'https://via.placeholder.com/300x450?text=No+Image'} 
                       alt={item.title}
-                      className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="w-full h-auto object-cover transition-transform duration-300"
                     />
                     
                     {/* Progress bar */}
@@ -208,7 +220,7 @@ const WatchHistory: React.FC = () => {
                 >
                   <Play className="h-5 w-5 text-white" />
                 </Link>
-              </div>
+              </motion.div>
             ))}
           </div>
         )}

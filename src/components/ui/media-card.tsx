@@ -47,12 +47,16 @@ const MediaCard: React.FC<MediaCardProps> = ({
   return (
     <motion.div
       className={`relative group ${className}`}
-      whileHover={{ scale: 1.05, y: -5 }}
-      whileTap={{ scale: 0.98 }}
+      whileHover={{ 
+        scale: 1.05, 
+        y: -6,
+        zIndex: 10,
+        boxShadow: "0 20px 40px rgba(0, 0, 0, 0.4), 0 0 25px rgba(168, 85, 247, 0.4)"
+      }}
+      whileTap={{ scale: 0.98, y: -2 }}
       transition={{
-        type: 'spring',
-        stiffness: 300,
-        damping: 20
+        duration: 0.3,
+        ease: "easeOut"
       }}
     >
       <Link 

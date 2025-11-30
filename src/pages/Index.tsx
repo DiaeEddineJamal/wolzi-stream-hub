@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useSEO } from "@/hooks/useSEO";
+import { motion } from "framer-motion";
 import MainLayout from "@/layouts/MainLayout";
 import HeroBanner from "@/components/home/HeroBanner";
 import ContentSection from "@/components/home/ContentSection";
@@ -403,18 +404,27 @@ const Index: React.FC = () => {
                 
                 <div className="relative">
                   <div className="overflow-x-auto hide-scrollbar">
-                    <div className="flex gap-4 pb-2">
+                    <div className="flex gap-4 p-4">
                       {watchHistory.map((item) => (
-                        <div 
+                        <motion.div 
                           key={item.id} 
                           className="min-w-[180px] max-w-[180px] rounded-lg overflow-hidden bg-wolzi-dark-gray/30 relative group"
+                          initial={{ scale: 1, y: 0, zIndex: 0, boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)" }}
+                          whileHover={{ 
+                            scale: 1.05, 
+                            y: -6, 
+                            zIndex: 10,
+                            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.4), 0 0 25px rgba(168, 85, 247, 0.4)",
+                            transition: { duration: 0.3, ease: "easeOut" }
+                          }}
+                          whileTap={{ scale: 0.98, y: -2, transition: { duration: 0.1 } }}
                         >
                           <Link to={`/${item.content_type}/${item.content_id}`}>
                             <div className="relative aspect-[2/3] overflow-hidden">
                               <img 
                                 src={item.poster_path ? (item.poster_path.startsWith('http') ? item.poster_path : getPosterUrl(item.poster_path)) : 'https://via.placeholder.com/300x450?text=No+Image'} 
                                 alt={item.title}
-                                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                className="w-full h-full object-cover transition-transform duration-300"
                               />
                               
                               {/* Progress bar */}
@@ -451,7 +461,7 @@ const Index: React.FC = () => {
                           >
                             <Play className="h-5 w-5 text-white" />
                           </Link>
-                        </div>
+                        </motion.div>
                       ))}
                     </div>
                   </div>
@@ -510,6 +520,39 @@ const Index: React.FC = () => {
               showViewMore={true}
               className="mt-12"
             />
+
+            {/* SEO & Welcome Section - AdSense Requirement for Text Content */}
+            <div className="mt-20 mb-8 p-6 md:p-8 bg-gradient-to-b from-wolzi-dark-gray/40 to-transparent rounded-2xl border border-white/5 backdrop-blur-sm">
+              <h2 className="text-3xl font-bold mb-6 text-white text-center md:text-left">Welcome to WolziFlix</h2>
+              <div className="grid md:grid-cols-2 gap-8">
+                <div>
+                  <p className="text-gray-300 mb-4 leading-relaxed">
+                    WolziFlix is your premier destination for streaming the latest movies, TV series, and anime. 
+                    We provide a seamless entertainment experience with a vast library of content ranging from 
+                    Hollywood blockbusters to classic cinema, trending TV shows, and popular Asian dramas.
+                  </p>
+                  <p className="text-gray-300 leading-relaxed">
+                    Our platform is designed to offer high-quality streaming with minimal buffering, ensuring 
+                    you can enjoy your favorite content anytime, anywhere. With personalized recommendations 
+                    and a user-friendly interface, discovering your next favorite show has never been easier.
+                  </p>
+                </div>
+                <div className="grid gap-4">
+                  <div className="p-4 bg-black/20 rounded-xl border border-white/5 hover:bg-black/30 transition-colors">
+                    <h3 className="text-lg font-semibold text-wolzi-accent mb-2">Unlimited Library</h3>
+                    <p className="text-sm text-gray-400">
+                      Access thousands of titles across multiple genres. From action and romance to sci-fi and documentaries.
+                    </p>
+                  </div>
+                  <div className="p-4 bg-black/20 rounded-xl border border-white/5 hover:bg-black/30 transition-colors">
+                    <h3 className="text-lg font-semibold text-wolzi-accent mb-2">High Definition</h3>
+                    <p className="text-sm text-gray-400">
+                      Experience your favorite movies and shows in stunning HD quality for the best viewing experience.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

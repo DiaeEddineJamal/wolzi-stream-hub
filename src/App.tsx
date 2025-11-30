@@ -20,6 +20,10 @@ import WatchHistory from "./pages/WatchHistory";
 import SearchResults from "./pages/SearchResults";
 import WatchNew from "./pages/WatchNew";
 import ViewAllPage from "./pages/ViewAllPage";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import Contact from "./pages/Contact";
+import About from "./pages/About";
 import tmdbApi, { getPosterUrl } from "./integrations/api/tmdb";
 import jikanApi from "./integrations/api/jikan";
 import axios from 'axios';
@@ -296,6 +300,13 @@ const App = () => {
             
             {/* Search */}
             <Route path="/search" element={<SearchResults />} />
+
+            {/* Legal & Info Pages */}
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/help" element={<About />} />
 
             {/* View All Routes */}
             <Route 

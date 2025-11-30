@@ -127,14 +127,14 @@ export const tmdbApi = {
   // Details (with longer cache)
   getMovieDetails: (id: number) => 
     cachedAsyncFunction(
-      () => api.get(`/movie/${id}`, { params: { append_to_response: 'videos,credits' } }),
+      () => api.get(`/movie/${id}`, { params: { append_to_response: 'videos,credits,reviews,recommendations,similar' } }),
       `movie-details-${id}`,
       CACHE_DURATIONS.LONG
     ),
   
   getTVShowDetails: (id: number) => 
     cachedAsyncFunction(
-      () => api.get(`/tv/${id}`, { params: { append_to_response: 'videos,credits' } }),
+      () => api.get(`/tv/${id}`, { params: { append_to_response: 'videos,credits,reviews,recommendations,similar' } }),
       `tv-details-${id}`,
       CACHE_DURATIONS.LONG
     ),
