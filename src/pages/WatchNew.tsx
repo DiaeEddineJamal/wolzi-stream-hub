@@ -538,7 +538,7 @@ export default function WatchNew() {
                 ref={playerRef}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative aspect-video rounded-lg sm:rounded-xl lg:rounded-2xl overflow-hidden min-h-[300px] xs:min-h-[320px] sm:min-h-[380px] md:min-h-[450px] lg:min-h-[550px] xl:min-h-[650px] shadow-2xl w-full"
+                className="relative aspect-video rounded-lg sm:rounded-xl lg:rounded-2xl overflow-hidden min-h-[340px] xs:min-h-[360px] sm:min-h-[420px] md:min-h-[500px] lg:min-h-[600px] xl:min-h-[700px] shadow-2xl w-full"
               >
               {mediaDetails ? (
                 <GlassmorphismVideoPlayer
