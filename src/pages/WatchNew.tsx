@@ -622,7 +622,7 @@ export default function WatchNew() {
 
       {/* Main Content */}
       <div className="relative z-10 w-full max-w-none">
-        <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 pt-32 sm:pt-32 md:pt-36 lg:pt-40 pb-6 sm:pb-8 md:pb-10 lg:pb-12">
+        <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 pt-24 sm:pt-28 md:pt-36 lg:pt-40 pb-6 sm:pb-8 md:pb-10 lg:pb-12">
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-16">
             {/* Video Player - Takes up 3 columns on lg+ screens */}
             <div className="lg:col-span-3 space-y-4 sm:space-y-6 md:space-y-8">

@@ -345,13 +345,17 @@ const NavBar: React.FC<NavBarProps> = ({
     throw new Error("Function not implemented.");
   }
 
+  // Check if current page is media detail page for mobile navbar positioning
+  const isMediaDetailPage = /^\/(movie|tv|anime)\/\d+/.test(location.pathname);
+  
   return (
     <header
       className={cn(
         "fixed left-0 right-0 z-[10000] transition-all duration-500",
-        hidden ? "-translate-y-full" : "translate-y-0"
+        hidden ? "-translate-y-full" : "translate-y-0",
+        isMediaDetailPage ? "sm:top-5 top-0" : "top-5"
       )}
-      style={{ top: '20px', pointerEvents: 'auto' }}
+      style={{ pointerEvents: 'auto' }}
     >
       {/* Floating Navbar Container */}
       <div className="mx-4" style={{ pointerEvents: 'auto' }}>

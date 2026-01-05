@@ -204,7 +204,13 @@
   height: 80vh;
   width: 100%;
   overflow: hidden;
-  margin-top: -6rem; /* -24 in Tailwind */
+  margin-top: 0; /* Start from top on mobile */
+}
+
+@media (min-width: 640px) {
+  .hero-banner {
+    margin-top: -4rem; /* Negative margin for sm+ screens */
+  }
 }
 
 @media (min-width: 1024px) {
@@ -247,6 +253,7 @@
       rgba(0, 0, 0, 0.7) 50%, 
       rgba(0, 0, 0, 0.5) 70%);
     padding-bottom: 1rem;
+    padding-top: 5rem; /* Add space for navbar on mobile */
   }
 
   .hero-banner {

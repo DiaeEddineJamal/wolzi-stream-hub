@@ -1020,7 +1020,7 @@ const MediaDetail: React.FC = () => {
       </div>
       
       {/* Content Area */}
-      <div className="container mx-auto py-6 md:py-8 px-4">
+      <div className="container mx-auto pt-4 pb-6 md:py-8 px-4 sm:pt-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4 md:mt-6">
           <div className="overflow-x-auto pb-2 no-scrollbar">
             <TabsList className="flex w-full md:w-auto min-w-max">

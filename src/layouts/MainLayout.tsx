@@ -16,15 +16,16 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-  // Check if current page is home page
+  // Check if current page is home page or media detail page (for hero banner)
   const isHomePage = location.pathname === '/';
+  const isMediaDetailPage = /^\/(movie|tv|anime)\/\d+/.test(location.pathname);
   
   return (
     <div className="flex flex-col min-h-screen bg-black text-white overflow-hidden">
       {/* Global NavBar - appears on all pages */}
       <NavBar />
       
-      {/* Main content with conditional padding - no padding for home page to allow seamless hero banner */}
+      {/* Main content with conditional padding - no padding for home page or media detail to allow seamless hero banner */}
       <AnimatePresence mode="wait" initial={false}>
         <motion.main 
           key={location.pathname}
@@ -40,7 +41,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             position: "relative" 
           }}
           className={`flex-grow transition-all duration-300 overflow-x-hidden ${
-            isHomePage ? '' : 'pt-24 lg:pt-28'
+            isHomePage || isMediaDetailPage ? '' : 'pt-20 sm:pt-24 lg:pt-28'
           }`}
         >
           {children}
