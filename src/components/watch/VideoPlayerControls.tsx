@@ -144,393 +144,235 @@ export const VideoPlayerControls: React.FC<VideoPlayerControlsProps> = ({
   return (
     <AnimatePresence>
       {controlsVisible && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          className="absolute bottom-0 left-0 right-0 z-[9999] pointer-events-auto video-player-controls"
-          style={{ overflow: 'visible' }}
-        >
-          {/* Progress Bar (hidden here - moved inside main controls to prevent overlap) */}
-          <div className="hidden" />
-
-          {/* Main Controls */}
-          <div className="frosted-glass-strong backdrop-blur-xl bg-black/40 border-t border-white/10 pointer-events-auto relative z-[9999]" style={{ overflow: 'visible', marginTop: '0', position: 'relative' }}>
-            {/* Progress Bar INSIDE controls (prevents any overlap) */}
-            <div className="px-3 sm:px-4 md:px-6 pt-2 mb-3 sm:mb-4 relative z-[10000]">
-              <div className="relative">
-                <Slider
-                  value={[progressPercentage]}
-                  onValueChange={handleProgressChange}
-                  onValueCommit={() => setIsDragging(false)}
-                  onPointerDown={() => setIsDragging(true)}
-                  className="w-full cursor-pointer touch-manipulation py-2"
-                  max={100}
-                  step={0.1}
-                />
-                <div className="flex justify-between text-xs sm:text-sm text-white/70 mt-1 select-none">
-                  <span>{formatTime(currentTime)}</span>
-                  <span>{formatTime(duration)}</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between px-3 sm:px-4 md:px-6 py-3 sm:py-4 pointer-events-auto" style={{ overflow: 'visible', position: 'relative', zIndex: 10001 }}>
-              {/* Left Controls */}
-              <div className="flex items-center space-x-2 sm:space-x-3 pointer-events-auto" style={{ overflow: 'visible', position: 'relative', zIndex: 10002 }}>
-                {/* Previous Episode */}
-                <Button
-                  aria-label="Previous episode"
-                  onClick={onPrevious}
-                  disabled={!canGoPrevious}
-                  size="sm"
-                  variant="ghost"
-                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 disabled:opacity-50 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
-                  style={{ 
-                    pointerEvents: 'auto',
-                    boxSizing: 'border-box',
-                    lineHeight: '1',
-                    WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation',
-                    position: 'relative',
-                    zIndex: 10003,
-                    padding: '0',
-                    margin: '0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    overflow: 'visible'
-                  }}
-                >
-                  <ChevronLeft className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
-                </Button>
-
-                {/* Skip Back */}
-                <Button
-                  aria-label="Skip back 10 seconds"
-                  onClick={() => onSeek?.(Math.max(0, currentTime - 10))}
-                  size="sm"
-                  variant="ghost"
-                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
-                  style={{ 
-                    pointerEvents: 'auto',
-                    boxSizing: 'border-box',
-                    lineHeight: '1',
-                    WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation',
-                    position: 'relative',
-                    zIndex: 60,
-                    padding: '0',
-                    margin: '0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <SkipBack className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
-                </Button>
-
-                {/* Play/Pause */}
-                <Button
-                  aria-label={isPlaying ? 'Pause' : 'Play'}
-                  onClick={isPlaying ? onPause : onPlay}
-                  size="lg"
-                  className="frosted-glass border-white/20 hover:bg-white/10 active:bg-white/20 text-white !w-[64px] !h-[64px] sm:!w-[72px] sm:!h-[72px] md:!w-[80px] md:!h-[80px] !p-0 !m-0 !min-w-[64px] !min-h-[64px] sm:!min-w-[72px] sm:!min-h-[72px] md:!min-w-[80px] md:!min-h-[80px] !leading-none rounded-full touch-manipulation active:scale-95 transition-all duration-150 select-none flex items-center justify-center flex-shrink-0 cursor-pointer relative"
-                  style={{ 
-                    WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation',
-                    pointerEvents: 'auto',
-                    boxSizing: 'border-box',
-                    lineHeight: '1',
-                    position: 'relative',
-                    zIndex: 60,
-                    padding: '0',
-                    margin: '0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  {isLoading ? (
-                    <Loader2 className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 animate-spin flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
-                  ) : isPlaying ? (
-                    <Pause className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
-                  ) : (
-                    <Play className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex-shrink-0 pointer-events-none" style={{ margin: '0', marginLeft: '2px' }} />
-                  )}
-                </Button>
-
-                {/* Skip Forward */}
-                <Button
-                  aria-label="Skip forward 10 seconds"
-                  onClick={() => onSeek?.(Math.min(duration, currentTime + 10))}
-                  size="sm"
-                  variant="ghost"
-                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
-                  style={{ 
-                    pointerEvents: 'auto',
-                    boxSizing: 'border-box',
-                    lineHeight: '1',
-                    WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation',
-                    position: 'relative',
-                    zIndex: 60,
-                    padding: '0',
-                    margin: '0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <SkipForward className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
-                </Button>
-
-                {/* Next Episode */}
-                <Button
-                  aria-label="Next episode"
-                  onClick={onNext}
-                  disabled={!canGoNext}
-                  size="sm"
-                  variant="ghost"
-                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 disabled:opacity-50 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
-                  style={{ 
-                    pointerEvents: 'auto',
-                    boxSizing: 'border-box',
-                    lineHeight: '1',
-                    WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation',
-                    position: 'relative',
-                    zIndex: 60,
-                    padding: '0',
-                    margin: '0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <ChevronRight className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
-                </Button>
-
-                {/* Volume Controls */}
-                <div 
-                  className="hidden sm:flex items-center space-x-2"
-                  onMouseEnter={() => setShowVolumeSlider(true)}
-                  onMouseLeave={() => setShowVolumeSlider(false)}
-                >
-                  <Button
-                    aria-label={isMuted || volume === 0 ? 'Unmute' : 'Mute'}
-                    onClick={onMute}
-                    size="sm"
-                    variant="ghost"
-                    className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
-                    style={{ 
-                      pointerEvents: 'auto',
-                      boxSizing: 'border-box',
-                      lineHeight: '1',
-                      WebkitTapHighlightColor: 'transparent',
-                      touchAction: 'manipulation',
-                      position: 'relative',
-                      zIndex: 60,
-                      padding: '0',
-                      margin: '0',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    {isMuted || volume === 0 ? (
-                      <VolumeX className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
-                    ) : (
-                      <Volume2 className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
-                    )}
-                  </Button>
-                  
-                  <AnimatePresence>
-                    {showVolumeSlider && (
-                      <motion.div
-                        initial={{ opacity: 0, width: 0 }}
-                        animate={{ opacity: 1, width: 80 }}
-                        exit={{ opacity: 0, width: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <Slider
-                          value={[volume]}
-                          onValueChange={handleVolumeChange}
-                          className="w-24 touch-manipulation py-2"
-                          max={100}
-                          step={1}
-                        />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
-                {/* Time Display - Hidden on mobile to save space */}
-                <div className="hidden md:block glass-card px-2 sm:px-3 py-1 rounded-full">
-                  <span className="text-xs sm:text-sm text-white font-mono">
-                    {formatTime(currentTime)} / {formatTime(duration)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Right Controls */}
-              <div className="flex items-center space-x-1 sm:space-x-2 pointer-events-auto" style={{ overflow: 'visible', position: 'relative', zIndex: 50 }}>
-                {/* Reload */}
-                <Button
-                  aria-label="Reload player"
-                  onClick={onReload}
-                  size="sm"
-                  variant="ghost"
-                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
-                  style={{ 
-                    pointerEvents: 'auto',
-                    boxSizing: 'border-box',
-                    lineHeight: '1',
-                    WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation',
-                    position: 'relative',
-                    zIndex: 60,
-                    padding: '0',
-                    margin: '0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <RotateCcw className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
-                </Button>
-
-                {/* Download - Hidden on mobile */}
-                <Button
-                  aria-label="Download video"
-                  onClick={onDownload}
-                  size="sm"
-                  variant="ghost"
-                  className="hidden sm:flex text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
-                  style={{ 
-                    pointerEvents: 'auto',
-                    boxSizing: 'border-box',
-                    lineHeight: '1',
-                    WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation',
-                    position: 'relative',
-                    zIndex: 60,
-                    padding: '0',
-                    margin: '0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <Download className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
-                </Button>
-
-                {/* Add to Watchlist - Hidden on mobile */}
-                <Button
-                  aria-label="Add to watchlist"
-                  onClick={onAddToWatchlist}
-                  size="sm"
-                  variant="ghost"
-                  className="hidden sm:flex text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
-                  style={{ 
-                    pointerEvents: 'auto',
-                    boxSizing: 'border-box',
-                    lineHeight: '1',
-                    WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation',
-                    position: 'relative',
-                    zIndex: 60,
-                    padding: '0',
-                    margin: '0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <Heart className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
-                </Button>
-
-                {/* Share - Hidden on mobile */}
-                <Button
-                  aria-label="Share"
-                  onClick={onShare}
-                  size="sm"
-                  variant="ghost"
-                  className="hidden sm:flex text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
-                  style={{ 
-                    pointerEvents: 'auto',
-                    boxSizing: 'border-box',
-                    lineHeight: '1',
-                    WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation',
-                    position: 'relative',
-                    zIndex: 60,
-                    padding: '0',
-                    margin: '0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <Share2 className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
-                </Button>
-
-                {/* Settings */}
-                <Button
-                  aria-label="Settings"
-                  onClick={onSettings}
-                  size="sm"
-                  variant="ghost"
-                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
-                  style={{ 
-                    pointerEvents: 'auto',
-                    boxSizing: 'border-box',
-                    lineHeight: '1',
-                    WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation',
-                    position: 'relative',
-                    zIndex: 60,
-                    padding: '0',
-                    margin: '0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <Settings className="w-5 h-5 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
-                </Button>
-
-                {/* Fullscreen */}
-                <Button
-                  aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-                  onClick={onFullscreen}
-                  size="sm"
-                  variant="ghost"
-                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] sm:!w-[48px] sm:!h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] sm:!min-w-[48px] sm:!min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
-                  style={{ 
-                    pointerEvents: 'auto',
-                    boxSizing: 'border-box',
-                    lineHeight: '1',
-                    WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation',
-                    position: 'relative',
-                    zIndex: 60,
-                    padding: '0',
-                    margin: '0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  {isFullscreen ? (
-                    <Minimize className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
-                  ) : (
-                    <Maximize className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 pointer-events-none" style={{ margin: '0' }} />
-                  )}
-                </Button>
+        <div className="absolute bottom-0 left-0 right-0 z-[9999] video-player-controls">
+          {/* Progress Bar Section - Completely separate layer */}
+          <div 
+            className="px-3 sm:px-4 md:px-6 pt-3 pb-2"
+            style={{
+              position: 'relative',
+              zIndex: 10,
+              pointerEvents: 'none',
+              height: '48px',
+              overflow: 'hidden'
+            }}
+          >
+            <div style={{ pointerEvents: 'auto', height: '100%' }}>
+              <Slider
+                value={[progressPercentage]}
+                onValueChange={handleProgressChange}
+                onValueCommit={() => setIsDragging(false)}
+                onPointerDown={() => setIsDragging(true)}
+                className="w-full cursor-pointer touch-manipulation"
+                max={100}
+                step={0.1}
+              />
+              <div className="flex justify-between text-xs sm:text-sm text-white/70 mt-1 select-none pointer-events-none">
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(duration)}</span>
               </div>
             </div>
           </div>
-        </motion.div>
+
+          {/* Button Controls Section - Completely separate layer below progress bar */}
+          <div 
+            className="frosted-glass-strong backdrop-blur-xl bg-black/40 border-t border-white/10 px-3 sm:px-4 md:px-6 py-3 sm:py-4"
+            style={{
+              position: 'relative',
+              zIndex: 20,
+              pointerEvents: 'auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}
+          >
+            {/* Left Controls */}
+            <div className="flex items-center space-x-2 sm:space-x-3" style={{ pointerEvents: 'auto' }}>
+              {/* Previous Episode */}
+              <Button
+                aria-label="Previous episode"
+                onClick={onPrevious}
+                disabled={!canGoPrevious}
+                size="sm"
+                variant="ghost"
+                className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 disabled:opacity-50 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+              >
+                <ChevronLeft className="w-5 h-5 flex-shrink-0 pointer-events-none" />
+              </Button>
+
+              {/* Skip Back */}
+              <Button
+                aria-label="Skip back 10 seconds"
+                onClick={() => onSeek?.(Math.max(0, currentTime - 10))}
+                size="sm"
+                variant="ghost"
+                className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+              >
+                <SkipBack className="w-5 h-5 flex-shrink-0 pointer-events-none" />
+              </Button>
+
+              {/* Play/Pause */}
+              <Button
+                aria-label={isPlaying ? 'Pause' : 'Play'}
+                onClick={isPlaying ? onPause : onPlay}
+                size="lg"
+                className="frosted-glass border-white/20 hover:bg-white/10 active:bg-white/20 text-white !w-[64px] !h-[64px] sm:!w-[72px] sm:!h-[72px] md:!w-[80px] md:!h-[80px] !p-0 !m-0 !min-w-[64px] !min-h-[64px] sm:!min-w-[72px] sm:!min-h-[72px] md:!min-w-[80px] md:!min-h-[80px] !leading-none rounded-full touch-manipulation active:scale-95 transition-all duration-150 select-none flex items-center justify-center flex-shrink-0 cursor-pointer"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 animate-spin flex-shrink-0 pointer-events-none" />
+                ) : isPlaying ? (
+                  <Pause className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex-shrink-0 pointer-events-none" />
+                ) : (
+                  <Play className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex-shrink-0 pointer-events-none" style={{ marginLeft: '2px' }} />
+                )}
+              </Button>
+
+              {/* Skip Forward */}
+              <Button
+                aria-label="Skip forward 10 seconds"
+                onClick={() => onSeek?.(Math.min(duration, currentTime + 10))}
+                size="sm"
+                variant="ghost"
+                className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+              >
+                <SkipForward className="w-5 h-5 flex-shrink-0 pointer-events-none" />
+              </Button>
+
+              {/* Next Episode */}
+              <Button
+                aria-label="Next episode"
+                onClick={onNext}
+                disabled={!canGoNext}
+                size="sm"
+                variant="ghost"
+                className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 disabled:opacity-50 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+              >
+                <ChevronRight className="w-5 h-5 flex-shrink-0 pointer-events-none" />
+              </Button>
+
+              {/* Volume Controls */}
+              <div 
+                className="hidden sm:flex items-center space-x-2"
+                onMouseEnter={() => setShowVolumeSlider(true)}
+                onMouseLeave={() => setShowVolumeSlider(false)}
+                style={{ pointerEvents: 'auto' }}
+              >
+                <Button
+                  aria-label={isMuted || volume === 0 ? 'Unmute' : 'Mute'}
+                  onClick={onMute}
+                  size="sm"
+                  variant="ghost"
+                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+                >
+                  {isMuted || volume === 0 ? (
+                    <VolumeX className="w-5 h-5 flex-shrink-0 pointer-events-none" />
+                  ) : (
+                    <Volume2 className="w-5 h-5 flex-shrink-0 pointer-events-none" />
+                  )}
+                </Button>
+                
+                <AnimatePresence>
+                  {showVolumeSlider && (
+                    <motion.div
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: 80 }}
+                      exit={{ opacity: 0, width: 0 }}
+                      className="overflow-hidden"
+                      style={{ pointerEvents: 'auto' }}
+                    >
+                      <Slider
+                        value={[volume]}
+                        onValueChange={handleVolumeChange}
+                        className="w-24 touch-manipulation py-2"
+                        max={100}
+                        step={1}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Time Display - Hidden on mobile */}
+              <div className="hidden md:block glass-card px-2 sm:px-3 py-1 rounded-full pointer-events-none">
+                <span className="text-xs sm:text-sm text-white font-mono">
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </span>
+              </div>
+            </div>
+
+            {/* Right Controls */}
+            <div className="flex items-center space-x-1 sm:space-x-2" style={{ pointerEvents: 'auto' }}>
+              {/* Reload */}
+              <Button
+                aria-label="Reload player"
+                onClick={onReload}
+                size="sm"
+                variant="ghost"
+                className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+              >
+                <RotateCcw className="w-5 h-5 flex-shrink-0 pointer-events-none" />
+              </Button>
+
+              {/* Download - Hidden on mobile */}
+              <Button
+                aria-label="Download video"
+                onClick={onDownload}
+                size="sm"
+                variant="ghost"
+                className="hidden sm:flex text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+              >
+                <Download className="w-5 h-5 flex-shrink-0 pointer-events-none" />
+              </Button>
+
+              {/* Add to Watchlist - Hidden on mobile */}
+              <Button
+                aria-label="Add to watchlist"
+                onClick={onAddToWatchlist}
+                size="sm"
+                variant="ghost"
+                className="hidden sm:flex text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+              >
+                <Heart className="w-5 h-5 flex-shrink-0 pointer-events-none" />
+              </Button>
+
+              {/* Share - Hidden on mobile */}
+              <Button
+                aria-label="Share"
+                onClick={onShare}
+                size="sm"
+                variant="ghost"
+                className="hidden sm:flex text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+              >
+                <Share2 className="w-5 h-5 flex-shrink-0 pointer-events-none" />
+              </Button>
+
+              {/* Settings */}
+              <Button
+                aria-label="Settings"
+                onClick={onSettings}
+                size="sm"
+                variant="ghost"
+                className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+              >
+                <Settings className="w-5 h-5 flex-shrink-0 pointer-events-none" />
+              </Button>
+
+              {/* Fullscreen */}
+              <Button
+                aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                onClick={onFullscreen}
+                size="sm"
+                variant="ghost"
+                className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
+              >
+                {isFullscreen ? (
+                  <Minimize className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 pointer-events-none" />
+                ) : (
+                  <Maximize className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 pointer-events-none" />
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </AnimatePresence>
   );

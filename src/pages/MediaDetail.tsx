@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import tmdbApi, { getBackdropUrl, getPosterUrl } from '@/integrations/api/tmdb';
@@ -830,8 +831,25 @@ const MediaDetail: React.FC = () => {
   if (loading) {
     return (
       <MainLayout>
-        <div className="flex h-screen items-center justify-center">
-          <div className="loading-spinner"></div>
+        <div className="container mx-auto px-4 pt-24 sm:pt-8 pb-8">
+          <div className="flex flex-col md:flex-row gap-8">
+            <Skeleton className="w-full md:w-1/3 aspect-[2/3] bg-slate-800/50 rounded-lg" />
+            <div className="flex-1 space-y-6">
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-3/4 bg-slate-800/50" />
+                <Skeleton className="h-6 w-1/2 bg-slate-800/50" />
+              </div>
+              <div className="flex gap-4">
+                <Skeleton className="h-8 w-20 bg-slate-800/50 rounded-full" />
+                <Skeleton className="h-8 w-20 bg-slate-800/50 rounded-full" />
+                <Skeleton className="h-8 w-20 bg-slate-800/50 rounded-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-24 bg-slate-800/50" />
+                <Skeleton className="h-32 w-full bg-slate-800/50" />
+              </div>
+            </div>
+          </div>
         </div>
       </MainLayout>
     );

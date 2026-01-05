@@ -1,15 +1,63 @@
+# Robots.txt for WolziFlix
+# Allow all search engines to crawl the site
+
 User-agent: Googlebot
 Allow: /
+Crawl-delay: 1
 
 User-agent: Bingbot
 Allow: /
+Crawl-delay: 1
 
+User-agent: Slurp
+Allow: /
+Crawl-delay: 1
+
+User-agent: DuckDuckBot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Baiduspider
+Allow: /
+Crawl-delay: 1
+
+User-agent: YandexBot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Sogou
+Allow: /
+Crawl-delay: 1
+
+User-agent: Exabot
+Allow: /
+Crawl-delay: 1
+
+User-agent: facebot
+Allow: /
+Crawl-delay: 1
+
+User-agent: ia_archiver
+Allow: /
+Crawl-delay: 1
+
+# Social Media Bots
 User-agent: Twitterbot
 Allow: /
 
 User-agent: facebookexternalhit
 Allow: /
 
+User-agent: LinkedInBot
+Allow: /
+
+# Allow all other bots
 User-agent: *
 Allow: /
+Crawl-delay: 1
+
+# Sitemap location
 Sitemap: https://wolziflix.com/sitemap.xml
+
+# Host
+Host: https://wolziflix.com

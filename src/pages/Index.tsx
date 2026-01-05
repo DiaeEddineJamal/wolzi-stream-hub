@@ -5,6 +5,7 @@ import MainLayout from "@/layouts/MainLayout";
 import HeroBanner from "@/components/home/HeroBanner";
 import ContentSection from "@/components/home/ContentSection";
 import StaticCarousel from "@/components/home/StaticCarousel";
+import { Skeleton } from "@/components/ui/skeleton";
 import tmdbApi, { getPosterUrl, getBackdropUrl } from "@/integrations/api/tmdb";
 import jikanApi from "@/integrations/api/jikan";
 import { Button } from "@/components/ui/button";
@@ -350,26 +351,82 @@ const Index: React.FC = () => {
   }, []);
 
   useSEO({
-    title: "WolziFlix – Stream Movies, TV Shows & Anime",
-    description: "Stream popular movies, top-rated TV series, and trending anime. Watch trailers, browse categories, and continue watching across devices.",
-    keywords: ["streaming", "movies", "tv series", "anime", "watch online", "trailers"],
+    title: "WolziFlix – Stream Movies, TV Shows & Anime | Free Streaming Platform",
+    description: "WolziFlix - Your premier destination for streaming movies, TV series, and anime. Discover thousands of titles, watch online free, and enjoy a vast library of entertainment content. Stream popular movies, top-rated TV series, and trending anime on WolziFlix.",
+    keywords: ["WolziFlix", "wolziflix", "streaming", "movies", "tv series", "anime", "watch online", "trailers", "free streaming", "entertainment", "movies online", "TV shows online", "anime streaming", "wolziflix streaming", "wolziflix movies"],
     type: "website",
     schema: {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      "url": (import.meta.env.VITE_SITE_URL || window.location.origin),
       "name": "WolziFlix",
+      "alternateName": "WolziFlix Streaming Platform",
+      "url": (import.meta.env.VITE_SITE_URL || window.location.origin),
+      "description": "WolziFlix is a premier streaming platform and content aggregator for movies, TV shows, and anime. Discover and watch thousands of titles online.",
+      "publisher": {
+        "@type": "Organization",
+        "name": "WolziFlix",
+        "logo": {
+          "@type": "ImageObject",
+          "url": (import.meta.env.VITE_SITE_URL || window.location.origin) + "/website-logo.png"
+        }
+      },
       "potentialAction": {
         "@type": "SearchAction",
-        "target": (import.meta.env.VITE_SITE_URL || window.location.origin) + "/search?query={search_term_string}",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": (import.meta.env.VITE_SITE_URL || window.location.origin) + "/search?q={search_term_string}"
+        },
         "query-input": "required name=search_term_string"
+      },
+      "inLanguage": "en-US",
+      "isAccessibleForFree": true,
+      "audience": {
+        "@type": "Audience",
+        "audienceType": "Entertainment Enthusiasts"
       }
     }
   })
 
+  // Add Organization schema separately for better SEO
+  useEffect(() => {
+    const orgSchema = {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "WolziFlix",
+      "alternateName": ["WolziFlix Streaming", "WolziFlix Platform"],
+      "url": (import.meta.env.VITE_SITE_URL || window.location.origin),
+      "logo": (import.meta.env.VITE_SITE_URL || window.location.origin) + "/website-logo.png",
+      "description": "WolziFlix is a premier streaming platform and content aggregator for movies, TV shows, and anime. Discover and watch thousands of titles online.",
+      "sameAs": [
+        "https://github.com/DiaeEddineJamal"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "Customer Service",
+        "url": (import.meta.env.VITE_SITE_URL || window.location.origin) + "/contact"
+      },
+      "areaServed": {
+        "@type": "Place",
+        "name": "Worldwide"
+      },
+      "knowsAbout": ["Streaming", "Movies", "TV Shows", "Anime", "Entertainment", "Online Streaming"],
+      "foundingDate": "2024"
+    }
+
+    let script = document.head.querySelector('script[data-schema="organization"]') as HTMLScriptElement | null
+    if (!script) {
+      script = document.createElement('script')
+      script.type = 'application/ld+json'
+      script.setAttribute('data-schema', 'organization')
+      document.head.appendChild(script)
+    }
+    script.textContent = JSON.stringify(orgSchema)
+  }, [])
+
   return (
     <MainLayout>
-      <h1 className="sr-only">WolziFlix – Stream Movies, TV Series and Anime</h1>
+      <h1 className="text-4xl md:text-5xl font-bold text-center mb-2 text-wolzi-accent">WolziFlix</h1>
+      <p className="text-center text-gray-400 mb-8 text-lg">Stream Movies, TV Series and Anime</p>
       {/* Hero Banner */}
       {featuredItems.length > 0 ? (
         <HeroBanner
@@ -378,17 +435,38 @@ const Index: React.FC = () => {
         />
       ) : (
         <div className="hero-banner">
-          <div className="w-full h-full bg-gradient-to-r from-wolzi-dark-gray to-wolzi-bg flex items-center justify-center">
-            <div className="loading-spinner"></div>
-          </div>
+          <Skeleton className="w-full h-[60vh] bg-slate-800/50 rounded-lg" />
         </div>
       )}
       
       {/* Content Sections */}
       <div className="pt-8 pb-16">
         {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="loading-spinner"></div>
+          <div className="space-y-12">
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-48 bg-slate-800/50" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Skeleton key={i} className="aspect-[2/3] w-full bg-slate-800/50 rounded-lg" />
+                ))}
+              </div>
+            </div>
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-48 bg-slate-800/50" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Skeleton key={i} className="aspect-[2/3] w-full bg-slate-800/50 rounded-lg" />
+                ))}
+              </div>
+            </div>
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-48 bg-slate-800/50" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Skeleton key={i} className="aspect-[2/3] w-full bg-slate-800/50 rounded-lg" />
+                ))}
+              </div>
+            </div>
           </div>
         ) : (
           <div className="container mx-auto px-4">

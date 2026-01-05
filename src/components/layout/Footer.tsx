@@ -55,7 +55,8 @@ const Footer: React.FC = () => {
               <li><Link to="/movies" className="text-gray-400 hover:text-white text-sm transition-colors">Movies</Link></li>
               <li><Link to="/tv-series" className="text-gray-400 hover:text-white text-sm transition-colors">TV Series</Link></li>
               <li><Link to="/anime" className="text-gray-400 hover:text-white text-sm transition-colors">Anime</Link></li>
-              <li><Link to="/trending" className="text-gray-400 hover:text-white text-sm transition-colors">Trending</Link></li>
+              <li><Link to="/trending/all" className="text-gray-400 hover:text-white text-sm transition-colors">Trending</Link></li>
+              <li><Link to="/platform" className="text-gray-400 hover:text-white text-sm transition-colors">Platform</Link></li>
             </ul>
           </div>
           
@@ -74,6 +75,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-2">
               <li><Link to="/terms" className="text-gray-400 hover:text-white text-sm transition-colors">Terms of Service</Link></li>
               <li><Link to="/privacy" className="text-gray-400 hover:text-white text-sm transition-colors">Privacy Policy</Link></li>
+              <li><Link to="/legal" className="text-gray-400 hover:text-white text-sm transition-colors">Legal Disclaimer</Link></li>
               <li><Link to="/help" className="text-gray-400 hover:text-white text-sm transition-colors">Help Center</Link></li>
               <li><Link to="/contact" className="text-gray-400 hover:text-white text-sm transition-colors">Contact Us</Link></li>
             </ul>

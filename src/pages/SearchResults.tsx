@@ -5,6 +5,7 @@ import tmdbApi, { getPosterUrl } from '@/integrations/api/tmdb';
 import ContentSection from '@/components/home/ContentSection';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
 import { Search, ArrowRight } from 'lucide-react';
 
@@ -184,8 +185,10 @@ const SearchResults: React.FC = () => {
         )}
         
         {loading && results.length === 0 ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="w-12 h-12 border-4 border-wolzi-accent/30 border-t-wolzi-accent rounded-full animate-spin"></div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((i) => (
+              <Skeleton key={i} className="aspect-[2/3] w-full bg-slate-800/50 rounded-lg" />
+            ))}
           </div>
         ) : (
           <>

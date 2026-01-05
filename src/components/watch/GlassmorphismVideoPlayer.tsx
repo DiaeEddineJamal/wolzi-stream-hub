@@ -377,33 +377,10 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
   };
 
   return (
-    <div ref={playerRef} className="relative w-full h-full min-h-[300px] sm:min-h-[380px] md:min-h-[450px] lg:min-h-[500px] xl:min-h-[600px] bg-black rounded-lg sm:rounded-xl overflow-hidden max-w-full">
+    <div ref={playerRef} className="relative w-full h-full min-h-[300px] sm:min-h-[380px] md:min-h-[450px] lg:min-h-[500px] xl:min-h-[600px] bg-black rounded-lg sm:rounded-xl overflow-hidden max-w-full" style={{ isolation: 'isolate' }}>
       {/* Glassmorphism overlay container */}
-      <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/20 backdrop-blur-[1px] pointer-events-none">
+      <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/20 backdrop-blur-[1px] pointer-events-none" style={{ zIndex: 1 }}>
         
-        {/* Loading overlay */}
-        <AnimatePresence>
-          {isLoading && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm z-20"
-            >
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="frosted-glass p-8 rounded-2xl text-center"
-              >
-                <div className="w-16 h-16 border-4 border-wolzi-accent/30 border-t-wolzi-accent rounded-full animate-spin mb-4 mx-auto"></div>
-                <h3 className="text-xl font-semibold text-white mb-2 shimmer-text">Loading Content</h3>
-                <p className="text-sm text-white/70">
-                  {currentSource ? `Connecting to ${sources.find(s => s.id === currentSource)?.name}...` : 'Finding best streaming source...'}
-                </p>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Error overlay */}
         <AnimatePresence>
@@ -444,58 +421,32 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
           />
         )}
 
-        {/* Play Overlay Button - Shows when video is not playing */}
-        <AnimatePresence>
-          {!isLoading && !error && showPlayOverlay && sourceUrl && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              transition={{ duration: 0.3 }}
-              className="absolute inset-0 z-20 flex items-center justify-center pointer-events-auto"
-            >
-              <motion.button
-                onClick={handlePlayClick}
-                className="frosted-glass border-2 border-white/30 hover:border-white/50 rounded-full p-6 sm:p-8 md:p-10 shadow-2xl backdrop-blur-xl transition-all duration-300 hover:scale-110 active:scale-95 touch-manipulation"
-                style={{
-                  background: 'rgba(0, 0, 0, 0.4)',
-                  backdropFilter: 'blur(20px)',
-                  WebkitTapHighlightColor: 'transparent'
-                }}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Play className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 text-white fill-white ml-1 sm:ml-2" />
-              </motion.button>
-              
-              {/* Hint text for all screen sizes */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="absolute bottom-20 sm:bottom-24 md:bottom-28 left-1/2 transform -translate-x-1/2 text-white/90 text-sm sm:text-base md:text-lg font-medium text-center px-4 py-2 rounded-lg bg-black/50 backdrop-blur-sm"
-              >
-                <span className="hidden sm:inline">Click</span>
-                <span className="sm:hidden">Tap</span> to play
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Control overlays */}
         {!isLoading && !error && (
           <>
             {/* Top controls */}
-            <div className="absolute top-0 left-0 right-0 z-[60] p-3 sm:p-4 md:p-6 bg-gradient-to-b from-black/60 via-black/20 to-transparent pointer-events-none">
-              <div className="flex items-center justify-between pointer-events-auto">
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <div className="frosted-glass px-2 sm:px-3 py-1 rounded-full">
+            <div 
+              className="absolute top-0 left-0 right-0 z-[60] p-3 sm:p-4 md:p-6 bg-gradient-to-b from-black/60 via-black/20 to-transparent"
+              style={{ pointerEvents: 'none', height: 'auto', minHeight: '60px' }}
+            >
+              <div 
+                className="flex items-center justify-between" 
+                style={{ 
+                  pointerEvents: 'auto',
+                  position: 'relative',
+                  zIndex: 70,
+                  isolation: 'isolate'
+                }}
+              >
+                <div className="flex items-center space-x-2 sm:space-x-3" style={{ pointerEvents: 'none' }}>
+                  <div className="frosted-glass px-2 sm:px-3 py-1 rounded-full pointer-events-none">
                     <span className="text-xs sm:text-sm text-white font-medium">
                       {sources.find(s => s.id === currentSource)?.name || 'Loading...'}
                     </span>
                   </div>
                   {currentSource && (
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center space-x-1 pointer-events-none">
                       {getSourceStatusIcon(sources.find(s => s.id === currentSource)?.status || 'pending')}
                     </div>
                   )}
@@ -506,13 +457,16 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
                   onClick={() => setShowSettings(!showSettings)}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 frosted-glass !w-[48px] !h-[48px] !p-2 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
+                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 frosted-glass !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
                     lineHeight: '1',
                     WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation'
+                    touchAction: 'manipulation',
+                    position: 'relative',
+                    zIndex: 100,
+                    isolation: 'isolate'
                   }}
                 >
                   <Settings className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 pointer-events-none" />
@@ -521,20 +475,34 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
             </div>
 
             {/* Bottom controls */}
-            <div className="absolute bottom-0 left-0 right-0 z-[60] p-3 sm:p-4 md:p-6 bg-gradient-to-t from-black/60 via-black/20 to-transparent pointer-events-none">
-              <div className="flex items-center justify-end w-auto pointer-events-auto">
+            <div 
+              className="absolute bottom-0 left-0 right-0 z-[60] p-3 sm:p-4 md:p-6 bg-gradient-to-t from-black/60 via-black/20 to-transparent"
+              style={{ pointerEvents: 'none', height: 'auto', minHeight: '60px' }}
+            >
+              <div 
+                className="flex items-center justify-end w-auto" 
+                style={{ 
+                  pointerEvents: 'auto',
+                  position: 'relative',
+                  zIndex: 70,
+                  isolation: 'isolate'
+                }}
+              >
                 <Button
                   aria-label="Toggle fullscreen"
                   onClick={toggleFullscreen}
                   size="sm"
                   variant="ghost"
-                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 frosted-glass !w-[48px] !h-[48px] !p-2 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer relative"
+                  className="text-white hover:bg-white/10 active:bg-white/20 active:scale-95 transition-all duration-150 frosted-glass !w-[48px] !h-[48px] !p-0 !m-0 !min-w-[48px] !min-h-[48px] !leading-none flex items-center justify-center touch-manipulation flex-shrink-0 cursor-pointer"
                   style={{ 
                     pointerEvents: 'auto',
                     boxSizing: 'border-box',
                     lineHeight: '1',
                     WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation'
+                    touchAction: 'manipulation',
+                    position: 'relative',
+                    zIndex: 100,
+                    isolation: 'isolate'
                   }}
                 >
                   <Maximize className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 pointer-events-none" />

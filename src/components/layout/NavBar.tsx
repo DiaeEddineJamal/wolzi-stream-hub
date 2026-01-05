@@ -348,13 +348,13 @@ const NavBar: React.FC<NavBarProps> = ({
   return (
     <header
       className={cn(
-        "fixed left-0 right-0 z-50 transition-all duration-500",
+        "fixed left-0 right-0 z-[10000] transition-all duration-500",
         hidden ? "-translate-y-full" : "translate-y-0"
       )}
-      style={{ top: '20px' }}
+      style={{ top: '20px', pointerEvents: 'auto' }}
     >
       {/* Floating Navbar Container */}
-      <div className="mx-4">
+      <div className="mx-4" style={{ pointerEvents: 'auto' }}>
         <motion.div
           initial={shouldAnimate ? { opacity: 0, y: -20, scale: 0.95 } : { opacity: 1, y: 0, scale: 1 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -372,11 +372,12 @@ const NavBar: React.FC<NavBarProps> = ({
           )}
           style={{
             transform: scrolled ? "scale(0.98)" : "scale(1)",
-            transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)"
+            transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+            pointerEvents: 'auto'
           }}
         >
-          <div className="px-6 py-4">
-        <div className="flex items-center justify-between relative min-h-[60px]">
+          <div className="px-6 py-4" style={{ pointerEvents: 'auto' }}>
+        <div className="flex items-center justify-between relative min-h-[60px]" style={{ pointerEvents: 'auto' }}>
           {/* Logo */}
           <motion.div
             initial={shouldAnimate ? { opacity: 0, x: -20 } : { opacity: 1, x: 0 }}

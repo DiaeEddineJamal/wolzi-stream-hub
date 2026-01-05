@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSEO } from '@/hooks/useSEO';
 import MainLayout from '@/layouts/MainLayout';
 import ContentSection from '@/components/home/ContentSection';
+import { Skeleton } from '@/components/ui/skeleton';
 import tmdbApi, { getPosterUrl } from '@/integrations/api/tmdb';
 
 interface TVShow {
@@ -72,8 +73,23 @@ const TVSeries: React.FC = () => {
         <h1 className="text-4xl font-bold mb-8 gradient-text">📺 TV Series</h1>
         
         {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="loading-spinner"></div>
+          <div className="space-y-12">
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-48 bg-slate-800/50" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Skeleton key={i} className="aspect-[2/3] w-full bg-slate-800/50 rounded-lg" />
+                ))}
+              </div>
+            </div>
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-48 bg-slate-800/50" />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Skeleton key={i} className="aspect-[2/3] w-full bg-slate-800/50 rounded-lg" />
+                ))}
+              </div>
+            </div>
           </div>
         ) : (
           <>

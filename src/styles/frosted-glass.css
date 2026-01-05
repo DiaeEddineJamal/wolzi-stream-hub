@@ -52,6 +52,7 @@
   will-change: transform, background, box-shadow, backdrop-filter;
   transform: translateZ(0);
   position: relative;
+  pointer-events: auto !important;
 }
 
 .floating-navbar-glass::before {

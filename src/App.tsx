@@ -24,6 +24,9 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import Contact from "./pages/Contact";
 import About from "./pages/About";
+import Help from "./pages/Help";
+import LegalDisclaimer from "./pages/LegalDisclaimer";
+import Platform from "./pages/Platform";
 import tmdbApi, { getPosterUrl } from "./integrations/api/tmdb";
 import jikanApi from "./integrations/api/jikan";
 import axios from 'axios';
@@ -304,9 +307,11 @@ const App = () => {
             {/* Legal & Info Pages */}
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/legal" element={<LegalDisclaimer />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/about" element={<About />} />
-            <Route path="/help" element={<About />} />
+            <Route path="/help" element={<Help />} />
+            <Route path="/platform" element={<Platform />} />
 
             {/* View All Routes */}
             <Route 

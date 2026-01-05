@@ -53,11 +53,12 @@ export const ContentInfoPanel: React.FC<ContentInfoPanelProps> = ({
       className="frosted-glass p-6 rounded-2xl space-y-6"
     >
       {/* Header */}
-      <div className="space-y-2">
+      <div className="space-y-2 pr-20">
         <motion.h1
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="text-3xl font-bold text-white title-glow"
+          className="text-3xl font-bold text-white title-glow break-words line-clamp-3"
+          style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}
         >
           {title}
         </motion.h1>
@@ -74,7 +75,7 @@ export const ContentInfoPanel: React.FC<ContentInfoPanelProps> = ({
               </span>
             </div>
             {episodeTitle && (
-              <span className="text-lg text-white/90">{episodeTitle}</span>
+              <span className="text-lg text-white/90 break-words line-clamp-2" style={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>{episodeTitle}</span>
             )}
           </motion.div>
         )}

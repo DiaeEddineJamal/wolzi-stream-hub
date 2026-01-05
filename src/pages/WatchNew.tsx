@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Settings, X, Download, Share2, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import tmdbApi from '@/integrations/api/tmdb';
 import jikanApi from '@/integrations/api/jikan';
@@ -480,15 +481,107 @@ export default function WatchNew() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen min-w-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center overflow-hidden px-4 sm:px-6">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="frosted-glass p-6 sm:p-8 md:p-10 rounded-2xl text-center mx-4 max-w-md w-full"
-        >
-          <div className="animate-spin w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 border-4 border-white/20 border-t-white rounded-full mx-auto mb-6"></div>
-          <p className="text-white text-base sm:text-lg md:text-xl">Loading content...</p>
-        </motion.div>
+      <div className="min-h-screen min-w-full bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-x-hidden">
+        <NavBar />
+        <div className="relative z-10 w-full max-w-none">
+          <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 pt-32 sm:pt-32 md:pt-36 lg:pt-40 pb-6 sm:pb-8 md:pb-10 lg:pb-12">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-16">
+              {/* Video Player Skeleton */}
+              <div className="lg:col-span-3 space-y-4 sm:space-y-6 md:space-y-8">
+                <div className="relative aspect-video rounded-lg sm:rounded-xl lg:rounded-2xl overflow-hidden min-h-[340px] xs:min-h-[360px] sm:min-h-[420px] md:min-h-[500px] lg:min-h-[600px] xl:min-h-[700px]">
+                  <Skeleton className="w-full h-full bg-slate-800/50" />
+                </div>
+                
+                {/* Episodes/Seasons Skeleton */}
+                <Card className="w-full p-4 sm:p-5 md:p-6 rounded-xl lg:rounded-2xl floating-navbar-glass border border-purple-400/30">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-5 sm:mb-6 gap-4">
+                    <div className="space-y-1">
+                      <Skeleton className="h-6 w-48 bg-slate-800/50" />
+                      <Skeleton className="h-4 w-32 bg-slate-800/50" />
+                    </div>
+                    <div className="flex gap-2 sm:gap-3 flex-wrap">
+                      {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-8 w-20 bg-slate-800/50 rounded-full" />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-4 sm:space-y-5 md:space-y-6">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex flex-col sm:flex-row gap-4 sm:gap-5 md:gap-6 p-4 sm:p-5 md:p-6 rounded-lg sm:rounded-xl border border-purple-400/20">
+                        <Skeleton className="w-full sm:w-1/3 md:w-1/4 lg:w-1/5 aspect-video rounded-lg bg-slate-800/50" />
+                        <div className="flex-1 sm:w-2/3 md:w-3/4 lg:w-4/5 space-y-2 sm:space-y-3">
+                          <Skeleton className="h-6 w-3/4 bg-slate-800/50" />
+                          <Skeleton className="h-4 w-1/2 bg-slate-800/50" />
+                          <Skeleton className="h-16 w-full bg-slate-800/50" />
+                          <div className="flex justify-end pt-2">
+                            <Skeleton className="h-8 w-20 bg-slate-800/50 rounded-md" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+            </div>
+
+            {/* Content Info Panel Skeleton - Outside the grid, matching actual layout */}
+            <div className="lg:col-span-2 space-y-4 sm:space-y-5 md:space-y-6 lg:space-y-8 mt-6 sm:mt-8 md:mt-10 lg:mt-0 w-full">
+              {/* Watch Page Controls Skeleton */}
+              <div className="flex items-center justify-between p-4 sm:p-5 md:p-6 frosted-glass rounded-lg sm:rounded-xl lg:rounded-2xl border border-white/10 w-full">
+                <Skeleton className="h-8 w-16 bg-slate-800/50" />
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <Skeleton className="h-8 w-20 bg-slate-800/50" />
+                  <Skeleton className="h-8 w-8 bg-slate-800/50 rounded-md" />
+                </div>
+              </div>
+              
+              {/* Content Info Panel Skeleton */}
+              <div className="mt-4 sm:mt-6">
+                <div className="frosted-glass p-6 rounded-2xl space-y-6">
+                  <div className="space-y-2 pr-20">
+                    <Skeleton className="h-10 w-full bg-slate-800/50" />
+                    <Skeleton className="h-6 w-32 bg-slate-800/50" />
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-4">
+                    <Skeleton className="h-8 w-20 bg-slate-800/50 rounded-full" />
+                    <Skeleton className="h-8 w-20 bg-slate-800/50 rounded-full" />
+                    <Skeleton className="h-8 w-20 bg-slate-800/50 rounded-full" />
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <Skeleton className="h-6 w-16 bg-slate-800/50 rounded-full" />
+                    <Skeleton className="h-6 w-20 bg-slate-800/50 rounded-full" />
+                    <Skeleton className="h-6 w-18 bg-slate-800/50 rounded-full" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Skeleton className="h-6 w-24 bg-slate-800/50" />
+                    <Skeleton className="h-20 w-full bg-slate-800/50" />
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-3 pt-4 border-t border-white/10">
+                    <Skeleton className="h-10 w-28 bg-slate-800/50" />
+                    <Skeleton className="h-10 w-28 bg-slate-800/50" />
+                    <Skeleton className="h-10 w-28 bg-slate-800/50" />
+                  </div>
+                </div>
+              </div>
+              
+              {/* Source Selector Skeleton */}
+              <div className="mt-6 sm:mt-8">
+                <div className="frosted-glass p-4 sm:p-5 md:p-6 rounded-xl lg:rounded-2xl border border-white/10">
+                  <Skeleton className="h-6 w-32 mb-4 bg-slate-800/50" />
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <Skeleton key={i} className="h-12 w-full bg-slate-800/50 rounded-lg" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -530,8 +623,8 @@ export default function WatchNew() {
       {/* Main Content */}
       <div className="relative z-10 w-full max-w-none">
         <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 pt-32 sm:pt-32 md:pt-36 lg:pt-40 pb-6 sm:pb-8 md:pb-10 lg:pb-12">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-16">
-            {/* Video Player - Takes up 3 columns on lg+ screens, positioned slightly left */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 sm:gap-8 md:gap-10 lg:gap-12 xl:gap-16">
+            {/* Video Player - Takes up 3 columns on lg+ screens */}
             <div className="lg:col-span-3 space-y-4 sm:space-y-6 md:space-y-8">
               {/* Video Player */}
               <motion.div
@@ -751,8 +844,8 @@ export default function WatchNew() {
             )}
           </div>
 
-          {/* Content Info Panel - Takes up 1 column on lg screens with proper spacing */}
-          <div className="lg:col-span-1 space-y-4 sm:space-y-5 md:space-y-6 lg:space-y-8 mt-6 sm:mt-8 md:mt-10 lg:mt-0 w-full">
+          {/* Content Info Panel - Takes up 2 columns on lg screens with proper spacing */}
+          <div className="lg:col-span-2 space-y-4 sm:space-y-5 md:space-y-6 lg:space-y-8 mt-6 sm:mt-8 md:mt-10 lg:mt-0 w-full">
             {/* Watch Page Controls */}
             <div className="flex items-center justify-between p-4 sm:p-5 md:p-6 frosted-glass rounded-lg sm:rounded-xl lg:rounded-2xl border border-white/10 w-full">
               <Button

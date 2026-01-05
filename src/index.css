@@ -424,23 +424,75 @@
   display: none; /* Chrome, Safari and Opera */
 }
 
-/* Video player controls button fix - ensure full clickable area */
-.video-player-controls button {
-  overflow: visible !important;
+/* Video player controls - Clean structure with no overlap */
+.video-player-controls {
+  pointer-events: auto !important;
+}
+
+/* GlassmorphismVideoPlayer controls - prevent fullscreen button from blocking other controls */
+[class*="bg-gradient-to-t"] {
+  pointer-events: none !important;
+}
+
+[class*="bg-gradient-to-t"] > div {
+  pointer-events: auto !important;
   position: relative !important;
-  z-index: 10003 !important;
-  isolation: isolate;
+  z-index: 70 !important;
+  isolation: isolate !important;
 }
 
-/* Ensure button containers don't clip */
-.video-player-controls > * {
-  overflow: visible !important;
-  z-index: 10001 !important;
+[class*="bg-gradient-to-t"] button {
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 100 !important;
+  isolation: isolate !important;
 }
 
-/* Make sure buttons are fully clickable and centered */
-.video-player-controls button,
-.video-player-controls [role="button"] {
+[class*="bg-gradient-to-b"] {
+  pointer-events: none !important;
+}
+
+[class*="bg-gradient-to-b"] > div {
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 70 !important;
+  isolation: isolate !important;
+}
+
+[class*="bg-gradient-to-b"] button {
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 100 !important;
+  isolation: isolate !important;
+}
+
+/* Progress bar section - completely separate, no overlap */
+.video-player-controls > div:first-child {
+  pointer-events: none !important;
+  position: relative !important;
+  z-index: 10 !important;
+  height: 48px !important;
+  overflow: hidden !important;
+}
+
+/* Progress bar slider container - only slider is interactive */
+.video-player-controls > div:first-child > div {
+  pointer-events: auto !important;
+  height: 100% !important;
+}
+
+/* Button controls section - completely separate layer */
+.video-player-controls > div:last-child {
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 20 !important;
+}
+
+/* All buttons fully clickable */
+.video-player-controls button {
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 30 !important;
   min-height: 48px !important;
   min-width: 48px !important;
   padding: 0 !important;
@@ -448,27 +500,15 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  pointer-events: auto !important;
 }
 
-/* Ensure icons are perfectly centered within buttons */
+/* Ensure icons don't block clicks */
 .video-player-controls button svg,
 .video-player-controls button [class*="lucide"] {
+  pointer-events: none !important;
   margin: 0 !important;
-  display: block !important;
 }
 
-/* Prevent progress bar section from overlapping buttons */
-.video-player-controls > div:first-child {
-  z-index: 10 !important;
-  pointer-events: none !important;
-  max-height: 36px !important;
-  height: 36px !important;
-  overflow: hidden !important;
-  position: relative !important;
-  margin-bottom: 0 !important;
-  padding-bottom: 0 !important;
-}
 
 /* Slider container should be clickable but contained */
 .video-player-controls > div:first-child > div {
@@ -662,6 +702,35 @@
 
 .shimmer-border {
   animation: shimmer-border 2s ease-in-out infinite;
+}
+
+/* Ensure navbar always stays on top */
+header[class*="fixed"] {
+  z-index: 10000 !important;
+  position: fixed !important;
+  pointer-events: auto !important;
+}
+
+/* Ensure navbar container and content are clickable */
+header[class*="fixed"] > div,
+header[class*="fixed"] > div > div {
+  pointer-events: auto !important;
+}
+
+/* Ensure all interactive elements in navbar are clickable */
+header[class*="fixed"] button,
+header[class*="fixed"] a,
+header[class*="fixed"] input,
+header[class*="fixed"] [role="button"] {
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 10001;
+}
+
+/* Prevent page elements from appearing above navbar */
+body > div#root > div {
+  position: relative;
+  z-index: 1;
 }
 
 
