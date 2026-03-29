@@ -21,7 +21,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const isMediaDetailPage = /^\/(movie|tv|anime)\/\d+/.test(location.pathname);
   
   return (
-    <div className="flex flex-col min-h-screen bg-black text-white overflow-hidden">
+    <div className="flex flex-col min-h-screen bg-[hsl(var(--wolzi-bg))] text-white overflow-hidden">
       {/* Global NavBar - appears on all pages */}
       <NavBar />
       

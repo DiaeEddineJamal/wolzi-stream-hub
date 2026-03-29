@@ -377,7 +377,7 @@ export const GlassmorphismVideoPlayer: React.FC<GlassmorphismVideoPlayerProps> =
   };
 
   return (
-    <div ref={playerRef} className="relative w-full h-full min-h-[300px] sm:min-h-[380px] md:min-h-[450px] lg:min-h-[500px] xl:min-h-[600px] bg-black rounded-lg sm:rounded-xl overflow-hidden max-w-full" style={{ isolation: 'isolate' }}>
+    <div ref={playerRef} className="relative w-full h-full bg-black overflow-hidden" style={{ isolation: 'isolate' }}>
       {/* Glassmorphism overlay container */}
       <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/20 backdrop-blur-[1px] pointer-events-none" style={{ zIndex: 1 }}>
         

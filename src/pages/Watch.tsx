@@ -1270,7 +1270,7 @@ const Watch: React.FC = () => {
 
   return (
     <MainLayout>
-      <div className="flex flex-col min-h-screen bg-black text-white">
+      <div className="flex flex-col min-h-screen bg-[hsl(var(--wolzi-bg))] text-white">
         {/* Header */}
         <header className="bg-wolzi-bg/80 backdrop-blur-md py-3 px-4 flex items-center justify-between z-10">
           <div className="flex items-center">

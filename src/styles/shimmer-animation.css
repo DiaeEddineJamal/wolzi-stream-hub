@@ -1,3 +1,24 @@
+/* Skeleton shimmer animation */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--wolzi-dark-gray)) / 0.3 0%,
+    hsl(var(--wolzi-dark-gray)) / 0.6 50%,
+    hsl(var(--wolzi-dark-gray)) / 0.3 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
 /* Shimmer animation for title text */
 @keyframes shimmer {
   0% {

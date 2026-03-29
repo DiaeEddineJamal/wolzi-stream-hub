@@ -60,7 +60,7 @@
     --radius: 0.5rem;
   
   /* Custom Wolziflix theme colors - updated to purple palette */
-  --wolzi-bg: 0 0% 7%; /* #121212 (18,18,18) */
+  --wolzi-bg: 0 0% 9%; /* #171717 - Softer dark black */
   --wolzi-card-bg: 0 0% 13%; /* #212121 (33,33,33) */
   --wolzi-accent: 270 95% 62%; /* #a855f7 */
   --wolzi-accent-hover: 270 90% 55%; /* #7c3aed */

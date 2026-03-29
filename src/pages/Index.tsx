@@ -425,8 +425,6 @@ const Index: React.FC = () => {
 
   return (
     <MainLayout>
-      <h1 className="text-4xl md:text-5xl font-bold text-center mb-2 text-wolzi-accent">WolziFlix</h1>
-      <p className="text-center text-gray-400 mb-8 text-lg">Stream Movies, TV Series and Anime</p>
       {/* Hero Banner */}
       {featuredItems.length > 0 ? (
         <HeroBanner
@@ -435,7 +433,7 @@ const Index: React.FC = () => {
         />
       ) : (
         <div className="hero-banner">
-          <Skeleton className="w-full h-[60vh] bg-slate-800/50 rounded-lg" />
+          <Skeleton className="w-full h-[60vh] bg-[hsl(var(--wolzi-dark-gray))]/60 rounded-lg" />
         </div>
       )}
       
@@ -444,26 +442,26 @@ const Index: React.FC = () => {
         {loading ? (
           <div className="space-y-12">
             <div className="space-y-4">
-              <Skeleton className="h-8 w-48 bg-slate-800/50" />
+              <Skeleton className="h-8 w-48 bg-[hsl(var(--wolzi-dark-gray))]/60" />
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <Skeleton key={i} className="aspect-[2/3] w-full bg-slate-800/50 rounded-lg" />
+                  <Skeleton key={i} className="aspect-[2/3] w-full bg-[hsl(var(--wolzi-dark-gray))]/60 rounded-lg" />
                 ))}
               </div>
             </div>
             <div className="space-y-4">
-              <Skeleton className="h-8 w-48 bg-slate-800/50" />
+              <Skeleton className="h-8 w-48 bg-[hsl(var(--wolzi-dark-gray))]/60" />
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <Skeleton key={i} className="aspect-[2/3] w-full bg-slate-800/50 rounded-lg" />
+                  <Skeleton key={i} className="aspect-[2/3] w-full bg-[hsl(var(--wolzi-dark-gray))]/60 rounded-lg" />
                 ))}
               </div>
             </div>
             <div className="space-y-4">
-              <Skeleton className="h-8 w-48 bg-slate-800/50" />
+              <Skeleton className="h-8 w-48 bg-[hsl(var(--wolzi-dark-gray))]/60" />
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <Skeleton key={i} className="aspect-[2/3] w-full bg-slate-800/50 rounded-lg" />
+                  <Skeleton key={i} className="aspect-[2/3] w-full bg-[hsl(var(--wolzi-dark-gray))]/60 rounded-lg" />
                 ))}
               </div>
             </div>
