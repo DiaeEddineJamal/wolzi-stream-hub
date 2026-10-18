@@ -4,6 +4,7 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { createSourceResolver } from './server/source-resolver';
 import { subtitleRoute } from './server/subtitles';
+import { mediaProxyRoute } from './server/media-proxy';
 
 // Same-origin relay to the user's running Stremio Service; no public open proxy.
 const serviceTarget = process.env.STREMIO_SERVICE_URL || 'http://127.0.0.1:11470';
@@ -24,6 +25,7 @@ export default defineConfig(({ mode }) => {
   const env=loadEnv(mode,process.cwd(),'');
   const resolveSources=createSourceResolver(env.TMDB_API_KEY||env.VITE_TMDB_API_KEY);
   const sourceRoutes=(server:{middlewares:ViteDevServer['middlewares']})=>{
+    server.middlewares.use('/api/playback/media',(req,res)=>{void mediaProxyRoute(req,res).catch(()=>{if(!res.headersSent)res.writeHead(502);res.end();});});
     server.middlewares.use('/api/playback/subtitles',(req,res)=>{void subtitleRoute(req,res);});
     server.middlewares.use('/api/playback/sources',(req,res)=>{void resolveSources(req,res).catch(()=>{if(!res.headersSent)res.writeHead(500);res.end();});});
   };

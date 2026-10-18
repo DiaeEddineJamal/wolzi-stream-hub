@@ -33,7 +33,7 @@ The local relay is limited to localhost and rejects cross-site browser requests.
 
 ## Deployment boundary
 
-Vite registers the source resolver, subtitle converter, and streaming relay in dev and preview. The Vercel deployment includes Node Functions for `/api/playback/sources` and `/api/playback/subtitles`, with same-origin browser guards and a 30-second execution limit. Torrent/proxy/codec conversion still needs a separately connected CORS-enabled HTTPS Stremio Service. Vercel does not host the local companion or FFmpeg torrent engine. Use authentication and private networking appropriate to that deployment. Do not expose this computer's Stremio Service publicly. See DEPLOYMENT.md for the production target and remaining setup.
+Vite registers the source resolver, subtitle converter, and streaming relay in dev and preview. The Vercel deployment includes Node Functions for `/api/playback/sources`, `/api/playback/subtitles` and `/api/playback/media` (header-injecting relay for provider streams, used when no Stremio Service is connected), with same-origin browser guards and a 30-second execution limit. Torrent and codec conversion still need a separately connected CORS-enabled HTTPS Stremio Service. Vercel does not host the local companion or FFmpeg torrent engine. Use authentication and private networking appropriate to that deployment. Do not expose this computer's Stremio Service publicly. See DEPLOYMENT.md for the production target and remaining setup.
 
 ## Verified on this computer, 2026-10-18
 

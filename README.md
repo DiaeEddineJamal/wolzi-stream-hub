@@ -21,7 +21,7 @@ Never put Supabase service-role keys or admin credentials in `VITE_` variables. 
 
 ## Playback
 
-HTTPS direct media and adaptive HLS play in the browser. Compatible add-ons provide catalogs, streams, and subtitles. Source discovery and remote subtitle conversion run in Node endpoints. Torrent/proxy-header streams and incompatible-codec conversion require a connected Stremio Service; a static website cannot run the desktop torrent/FFmpeg engine. See [playback documentation](docs/PLAYBACK.md).
+HTTPS direct media and adaptive HLS play in the browser. Compatible add-ons provide catalogs, streams, and subtitles. Source discovery and remote subtitle conversion run in Node endpoints. Streams that need request headers play through the built-in same-origin relay `/api/playback/media` (rewrites HLS playlists, 4 MB range chunks). Torrent streams and incompatible-codec conversion require a connected Stremio Service; a static website cannot run the desktop torrent/FFmpeg engine. See [playback documentation](docs/PLAYBACK.md).
 
 The routed native player does not load third-party advertising frames. Trailers use the official YouTube embed within the site. Only access content for which you have the necessary permissions.
 

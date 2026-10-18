@@ -23,7 +23,7 @@ export function httpsUrl(value: string): string {
   return url.href;
 }
 export function isNativeVideoUrl(value:string){
-  if(/^\/(streaming-service|hlsv2)\//.test(value))return true;
+  if(/^\/(streaming-service|hlsv2|api\/playback\/media)\//.test(value))return true;
   try{const url=new URL(value);return !url.username&&!url.password&&(url.protocol==='https:'||(url.protocol==='http:'&&['127.0.0.1','localhost','[::1]'].includes(url.hostname)));}catch{return false;}
 }
 export function normalizeManifestUrl(value: string) {
@@ -93,6 +93,13 @@ export function serviceStreamUrl(stream: AddonStream, service: string) {
   }
   throw new Error('This stream requires format conversion in another player.');
 }
+// Built-in same-origin relay (server/media-proxy.ts) for header-dependent sources when no Stremio Service is connected.
+export function mediaProxyUrl(url:string,headers:Record<string,string>={}){
+  const query=new URLSearchParams({u:url});
+  Object.entries(headers).forEach(([k,v])=>query.append('h',k+':'+v));
+  const name=new URL(url).pathname.split('/').pop()?.replace(/[^\w.-]/g,'')||'media';
+  return '/api/playback/media/'+name+'?'+query;
+}
 export function hlsPlaybackUrl(mediaUrl:string,service:string,sessionId:string,origin:string){
   const base=normalizeServiceUrl(service);
   const params=new URLSearchParams({mediaURL:new URL(mediaUrl,origin).href,videoCodecs:'h264',audioCodecs:'aac',maxAudioChannels:'2',forceTranscoding:'1'});
@@ -105,6 +112,7 @@ export function classifyStream(stream: AddonStream, id: string, addonName: strin
   }
   if ((stream.infoHash&&!stream.url) || stream.behaviorHints?.proxyHeaders) {
     if(service){try{return {...base,kind:'video',url:serviceStreamUrl(stream,service),service:normalizeServiceUrl(service),needsConversion:!!stream.infoHash&&!stream.url};}catch(e){return {...base,kind:'unsupported',reason:e instanceof Error?e.message:'This source could not be converted.'};}}
+    if(stream.url){try{return {...base,kind:'video',url:mediaProxyUrl(httpsUrl(stream.url),stream.behaviorHints?.proxyHeaders?.request)};}catch{ /* Explain below. */ }}
     return { ...base, kind:'unsupported',reason:'Connect your Stremio streaming service in Add-ons to use this source.' };
   }
   if (stream.behaviorHints?.notWebReady) {

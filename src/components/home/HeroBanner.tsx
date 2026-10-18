@@ -25,12 +25,12 @@ export default function HeroBanner({featuredItems,onThemeChange}:{featuredItems:
     if(!requested||(requested.id===current?.id&&requested.mediaType===current?.mediaType))return;
     let cancelled=false;
     const image=new Image();image.decoding='async';image.sizes='(max-width:767px) 140vh, 100vw';
-    const commit=()=>{if(!cancelled){setPrevious(current);setDisplayed(requested);setReady(true);}};
+    const commit=()=>{if(!cancelled){setPrevious(reduced?undefined:current);setDisplayed(requested);setReady(true);}};
     image.onload=()=>{void image.decode().catch(()=>undefined).then(commit);};
     image.onerror=()=>{if(!cancelled)setIndex(Math.max(0,featuredItems.findIndex(item=>item.id===current?.id&&item.mediaType===current?.mediaType)));};
     image.srcset=artworkSet(requested.imageUrl)||'';image.src=artworkSize(requested.imageUrl,'w1280');
     return()=>{cancelled=true;};
-  },[requested,current,featuredItems]);
+  },[requested,current,featuredItems,reduced]);
   const upcoming=featuredItems[(index+1)%featuredItems.length];
   const nextId=upcoming?.id,nextImage=upcoming?.imageUrl,nextType=upcoming?.mediaType==='movie'?'movie':upcoming?.mediaType==='anime'?'anime':'tv';
   useEffect(()=>{
@@ -54,7 +54,8 @@ export default function HeroBanner({featuredItems,onThemeChange}:{featuredItems:
     <motion.div className="hero-paint" style={{x:paintX}}>
       {[...(previous?[previous]:[]),current].map(frame=>{
         const isCurrent=frame===current;
-        return <motion.img key={frame.mediaType+'-'+frame.id} className="max-hero-image" src={artworkSize(frame.imageUrl,'w1280')} srcSet={artworkSet(frame.imageUrl)} sizes="(max-width:767px) 140vh, 100vw" alt="" fetchPriority="high" decoding="async" width={1920} height={1080} onLoad={()=>setReady(true)} onError={()=>setReady(true)} initial={{opacity:isCurrent&&previous&&!reduced?0:1}} animate={{opacity:1}} transition={{duration:reduced?0:.9,ease:[.25,.46,.45,.94]}} onAnimationComplete={isCurrent?()=>setPrevious(undefined):undefined}/>;
+        // CSS fade: resting opacity is 1, so finishing can never flash the previous frame (framer reset to its initial 0 for a frame).
+        return <img key={frame.mediaType+'-'+frame.id} className={'max-hero-image'+(isCurrent&&previous?' hero-fade-in':'')} src={artworkSize(frame.imageUrl,'w1280')} srcSet={artworkSet(frame.imageUrl)} sizes="(max-width:767px) 140vh, 100vw" alt="" fetchPriority="high" decoding="async" width={1920} height={1080} onLoad={()=>setReady(true)} onError={()=>setReady(true)} onAnimationEnd={isCurrent?()=>setPrevious(undefined):undefined}/>;
       })}
     </motion.div>
     <div className="max-hero-gradient"/>

@@ -153,4 +153,10 @@ try{
   const controller=new AbortController();controller.abort();
   await assert.rejects(()=>api.requestJson('https://example.com',controller.signal),/Aborted/);
 }finally{globalThis.fetch=previousFetch;}
+const mediaProxy=await load('server/media-proxy.ts');
+const rewritten=mediaProxy.rewritePlaylist('#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI="key.bin"\n#EXTINF:6,\nseg/1.ts\n','https://cdn.example/hls/index.m3u8',{Referer:'https://site.example/'});
+assert.match(rewritten,/URI="\/api\/playback\/media\/key\.bin\?u=https%3A%2F%2Fcdn\.example%2Fhls%2Fkey\.bin&h=Referer%3Ahttps/);
+assert.match(rewritten,/\n\/api\/playback\/media\/1\.ts\?u=https%3A%2F%2Fcdn\.example%2Fhls%2Fseg%2F1\.ts&h=/);
+assert.equal(api.isNativeVideoUrl(rewritten.split('\n').at(-2)),true);
+assert.equal(api.classifyStream({url:'https://cdn.example/a.m3u8',behaviorHints:{proxyHeaders:{request:{Referer:'https://site.example/'}}}},'x','Add-on').url,'/api/playback/media/a.m3u8?u=https%3A%2F%2Fcdn.example%2Fa.m3u8&h=Referer%3Ahttps%3A%2F%2Fsite.example%2F');
 console.log('Stremio protocol, source verification, service conversion, trust boundaries, routing, and recovery checks passed.');

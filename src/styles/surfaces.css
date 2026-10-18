@@ -20,6 +20,8 @@ body { background:#161616; }
 .scene-hero .hero-pagination { z-index:3;bottom:34px;min-height:44px; }
 .scene-hero .hero-editorial { padding-bottom:145px; }
 .hero-paint .max-hero-image { will-change:opacity; }
+.scene-hero .max-hero-image.hero-fade-in { animation:hero-fade .9s cubic-bezier(.25,.46,.45,.94) both!important; }
+@keyframes hero-fade { from { opacity:0; } }
 .hero-rotation { display:grid;place-items:center;margin-left:10px;width:30px;height:30px;border:1px solid #ffffff25;border-radius:50%;color:#fff9;background:#ffffff08; }
 .hero-pagination { gap:10px; }.hero-dots { align-items:center; }
 .spotlight-stage { touch-action:pan-y;cursor:grab; }.spotlight-track { position:absolute;inset:0; }.spotlight-card img { user-select:none;-webkit-user-drag:none; }
