@@ -8,7 +8,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import GlassSurface from '@/components/vendor/reactbits/GlassSurface';
-import { canHover } from '@/lib/device';
 const links=[{to:'/',title:'Discover',Icon:House},{to:'/movies',title:'Movies',Icon:Clapperboard},{to:'/tv-series',title:'Series',Icon:Tv},{to:'/anime',title:'Anime',Icon:Sparkles},{to:'/library',title:'My List',Icon:Bookmark},{to:'/addons',title:'Add-ons',Icon:Puzzle}];
 export default function NavBar(){
   const {isLoggedIn}=useAuth();
@@ -33,7 +32,7 @@ export default function NavBar(){
   },[menu,search,pathname]);
   return <>
     <header ref={header} className={'max-nav floating-nav unified-nav'+(collapsed?' is-collapsed':'')} data-collapsed={collapsed} onFocusCapture={()=>setCollapsed(false)}>
-      <GlassSurface className="nav-glass" width="100%" height={64} borderRadius={34} backgroundOpacity={.12} blur={9} distortionScale={-65} displace={.8} redOffset={0} greenOffset={2} blueOffset={4} renderer="svg" refraction={canHover}>
+      <GlassSurface className="nav-glass" width="100%" height={64} borderRadius={34} backgroundOpacity={.12} blur={9} distortionScale={-65} displace={.8} redOffset={0} greenOffset={2} blueOffset={4} renderer="svg">
         <div className="nav-inner"><Brand/>
           <nav className="desktop-links" aria-label="Main navigation">{links.map(({to,title,Icon})=><NavLink key={to} to={to} end={to==='/'} aria-label={title}><Icon size={18}/><span className="nav-item-label">{title}</span></NavLink>)}</nav>
           <div className="nav-actions"><button className="icon-button nav-search" onClick={()=>setSearch(true)} aria-label="Search titles"><Search size={20}/></button>{isLoggedIn?<UserMenu/>:<Link to="/auth" className="nav-signin"><User size={17}/><span>Sign in</span></Link>}<button className="icon-button mobile-menu-trigger" aria-label="Browse categories" aria-expanded={menu} onClick={()=>setMenu(!menu)}><Menu size={20}/></button></div>
