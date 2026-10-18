@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Menu, User, House, Clapperboard, Tv, Sparkles, Bookmark, Puzzle } from 'lucide-react';
+import { Search, Menu, User, House, Clapperboard, Tv, Sparkles, Bookmark, Puzzle, Download } from 'lucide-react';
+import { openInstall, useInstall } from '@/lib/install';
 import Brand from './Brand';
 import UserMenu from '@/components/auth/UserMenu';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,6 +17,7 @@ export default function NavBar(){
   const {pathname}=useLocation();
   const header=useRef<HTMLElement>(null);
   const [collapsed,setCollapsed]=useState(false);
+  const {installed}=useInstall();
   useEffect(()=>{
     let anchor=window.scrollY,frame=0;
     setCollapsed(false);
@@ -37,7 +39,7 @@ export default function NavBar(){
           <div className="nav-actions"><button className="icon-button nav-search" onClick={()=>setSearch(true)} aria-label="Search titles"><Search size={20}/></button>{isLoggedIn?<UserMenu/>:<Link to="/auth" className="nav-signin"><User size={17}/><span>Sign in</span></Link>}<button className="icon-button mobile-menu-trigger" aria-label="Browse categories" aria-expanded={menu} onClick={()=>setMenu(!menu)}><Menu size={20}/></button></div>
         </div>
       </GlassSurface>
-      {menu&&<nav className="mobile-category-menu" aria-label="Browse">{links.map(({to,title,Icon})=><Link key={to} to={to} onClick={()=>setMenu(false)}><Icon size={17}/>{title}</Link>)}</nav>}
+      {menu&&<nav className="mobile-category-menu" aria-label="Browse">{links.map(({to,title,Icon})=><Link key={to} to={to} onClick={()=>setMenu(false)}><Icon size={17}/>{title}</Link>)}{!installed&&<button type="button" onClick={()=>{setMenu(false);openInstall();}}><Download size={17}/>Get the app</button>}</nav>}
     </header>
     <Dialog open={search} onOpenChange={setSearch}><DialogContent className="max-w-2xl glass-dialog"><DialogHeader><DialogTitle>Find your next story.</DialogTitle><DialogDescription>Search movies, series, and anime.</DialogDescription></DialogHeader><form className="search-field" onSubmit={e=>{e.preventDefault();if(query.trim()){navigate('/search?q='+encodeURIComponent(query.trim()));setSearch(false);}}}><Search size={22}/><input autoFocus value={query} onChange={e=>setQuery(e.target.value)} aria-label="Search movies and series" placeholder="What are you in the mood for?"/><Button type="submit" disabled={!query.trim()}>Search</Button></form><p className="text-sm text-muted-foreground">Or explore <Link className="text-primary" to="/trending/all" onClick={()=>setSearch(false)}>what’s trending ↗</Link></p></DialogContent></Dialog>
   </>;

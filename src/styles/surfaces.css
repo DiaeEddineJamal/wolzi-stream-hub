@@ -192,3 +192,20 @@ body { background:#161616; }
 .auth-inbox-hint { color:#7d7d7d;font-size:12px;margin-bottom:24px; }
 .auth-inbox-actions { display:grid;gap:10px; }
 @media(max-width:767px){.auth-inbox h1{font-size:30px}}
+
+/* Install the app */
+.footer-install { display:flex;align-items:center;gap:5px;font-size:11px;color:#989898;width:fit-content;transition:color .2s,transform .25s; }.footer-install:hover { color:white;transform:translateY(-2px); }
+.mobile-category-menu button { display:flex;align-items:center;gap:10px;padding:10px;font-size:13px;width:100%;border-top:1px solid #ffffff10;margin-top:4px; }
+.install-dialog { max-width:420px;text-align:center; }.install-dialog [role=dialog]>*,.install-dialog h2 { text-align:center; }
+.install-icon { width:72px;height:72px;margin:0 auto 6px;border-radius:18px;box-shadow:0 12px 30px #0006; }
+.install-dialog [data-slot=dialog-header],.install-dialog .flex.flex-col { text-align:center;align-items:center; }
+.install-steps { display:grid;gap:10px;margin-top:4px;text-align:left;counter-reset:step; }
+.install-steps li { display:grid;grid-template-columns:38px 1fr;gap:14px;align-items:center;padding:12px 14px;border-radius:14px;background:#ffffff08;border:1px solid #ffffff10; }
+.install-steps li>span { width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#ffffff10;color:#f5f5f7; }
+.install-steps p { font-size:13px;line-height:1.55;color:#c8c8c8; }.install-steps strong { color:#f5f5f7;font-weight:600; }
+.install-banner { position:fixed;z-index:59;left:15px;right:15px;bottom:calc(max(12px,env(safe-area-inset-bottom)) + 84px);display:grid;grid-template-columns:44px 1fr auto auto;gap:12px;align-items:center;padding:12px 10px 12px 12px;border-radius:22px;background:#161616e6;backdrop-filter:blur(20px);border:1px solid #ffffff17;box-shadow:0 16px 40px #0008;animation:install-in .35s cubic-bezier(.22,.75,.2,1) both; }
+.install-banner img { border-radius:12px; }.install-banner strong { display:block;font-size:13px;font-weight:600;color:#f5f5f7; }.install-banner span { display:block;font-size:11px;color:#9c9c9c;margin-top:2px; }
+.install-banner [data-slot=button] { border-radius:999px;padding-inline:16px; }
+.install-banner-close { width:32px;height:32px;display:grid;place-items:center;border-radius:50%;color:#8b8b8b; }.install-banner-close:hover { color:white;background:#ffffff10; }
+@keyframes install-in { from { opacity:0;transform:translateY(16px); } }
+@media(prefers-reduced-motion:reduce){.install-banner{animation:none}}
