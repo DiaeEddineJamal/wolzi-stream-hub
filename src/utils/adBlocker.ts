@@ -151,7 +151,7 @@ export function blockAdsInDocument(): void {
             const elId = el.id?.toLowerCase() || '';
             
             // Only hide if it's actually an ad (not false positives)
-            if (elText.includes('ad') || elClass.includes('ad') || elId.includes('ad')) {
+            if (el instanceof HTMLElement && (elText.includes('ad') || elClass.includes('ad') || elId.includes('ad'))) {
               el.style.display = 'none';
               el.style.visibility = 'hidden';
               el.style.opacity = '0';

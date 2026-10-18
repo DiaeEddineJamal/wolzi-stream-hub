@@ -1,122 +1,30 @@
-import React from "react";
-import { ArrowRight } from "lucide-react";
-import MediaCard from "./MediaCard";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-
-interface ContentItem {
-  id: string;
-  title: string;
-  posterUrl: string;
-  rating?: number;
-  year?: string;
-  mediaType: "movie" | "tv" | "anime";
-  description?: string;
+import { useRef } from 'react';
+import { Link } from 'react-router-dom';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import MediaCard from './MediaCard';
+import { cn } from '@/lib/utils';
+import type { MediaItem } from '@/lib/media';
+import { useDragScroll } from '@/hooks/useDragScroll';
+interface Props {
+  eyebrow?: string; title: string; items: (MediaItem & { overview?: string })[];
+  viewMoreLink?: string; className?: string; showViewMore?: boolean; landscape?: boolean; ranked?: boolean;
 }
-
-interface ContentSectionProps {
-  title: string;
-  items: ContentItem[];
-  viewMoreLink?: string;
-  className?: string;
-  showViewMore?: boolean;
-}
-
-const ContentSection: React.FC<ContentSectionProps> = ({
-  title,
-  items,
-  viewMoreLink,
-  className,
-  showViewMore = true,
-}) => {
-  return (
-    <motion.section 
-      className={cn("py-4 sm:py-6 md:py-8", className)}
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-100px" }}
-      transition={{ duration: 0.6 }}
-    >
-      <div className="container px-3 sm:px-4 mx-auto">
-        <div className="flex items-center justify-between mb-3 sm:mb-6">
-          <motion.h2 
-            className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent"
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-          >
-            {title}
-          </motion.h2>
-          
-          {showViewMore && viewMoreLink && (
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-            >
-              <Button
-                asChild
-                variant="ghost"
-                className="text-wolzi-light-gray hover:text-white hover:bg-wolzi-dark-blue/40 flex items-center gap-1 group text-sm sm:text-base py-1 h-auto"
-                size="sm"
-              >
-                <Link to={viewMoreLink}>
-                  <span>View All</span>
-                  <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 group-hover:translate-x-1 transition-transform duration-300" />
-                </Link>
-              </Button>
-            </motion.div>
-          )}
-        </div>
-        
-        <Carousel
-          opts={{
-            align: "start",
-            loop: true,
-          }}
-          className="w-full"
-        >
-          <CarouselContent className="-ml-2 md:-ml-4">
-            {items.map((item, index) => (
-              <CarouselItem 
-                key={item.id} 
-                className="pl-2 md:pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/5 xl:basis-1/6"
-              >
-                <motion.div 
-                  className="h-full"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.05 }}
-                >
-                  <MediaCard
-                    {...item}
-                    showHover={true}
-                    size="medium"
-                    description={item.description || `Watch ${item.title} online. ${item.mediaType === "tv" ? "TV Series" : item.mediaType === "anime" ? "Anime" : "Movie"} from ${item.year || "recent years"}.`}
-                  />
-                </motion.div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          
-          {/* Optimized carousel controls for better touch targets on mobile */}
-          <CarouselPrevious className="left-0 sm:left-1 bg-wolzi-dark-blue/80 hover:bg-wolzi-dark-blue/90 border-wolzi-gray/30 h-8 w-8 sm:h-10 sm:w-10 mobile-touch-target" />
-          <CarouselNext className="right-0 sm:right-1 bg-wolzi-dark-blue/80 hover:bg-wolzi-dark-blue/90 border-wolzi-gray/30 h-8 w-8 sm:h-10 sm:w-10 mobile-touch-target" />
-        </Carousel>
+export default function ContentSection({ title, eyebrow, items, viewMoreLink, className, showViewMore = true, landscape = true, ranked = false }: Props) {
+  const rail = useRef<HTMLDivElement>(null);
+  const drag=useDragScroll(rail);
+  if (!items.length) return null;
+  const scroll = (direction: number) => rail.current?.scrollBy({ left: direction * rail.current.clientWidth * .85, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+  return <section className={cn('content-section', className)}>
+    <header className="section-heading page-shell">
+      <div>{eyebrow && <p className="eyebrow">{eyebrow}</p>}<h2>{title}</h2></div>
+      <div className="flex items-center gap-2">
+        {showViewMore && viewMoreLink && <Link className="view-all" to={viewMoreLink}>View all <ChevronRight size={15} /></Link>}
+        <button className="rail-arrow" onClick={() => scroll(-1)} aria-label={`Previous ${title}`}><ChevronLeft size={16} /></button>
+        <button className="rail-arrow" onClick={() => scroll(1)} aria-label={`More ${title}`}><ChevronRight size={16} /></button>
       </div>
-    </motion.section>
-  );
-};
-
-export default ContentSection;
+    </header>
+    <div ref={rail} className={cn('media-rail', !landscape && 'poster-rail')} {...drag}>
+      {items.map((item, index) => <MediaCard key={`${item.mediaType}-${item.id}`} {...item} landscape={landscape} rank={ranked ? index + 1 : undefined} />)}
+    </div>
+  </section>;
+}

@@ -49,7 +49,9 @@ export const getProfileUrl = (path: string | null, size = 'w185') => {
 
 // API endpoints with caching
 export const tmdbApi = {
+  getAnimeCatalog: (sort = 'popularity.desc', page = 1) => api.get('/discover/tv', { params: { with_genres: 16, with_original_language: 'ja', sort_by: sort, 'vote_count.gte': 100, page } }),
   // Movies
+  getNowPlayingMovies: (page=1)=>cachedAsyncFunction(()=>api.get('/movie/now_playing',{params:{page}}),`now-playing-movies-${page}`,CACHE_DURATIONS.SHORT),
   getTrending: (timeWindow = 'day', page = 1) => 
     cachedAsyncFunction(
       () => api.get(`/trending/all/${timeWindow}`, { params: { page } }),
@@ -127,15 +129,15 @@ export const tmdbApi = {
   // Details (with longer cache)
   getMovieDetails: (id: number) => 
     cachedAsyncFunction(
-      () => api.get(`/movie/${id}`, { params: { append_to_response: 'videos,credits,reviews,recommendations,similar' } }),
-      `movie-details-${id}`,
+      () => api.get(`/movie/${id}`, { params: { append_to_response: 'videos,credits,reviews,recommendations,similar,external_ids,images', include_image_language:'en,null' } }),
+      `movie-details-artwork-${id}`,
       CACHE_DURATIONS.LONG
     ),
   
   getTVShowDetails: (id: number) => 
     cachedAsyncFunction(
-      () => api.get(`/tv/${id}`, { params: { append_to_response: 'videos,credits,reviews,recommendations,similar' } }),
-      `tv-details-${id}`,
+      () => api.get(`/tv/${id}`, { params: { append_to_response: 'videos,credits,reviews,recommendations,similar,external_ids,images', include_image_language:'en,null' } }),
+      `tv-details-artwork-${id}`,
       CACHE_DURATIONS.LONG
     ),
   

@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import MainLayout from '@/layouts/MainLayout';
 import { Link } from 'react-router-dom';
 import { Play, History, Clock } from 'lucide-react';
-import { forceLogout } from '@/utils/auth-helpers';
 import { getPosterUrl } from '@/integrations/api/tmdb';
 
 interface UserPreferences {
@@ -89,8 +88,8 @@ const Profile: React.FC = () => {
         const processedHistory = data?.map(item => ({
           ...item,
           // Handle possible field name differences
-          content_type: item.content_type || item.media_type,
-          content_id: item.content_id || item.media_id,
+          content_type: item.content_type as WatchHistoryItem['content_type'],
+          content_id: item.content_id,
         })) || [];
         
         console.log('Profile page processed watch history:', JSON.stringify(processedHistory, null, 2));
@@ -140,10 +139,11 @@ const Profile: React.FC = () => {
       let avatar_url = profile?.avatar_url;
       
       if (avatarFile) {
+        if(avatarFile.size>5242880||!['image/jpeg','image/png','image/webp','image/gif'].includes(avatarFile.type))throw new Error('Choose a PNG, JPEG, WebP or GIF smaller than 5 MB.');
         console.log('Starting avatar upload');
         const fileExt = avatarFile.name.split('.').pop();
         const fileName = `${user.id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `avatars/${fileName}`;
+        const filePath = `${user.id}/${fileName}`;
         
         console.log('Uploading to path:', filePath);
         const { error: uploadError, data: uploadData } = await supabase.storage
@@ -197,9 +197,9 @@ const Profile: React.FC = () => {
     if (item.content_type === 'movie') {
       return `/watch/movie/${item.content_id}`;
     } else if (item.content_type === 'tv') {
-      return `/watch/tv/${item.content_id}/season/${item.season}/episode/${item.episode}`;
+      return `/watch/tv/${item.content_id}/${item.season || 1}/${item.episode || 1}`;
     } else if (item.content_type === 'anime') {
-      return `/watch/anime/${item.content_id}/episode/${item.episode}`;
+      return `/watch/anime/${item.content_id}/${item.episode || 1}`;
     }
     return '';
   };
@@ -360,25 +360,7 @@ const Profile: React.FC = () => {
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={() => {
-                    try {
-                      console.log("Profile: Initiating logout");
-                      
-                      // First try the regular logout to properly clean up auth state
-                      try {
-                        logout();
-                      } catch (e) {
-                        console.error("Error during regular logout call:", e);
-                      }
-                      
-                      // Then force logout to ensure clean exit
-                      forceLogout();
-                    } catch (error) {
-                      console.error("Profile: Critical error during logout:", error);
-                      // Last resort direct reload
-                      window.location.href = '/';
-                    }
-                  }}
+                  onClick={async()=>{try{await logout();}catch{setError("Could not sign out. Try again.");}}}
                   className="border-red-500 text-red-500 hover:bg-red-500/10"
                 >
                   Sign Out
@@ -429,7 +411,7 @@ const Profile: React.FC = () => {
                           />
                           
                           {/* Progress bar */}
-                          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-800/80">
+                          <div className="absolute bottom-0 left-0 right-0 h-1 bg-neutral-800/80">
                             <div 
                               className="h-full bg-wolzi-accent" 
                               style={{ width: `${item.progress_percent || 0}%` }}
@@ -474,9 +456,8 @@ const Profile: React.FC = () => {
         {activeTab === 'preferences' && (
           <div className="max-w-3xl mx-auto bg-wolzi-dark-gray/50 p-6 rounded-lg shadow-lg backdrop-blur-md">
             <h2 className="text-2xl font-bold text-wolzi-accent mb-6">Preferences</h2>
-            <p className="text-wolzi-light-gray mb-4">
-              Preferences feature coming soon. You'll be able to adjust streaming sources, theme preferences, and more.
-            </p>
+            <p className="text-wolzi-light-gray mb-6">Make this space your own. Your list and add-on configuration are stored in this browser.</p>
+            <div className="flex flex-wrap gap-3"><Button variant="secondary" asChild><Link to="/addons">Manage add-ons & streaming service</Link></Button><Button variant="secondary" asChild><Link to="/library">Open My List</Link></Button></div>
           </div>
         )}
       </div>

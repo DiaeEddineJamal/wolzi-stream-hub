@@ -93,7 +93,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
       {/* Skeleton/placeholder */}
       {!isLoaded && (
         <div 
-          className="absolute inset-0 bg-gradient-to-r from-gray-900 to-gray-800 animate-pulse"
+          className="absolute inset-0 bg-gradient-to-r from-neutral-900 to-neutral-800 animate-pulse"
           style={{ 
             width: width ? `${width}px` : '100%',
             height: height ? `${height}px` : '100%',
@@ -103,7 +103,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
       
       {/* Error state */}
       {hasError && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-75 text-white text-sm">
+        <div className="absolute inset-0 flex items-center justify-center bg-neutral-900 bg-opacity-75 text-white text-sm">
           {alt || 'Image not available'}
         </div>
       )}

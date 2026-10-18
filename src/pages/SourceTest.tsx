@@ -150,13 +150,13 @@ const SourceTest: React.FC = () => {
 
   const getStatusIcon = (working: boolean | null, isLoading: boolean) => {
     if (isLoading) return <Loader2 className="w-4 h-4 animate-spin text-blue-500" />;
-    if (working === null) return <div className="w-4 h-4 bg-gray-300 rounded-full" />;
+    if (working === null) return <div className="w-4 h-4 bg-neutral-300 rounded-full" />;
     if (working) return <CheckCircle className="w-4 h-4 text-wolzi-accent" />;
     return <XCircle className="w-4 h-4 text-red-500" />;
   };
 
   const getStatusColor = (working: boolean | null) => {
-    if (working === null) return 'bg-gray-100';
+    if (working === null) return 'bg-neutral-100';
     if (working) return 'bg-wolzi-accent/10 border-wolzi-accent/30';
     return 'bg-red-50 border-red-200';
   };
@@ -168,7 +168,7 @@ const SourceTest: React.FC = () => {
           <h1 className="text-4xl font-bold text-white mb-4">
             Streaming Sources Test Dashboard
           </h1>
-          <p className="text-gray-300 mb-6">
+          <p className="text-neutral-300 mb-6">
             Test all {streamingSources.length} streaming sources across movies, TV shows, and anime
           </p>
           
@@ -194,14 +194,14 @@ const SourceTest: React.FC = () => {
             <Button 
               onClick={initializeTestResults}
               variant="outline"
-              className="border-gray-600 text-gray-300 hover:bg-gray-800"
+              className="border-neutral-600 text-neutral-300 hover:bg-neutral-800"
             >
               Reset Results
             </Button>
           </div>
 
           {isTestingAll && (
-            <div className="w-full max-w-md mx-auto bg-gray-800 rounded-full h-2 mb-6">
+            <div className="w-full max-w-md mx-auto bg-neutral-800 rounded-full h-2 mb-6">
               <div 
                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${testProgress}%` }}
@@ -233,7 +233,7 @@ const SourceTest: React.FC = () => {
                 <CardContent className="space-y-3">
                   {/* Movie Test */}
                   <div className="flex items-center justify-between p-2 bg-white/5 rounded">
-                    <span className="text-gray-300 text-sm">Movie</span>
+                    <span className="text-neutral-300 text-sm">Movie</span>
                     <div className="flex items-center gap-2">
                       {getStatusIcon(result.movieWorking, result.isLoading)}
                       <Button
@@ -241,7 +241,7 @@ const SourceTest: React.FC = () => {
                         variant="ghost"
                         onClick={() => testSingleSource(result.sourceId, 'movie')}
                         disabled={result.isLoading}
-                        className="text-xs text-gray-400 hover:text-white"
+                        className="text-xs text-neutral-400 hover:text-white"
                       >
                         Test
                       </Button>
@@ -250,7 +250,7 @@ const SourceTest: React.FC = () => {
 
                   {/* TV Test */}
                   <div className="flex items-center justify-between p-2 bg-white/5 rounded">
-                    <span className="text-gray-300 text-sm">TV Show</span>
+                    <span className="text-neutral-300 text-sm">TV Show</span>
                     <div className="flex items-center gap-2">
                       {getStatusIcon(result.tvWorking, result.isLoading)}
                       <Button
@@ -258,7 +258,7 @@ const SourceTest: React.FC = () => {
                         variant="ghost"
                         onClick={() => testSingleSource(result.sourceId, 'tv')}
                         disabled={result.isLoading}
-                        className="text-xs text-gray-400 hover:text-white"
+                        className="text-xs text-neutral-400 hover:text-white"
                       >
                         Test
                       </Button>
@@ -267,7 +267,7 @@ const SourceTest: React.FC = () => {
 
                   {/* Anime Test */}
                   <div className="flex items-center justify-between p-2 bg-white/5 rounded">
-                    <span className="text-gray-300 text-sm">Anime</span>
+                    <span className="text-neutral-300 text-sm">Anime</span>
                     <div className="flex items-center gap-2">
                       {getStatusIcon(result.animeWorking, result.isLoading)}
                       <Button
@@ -275,7 +275,7 @@ const SourceTest: React.FC = () => {
                         variant="ghost"
                         onClick={() => testSingleSource(result.sourceId, 'anime')}
                         disabled={result.isLoading}
-                        className="text-xs text-gray-400 hover:text-white"
+                        className="text-xs text-neutral-400 hover:text-white"
                       >
                         Test
                       </Button>
@@ -290,10 +290,10 @@ const SourceTest: React.FC = () => {
 
                   {/* URLs for debugging */}
                   <details className="text-xs">
-                    <summary className="text-gray-400 cursor-pointer hover:text-white">
+                    <summary className="text-neutral-400 cursor-pointer hover:text-white">
                       View URLs
                     </summary>
-                    <div className="mt-2 space-y-1 text-gray-500">
+                    <div className="mt-2 space-y-1 text-neutral-500">
                       <div className="break-all">Movie: {result.movieUrl}</div>
                       <div className="break-all">TV: {result.tvUrl}</div>
                       <div className="break-all">Anime: {result.animeUrl}</div>
@@ -306,7 +306,7 @@ const SourceTest: React.FC = () => {
         </div>
 
         <div className="mt-8 text-center">
-          <div className="text-gray-400 text-sm">
+          <div className="text-neutral-400 text-sm">
             Total Sources: {streamingSources.length} | 
             Working: {testResults.filter(r => r.movieWorking || r.tvWorking || r.animeWorking).length} | 
             Failed: {testResults.filter(r => r.movieWorking === false && r.tvWorking === false && r.animeWorking === false).length}

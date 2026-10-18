@@ -1,273 +1,49 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import MainLayout from "@/layouts/MainLayout";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/contexts/AuthContext";
-
-const Auth: React.FC = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { login, signup, isLoggedIn } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>("login");
-  const [loading, setLoading] = useState(false);
-  
-  // Form states
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [signupName, setSignupName] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
-  
-  // Get mode from URL query parameter
-  useEffect(() => {
-    const queryParams = new URLSearchParams(location.search);
-    const mode = queryParams.get("mode");
-    if (mode === "login" || mode === "signup") {
-      setActiveTab(mode);
-    }
-  }, [location.search]);
-  
-  // Redirect if already logged in
-  useEffect(() => {
-    if (isLoggedIn) {
-      navigate("/");
-    }
-  }, [isLoggedIn, navigate]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    
-    if (!loginEmail || !loginPassword) {
-      setError("Please fill in all fields");
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      await login(loginEmail, loginPassword);
-      navigate("/");
-    } catch (err) {
-      setError("Invalid email or password");
-    } finally {
-      setLoading(false);
-    }
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowUpRight } from 'lucide-react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import MainLayout from '@/layouts/MainLayout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+const Particles=lazy(()=>import('@/components/vendor/reactbits/Particles'));
+export default function Auth(){
+  const reduced=useReducedMotion();
+  const [params,setParams]=useSearchParams();
+  const signupMode=params.get('mode')==='signup';
+  const resetMode=params.get('mode')==='reset';
+  const recovery=params.get('mode')==='recovery';
+  const {login,signup,isLoggedIn}=useAuth();
+  const navigate=useNavigate();
+  const [email,setEmail]=useState(''),[password,setPassword]=useState(''),[name,setName]=useState(''),[confirm,setConfirm]=useState('');
+  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
+  useEffect(()=>{if(isLoggedIn&&!recovery)navigate('/profile',{replace:true});},[isLoggedIn,recovery,navigate]);
+  const submit=async(e:React.FormEvent)=>{
+    e.preventDefault();setError('');setMessage('');
+    if((signupMode||recovery)&&password!==confirm){setError('The passwords don’t match.');return;}
+    setBusy(true);
+    try{
+      if(resetMode){const {error}=await supabase.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+'/auth?mode=recovery'});if(error)throw error;setMessage('If this address has an account, a reset link is on its way.');}
+      else if(recovery){const {error}=await supabase.auth.updateUser({password});if(error)throw error;setMessage('Password updated. You can return to your profile.');}
+      else if(signupMode){await signup(email,password,name);setMessage('Account created. Check your email if confirmation is required.');}
+      else{await login(email,password);navigate('/');}
+    }catch{setError(resetMode?'The reset email couldn’t be requested. Try again.':recovery?'The password couldn’t be updated. Request a new reset link.':signupMode?'Your account couldn’t be created. Check your details and try again.':'We couldn’t sign you in. Check your email and password.');}finally{setBusy(false);}
   };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    
-    if (!signupName || !signupEmail || !signupPassword || !confirmPassword) {
-      setError("Please fill in all fields");
-      return;
-    }
-    
-    if (signupPassword !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      await signup(signupEmail, signupPassword, signupName);
-      navigate("/");
-    } catch (err) {
-      setError("Error creating account");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <MainLayout>
-      <div className="pt-32 pb-16">
-        <div className="container mx-auto px-4 max-w-md">
-          <div className="bg-wolzi-dark-gray/50 rounded-lg p-6 backdrop-blur-md shadow-xl border border-wolzi-gray/20">
-            <h1 className="text-2xl font-bold mb-6 text-center text-white">
-              Welcome to <span className="text-wolzi-accent">WolziFlix</span>
-            </h1>
-            
-            {error && (
-              <div className="bg-red-500/20 border border-red-500/50 text-white p-2 rounded mb-4 text-sm">
-                {error}
-              </div>
-            )}
-            
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="login">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-wolzi-light-gray mb-1">
-                      Email
-                    </label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="your@email.com"
-                      className="w-full"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="password" className="block text-sm font-medium text-wolzi-light-gray mb-1">
-                      Password
-                    </label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="••••••••"
-                      className="w-full"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="flex justify-between items-center text-sm">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" className="rounded text-wolzi-accent" />
-                      <span className="text-wolzi-light-gray">Remember me</span>
-                    </label>
-                    <a href="#" className="text-wolzi-accent hover:underline">
-                      Forgot password?
-                    </a>
-                  </div>
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    variant="default" 
-                    disabled={loading}
-                  >
-                    {loading ? "Logging in..." : "Log In"}
-                  </Button>
-                </form>
-              </TabsContent>
-              
-              <TabsContent value="signup">
-                <form onSubmit={handleSignup} className="space-y-4">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-wolzi-light-gray mb-1">
-                      Full Name
-                    </label>
-                    <Input
-                      id="name"
-                      type="text"
-                      placeholder="John Doe"
-                      className="w-full"
-                      value={signupName}
-                      onChange={(e) => setSignupName(e.target.value)}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="signup-email" className="block text-sm font-medium text-wolzi-light-gray mb-1">
-                      Email
-                    </label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="your@email.com"
-                      className="w-full"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="signup-password" className="block text-sm font-medium text-wolzi-light-gray mb-1">
-                      Password
-                    </label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      className="w-full"
-                      value={signupPassword}
-                      onChange={(e) => setSignupPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="confirm-password" className="block text-sm font-medium text-wolzi-light-gray mb-1">
-                      Confirm Password
-                    </label>
-                    <Input
-                      id="confirm-password"
-                      type="password"
-                      placeholder="••••••••"
-                      className="w-full"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" className="rounded text-wolzi-accent" required />
-                    <span className="text-wolzi-light-gray text-sm">
-                      I agree to the <a href="#" className="text-wolzi-accent hover:underline">Terms of Service</a> and <a href="#" className="text-wolzi-accent hover:underline">Privacy Policy</a>
-                    </span>
-                  </div>
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full" 
-                    variant="default"
-                    disabled={loading}
-                  >
-                    {loading ? "Creating Account..." : "Create Account"}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-            
-            <div className="mt-6 pt-4 border-t border-wolzi-gray/20">
-              <div className="text-sm text-center text-wolzi-light-gray">
-                {activeTab === "login" ? (
-                  <p>
-                    Don't have an account?{" "}
-                    <button 
-                      className="text-wolzi-accent hover:underline"
-                      onClick={() => setActiveTab("signup")}
-                    >
-                      Sign up
-                    </button>
-                  </p>
-                ) : (
-                  <p>
-                    Already have an account?{" "}
-                    <button 
-                      className="text-wolzi-accent hover:underline"
-                      onClick={() => setActiveTab("login")}
-                    >
-                      Log in
-                    </button>
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </MainLayout>
-  );
-};
-
-export default Auth;
+  const changeMode=(mode:string)=>{setParams({mode});setError('');setMessage('');};
+  return <MainLayout><div className="auth-universe"><div className="auth-particles" aria-hidden="true"><Suspense fallback={null}><Particles particleCount={130} particleColors={['#ffffff','#d2d2d2','#929292']} particleBaseSize={85} sizeRandomness={1} alphaParticles speed={.065} particleSpread={12} pixelRatio={Math.min(window.devicePixelRatio,1.5)} moveParticlesOnHover={false} glow={.15} opacity={.7}/></Suspense></div><div className="page-shell auth-layout">
+    <section className="auth-form-panel"><p className="eyebrow">YOUR WORLD OF STORIES</p><AnimatePresence mode="wait" initial={false}><motion.div key={params.get('mode')||'login'} className="auth-intro" initial={{opacity:0,y:reduced?0:6}} animate={{opacity:1,y:0}} exit={{opacity:0,y:reduced?0:-4}} transition={{duration:reduced?0:.18}}><h1>{signupMode?'Your story starts here.':resetMode?'Let’s get you back.':recovery?'A fresh start.':'Welcome back.'}</h1><p className="auth-subtitle">{signupMode?'Create your A&D MAX account.':resetMode?'We’ll email you a password reset link.':recovery?'Choose a password with at least 8 characters.':'Sign in. Settle in. Find your next favorite.'}</p></motion.div></AnimatePresence>
+      {!resetMode&&!recovery&&<div className="auth-mode-switch" aria-label="Account access"><button type="button" aria-pressed={!signupMode} onClick={()=>changeMode('login')}>Sign in</button><button type="button" aria-pressed={signupMode} onClick={()=>changeMode('signup')}>Create account</button></div>}
+      {error&&<p role="alert" className="auth-error">{error}</p>}{message&&<p role="status" className="auth-success">{message}</p>}
+      <form onSubmit={submit} className="space-y-5">
+        {signupMode&&<div><label htmlFor="display-name">Your name</label><Input id="display-name" autoComplete="name" value={name} onChange={e=>setName(e.target.value)} required maxLength={80}/></div>}
+        {!recovery&&<div><label htmlFor="auth-email">Email address</label><Input id="auth-email" type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} required placeholder="you@example.com"/></div>}
+        {!resetMode&&<div><div className="flex justify-between"><label htmlFor="auth-password">Password</label>{!signupMode&&!recovery&&<button type="button" className="text-xs text-muted-foreground" onClick={()=>changeMode('reset')}>Forgot password?</button>}</div><Input id="auth-password" type="password" autoComplete={signupMode||recovery?'new-password':'current-password'} value={password} onChange={e=>setPassword(e.target.value)} required minLength={signupMode||recovery?8:1}/></div>}
+        {(signupMode||recovery)&&<div><label htmlFor="auth-confirm">Confirm password</label><Input id="auth-confirm" type="password" autoComplete="new-password" value={confirm} onChange={e=>setConfirm(e.target.value)} required minLength={8}/></div>}
+        {signupMode&&<label className="flex items-start gap-3 text-xs leading-6 text-muted-foreground"><input type="checkbox" required className="mt-1.5 accent-white"/><span>I agree to the <Link to="/terms" className="text-white underline">Terms of Service</Link> and <Link to="/privacy" className="text-white underline">Privacy Policy</Link>.</span></label>}
+        <Button type="submit" className="w-full" disabled={busy}>{busy?'One moment…':signupMode?'Create account':resetMode?'Send reset link':recovery?'Update password':'Sign in'}<ArrowUpRight size={16}/></Button>
+      </form>
+      <p className="auth-switch">{signupMode?'Already at home here?':'New to A&D MAX?'} <button onClick={()=>changeMode(signupMode||resetMode||recovery?'login':'signup')}>{signupMode||resetMode||recovery?'Sign in':'Create an account'}</button></p>
+    </section>
+  </div></div></MainLayout>;
+}

@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Analytics } from "@vercel/analytics/react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import { useGoogleAds } from "@/hooks/useGoogleAds";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
@@ -19,6 +18,9 @@ import Anime from "./pages/Anime";
 import WatchHistory from "./pages/WatchHistory";
 import SearchResults from "./pages/SearchResults";
 import WatchNew from "./pages/WatchNew";
+import Addons from "./pages/Addons";
+import AddonDetail from "./pages/AddonDetail";
+import Library from "./pages/Library";
 import ViewAllPage from "./pages/ViewAllPage";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
@@ -27,11 +29,12 @@ import About from "./pages/About";
 import Help from "./pages/Help";
 import LegalDisclaimer from "./pages/LegalDisclaimer";
 import Platform from "./pages/Platform";
-import tmdbApi, { getPosterUrl } from "./integrations/api/tmdb";
+import tmdbApi, { getPosterUrl, getBackdropUrl } from "./integrations/api/tmdb";
 import jikanApi from "./integrations/api/jikan";
 import axios from 'axios';
+import { genreNamesFromIds } from '@/constants/tmdb-genres';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({defaultOptions:{queries:{staleTime:120000,retry:1,refetchOnWindowFocus:false}}});
 
 // Create a TMDB API client for anime queries
 const TMDB_API_KEY = import.meta.env.VITE_TMDB_API_KEY;
@@ -47,10 +50,13 @@ interface MediaItem {
   id: string;
   title: string;
   posterUrl: string;
+  backdropUrl?: string;
   rating?: number;
   year?: string;
   mediaType: 'movie' | 'tv' | 'anime';
   overview?: string;
+  genres?: string[];
+  voteCount?: number;
 }
 
 // --- Mappers ---
@@ -58,20 +64,31 @@ const tmdbMovieToMediaItem = (movie: any): MediaItem => ({
   id: movie.id.toString(),
   title: movie.title,
   posterUrl: getPosterUrl(movie.poster_path) || "https://via.placeholder.com/500x750?text=No+Image",
+  backdropUrl: movie.backdrop_path ? getBackdropUrl(movie.backdrop_path, "w780") || undefined : undefined,
   rating: movie.vote_average,
   year: (movie.release_date || "").substring(0, 4),
   mediaType: 'movie',
   overview: movie.overview,
+  genres: genreNamesFromIds(movie.genre_ids, 4),
+  voteCount: movie.vote_count,
 });
 
 const tmdbTvShowToMediaItem = (tvShow: any): MediaItem => ({
   id: tvShow.id.toString(),
   title: tvShow.name,
   posterUrl: getPosterUrl(tvShow.poster_path) || "https://via.placeholder.com/500x750?text=No+Image",
+  backdropUrl: tvShow.backdrop_path ? getBackdropUrl(tvShow.backdrop_path, "w780") || undefined : undefined,
   rating: tvShow.vote_average,
   year: (tvShow.first_air_date || "").substring(0, 4),
   mediaType: 'tv',
   overview: tvShow.overview,
+  genres: genreNamesFromIds(tvShow.genre_ids, 4),
+  voteCount: tvShow.vote_count,
+});
+
+const tmdbAnimeToMediaItem = (tvShow: any): MediaItem => ({
+  ...tmdbTvShowToMediaItem(tvShow),
+  mediaType: 'anime',
 });
 
 const tmdbTrendingToMediaItem = (item: any): MediaItem | null => {
@@ -92,6 +109,11 @@ const fetchPopularMoviesPage = async (page: number) => {
     totalPages: data.total_pages,
     totalResults: data.total_results,
   };
+};
+
+const fetchNowPlayingMoviesPage = async (page:number) => {
+  const {data}=await tmdbApi.getNowPlayingMovies(page);
+  return {items:data.results.map(tmdbMovieToMediaItem),totalPages:data.total_pages,totalResults:data.total_results};
 };
 
 const fetchTopRatedMoviesPage = async (page: number) => {
@@ -151,7 +173,7 @@ const fetchPopularAnimePage = async (page: number) => {
   });
   
   return {
-    items: data.results.map(tmdbTvShowToMediaItem), // Use TV show mapper since we're treating anime as TV
+    items: data.results.map(tmdbAnimeToMediaItem),
     totalPages: data.total_pages,
     totalResults: data.total_results,
   };
@@ -169,7 +191,7 @@ const fetchTopRatedAnimePage = async (page: number) => {
   });
   
   return {
-    items: data.results.map(tmdbTvShowToMediaItem),
+    items: data.results.map(tmdbAnimeToMediaItem),
     totalPages: data.total_pages,
     totalResults: data.total_results,
   };
@@ -188,7 +210,7 @@ const fetchOnAirAnimePage = async (page: number) => {
   });
   
   return {
-    items: data.results.map(tmdbTvShowToMediaItem),
+    items: data.results.map(tmdbAnimeToMediaItem),
     totalPages: data.total_pages,
     totalResults: data.total_results,
   };
@@ -226,7 +248,7 @@ const fetchSearchResultsPage = async (page: number, query: string, type: string)
       });
       
       return {
-        items: animeResults.map(tmdbTvShowToMediaItem),
+        items: animeResults.map(tmdbAnimeToMediaItem),
         totalPages: data.total_pages || 1,
         totalResults: animeResults.length, // Use filtered length
       };
@@ -256,10 +278,6 @@ const fetchSearchResultsPage = async (page: number, query: string, type: string)
 };
 
 const App = () => {
-  // Initialize Google AdSense (silently fail if blocked by ad blockers)
-  const googleAdsClientId = import.meta.env.VITE_GOOGLE_ADS_CLIENT_ID;
-  useGoogleAds(googleAdsClientId);
-
   return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -278,6 +296,9 @@ const App = () => {
             <Route path="/movies" element={<Movies />} />
             <Route path="/tv-series" element={<TVSeries />} />
             <Route path="/anime" element={<Anime />} />
+            <Route path="/library" element={<Library />} />
+            <Route path="/addons" element={<Addons />} />
+            <Route path="/addons/:addonId/:type/:id" element={<AddonDetail />} />
             
             {/* Media detail routes */}
             <Route path="/movie/:id" element={<MediaDetail />} />
@@ -322,6 +343,7 @@ const App = () => {
               path="/movies/popular" 
               element={<ViewAllPage title="Popular Movies" fetchDataFunction={fetchPopularMoviesPage} />} 
             />
+            <Route path="/movies/now-playing" element={<ViewAllPage title="In cinemas" fetchDataFunction={fetchNowPlayingMoviesPage}/>}/>
             <Route 
               path="/movies/top-rated" 
               element={<ViewAllPage title="Top Rated Movies" fetchDataFunction={fetchTopRatedMoviesPage} />} 

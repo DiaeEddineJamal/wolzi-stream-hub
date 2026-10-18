@@ -194,7 +194,7 @@ export const SourceSelector: React.FC<SourceSelectorProps> = ({
   };
 
   const getResponseTimeColor = (responseTime?: number) => {
-    if (!responseTime) return 'text-gray-400';
+    if (!responseTime) return 'text-neutral-400';
     if (responseTime < 1000) return 'text-purple-400';
     if (responseTime < 3000) return 'text-yellow-400';
     return 'text-red-400';

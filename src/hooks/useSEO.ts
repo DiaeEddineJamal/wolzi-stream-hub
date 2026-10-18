@@ -52,7 +52,7 @@ export function useSEO(params: SEOParams) {
     const pageUrl = params.canonical || `${siteUrl}${window.location.pathname}${window.location.search}`
     const title = params.title || document.title
     const description = params.description || ''
-    const image = params.image || '/wolziflix-social-card.png'
+    const image = params.image || '/brand/admax-logo.png'
     const type = params.type || 'website'
     const keywords = params.keywords?.join(', ')
 

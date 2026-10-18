@@ -28,3 +28,12 @@ dist-ssr
 .env.local
 .env.development
 .env.production
+tests/media/
+.vercel
+.env*
+
+# Local evidence, editor state and Vercel credentials
+artifacts/
+.trae/
+cineby*_screenshot.png
+.vercel/

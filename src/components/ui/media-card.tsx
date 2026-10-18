@@ -64,7 +64,7 @@ const MediaCard: React.FC<MediaCardProps> = ({
         className="block rounded-md overflow-hidden"
         aria-label={`View ${title}`}
       >
-        <div className="aspect-[2/3] rounded-md overflow-hidden bg-gray-900 relative">
+        <div className="aspect-[2/3] rounded-md overflow-hidden bg-neutral-900 relative">
           <OptimizedImage
             src={posterUrl}
             alt={title}
@@ -85,7 +85,7 @@ const MediaCard: React.FC<MediaCardProps> = ({
         
         <div className="p-2">
           <h3 className="text-white font-medium text-sm line-clamp-1">{title}</h3>
-          {year && <p className="text-gray-400 text-xs">{year}</p>}
+          {year && <p className="text-neutral-400 text-xs">{year}</p>}
         </div>
       </Link>
     </motion.div>

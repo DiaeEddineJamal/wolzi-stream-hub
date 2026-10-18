@@ -140,6 +140,7 @@ export type Database = {
       }
       watchlist: {
         Row: {
+          metadata: Json
           added_at: string
           id: string
           media_id: string
@@ -147,6 +148,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          metadata?: Json
           added_at?: string
           id?: string
           media_id: string
@@ -154,6 +156,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          metadata?: Json
           added_at?: string
           id?: string
           media_id?: string

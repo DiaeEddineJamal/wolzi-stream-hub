@@ -1,4 +1,4 @@
-# Robots.txt for WolziFlix
+# Robots.txt for A&D MAX
 # Allow all search engines to crawl the site
 
 User-agent: Googlebot
@@ -57,7 +57,7 @@ Allow: /
 Crawl-delay: 1
 
 # Sitemap location
-Sitemap: https://wolziflix.com/sitemap.xml
+Sitemap: https://a-d-max.vercel.app/sitemap.xml
 
 # Host
-Host: https://wolziflix.com
+Host: https://a-d-max.vercel.app

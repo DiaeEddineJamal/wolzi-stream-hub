@@ -1,0 +1,11 @@
+import { useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import StreamingPlayer from '../src/components/watch/StreamingPlayer';
+import '../src/index.css';
+function TestPlayer(){
+  const [broken,setBroken]=useState(false);
+  const [progress,setProgress]=useState('No progress saved yet');
+  const [clip,setClip]=useState(0),[autoNext,setAutoNext]=useState(false);
+  return <main className="page-shell py-10"><p className="eyebrow">LOCAL QA · PUBLIC TEST MEDIA</p><h1 className="mb-6 text-3xl">Native player verification</h1><StreamingPlayer title="Sintel public test trailer" storageKey={`qa-test-${clip}`} source={{id:broken?'broken':'test-'+clip,name:'Public test media',kind:'video',service:broken?undefined:'/streaming-service',url:broken?'https://media.w3.org/2010/05/sintel/not-a-video.mp4':'https://media.w3.org/2010/05/sintel/trailer.mp4'}} onProgress={(s,d)=>setProgress(`Saved ${Math.floor(s)} of ${Math.floor(d)} seconds`)} onSourceError={()=>{if(broken){setBroken(false);setProgress('Automatically switched away from the unavailable source');}}} onNextSource={()=>setBroken(false)} nextEpisode={{label:'Next public test clip',onPlay:()=>{setClip(value=>value+1);setProgress('Next episode started');}}} autoNext={autoNext} onAutoNextChange={setAutoNext}/><button className="my-5 rounded-xl border px-5 py-3" onClick={()=>setBroken(!broken)}>{broken?'Restore test source':'Test unavailable source'}</button><button className="m-5 rounded-xl border px-5 py-3" onClick={()=>{const video=document.querySelector("video");setProgress(JSON.stringify({time:video?.currentTime,ready:video?.readyState,tracks:Array.from(video?.textTracks||[]).map(track=>({mode:track.mode,cues:Array.from(track.cues||[]).map(cue=>({type:cue.constructor.name,start:cue.startTime,end:cue.endTime,line:(cue as VTTCue).line}))}))}));}}>Inspect playback</button><p role="status">{progress}</p><p>Clip {clip+1}</p></main>;
+}
+createRoot(document.getElementById('root')!).render(<TestPlayer/>);
