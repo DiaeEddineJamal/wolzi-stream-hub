@@ -28,9 +28,9 @@ export default function InstallApp(){
   const install=async()=>{if(route==='prompt'){setBanner(false);await promptInstall();}else setOpen(true);};
   if(installed)return null;
   return <>
-    {banner&&<aside className="install-banner" aria-label="Install the app"><img src="/icons/icon-192.png" alt="" width={44} height={44}/><div><strong>Get the A&D MAX app</strong><span>Full screen, one tap from your Home Screen.</span></div><Button size="sm" onClick={()=>void install()}>Install</Button><button className="install-banner-close" onClick={dismiss} aria-label="Not now"><X size={16}/></button></aside>}
+    {banner&&<aside className="install-banner" aria-label="Install the app"><img src="/icons/icon-192.png?v=2" alt="" width={44} height={44}/><div><strong>Get the A&D MAX app</strong><span>Full screen, one tap from your Home Screen.</span></div><Button size="sm" onClick={()=>void install()}>Install</Button><button className="install-banner-close" onClick={dismiss} aria-label="Not now"><X size={16}/></button></aside>}
     <Dialog open={open} onOpenChange={setOpen}><DialogContent className="glass-dialog install-dialog">
-      <img className="install-icon" src="/icons/icon-192.png" alt="" width={72} height={72}/>
+      <img className="install-icon" src="/icons/icon-192.png?v=2" alt="" width={72} height={72}/>
       <DialogHeader><DialogTitle>Install A&D MAX</DialogTitle><DialogDescription>Full screen, no browser bars, and one tap from your Home Screen or dock.</DialogDescription></DialogHeader>
       {route==='prompt'?<Button className="w-full" onClick={()=>{setOpen(false);void promptInstall();}}><Download size={16}/>Install app</Button>
         :<ol className="install-steps">{steps[route].map(({icon:Icon,text},i)=><li key={i}><span><Icon size={18}/></span><p>{text}</p></li>)}</ol>}
