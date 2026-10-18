@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronLeft, ChevronRight, Info, Play, Plus, Pause } from 'lucide-react';
-import { AnimatePresence, motion, useReducedMotion, useTransform } from 'framer-motion';
+import { motion, useReducedMotion, useTransform } from 'framer-motion';
 import { useCarouselDrag } from '@/hooks/useDragScroll';
 import { Button } from '@/components/ui/button';
 import { useWatchlist } from '@/hooks/useWatchlist';
@@ -59,7 +59,8 @@ export default function HeroBanner({featuredItems,onThemeChange}:{featuredItems:
       })}
     </motion.div>
     <div className="max-hero-gradient"/>
-    <AnimatePresence initial={false} mode="wait"><motion.div key={frameKey} className="hero-editorial page-shell" style={{x:copyX}} initial={{opacity:0,y:reduced?0:6}} animate={{opacity:1,y:0}} exit={{opacity:0,y:reduced?0:-4}} transition={{duration:reduced?0:.25,ease:[.25,.46,.45,.94]}}>
+    {/* Keyed CSS fade-in (no exit): framer's exit/enter briefly snapped the outgoing title back to full opacity. */}
+    <motion.div key={frameKey} className={'hero-editorial page-shell'+(previous?' hero-copy-in':'')} style={{x:copyX}}>
       <img className="hero-poster" src={current.posterUrl||current.imageUrl} srcSet={artworkSet(current.posterUrl,'poster')} sizes="(max-width:767px) 112px, 240px" alt="" width={240} height={360}/>
       <div className="hero-story-copy"><p className="hero-kicker">A&D MAX SPOTLIGHT</p>
         <h1>{logo?<img src={getPosterUrl(logo.file_path,'w500')} alt={current.title} className="hero-title-art"/>:current.title}</h1>
@@ -67,7 +68,7 @@ export default function HeroBanner({featuredItems,onThemeChange}:{featuredItems:
         <p className="hero-description">{current.description}</p>
         <div className="hero-actions flex items-center gap-3"><Button asChild size="lg"><Link to={watchPath(type,current.id)}><Play size={17} fill="currentColor"/>Play</Link></Button><button className="icon-button hero-save" onClick={()=>toggle(item)} aria-pressed={has(item)} aria-label={has(item)?'Remove from My List':'Add to My List'}>{has(item)?<Check size={20}/>:<Plus size={20}/>}</button><Link to={current.ctaLink} className="icon-button hero-info" aria-label={'About '+current.title}><Info size={20}/></Link></div>
       </div>
-    </motion.div></AnimatePresence>
+    </motion.div>
     <button className="hero-edge-arrow previous" aria-label="Previous featured title" disabled={!!previous} onClick={()=>move(-1)}><ChevronLeft/></button><button className="hero-edge-arrow next" aria-label="Next featured title" disabled={!!previous} onClick={()=>move(1)}><ChevronRight/></button>
     <div className="hero-pagination"><div className="hero-dots">{featuredItems.map((item,i)=><button key={item.id} disabled={!!previous} onClick={()=>setIndex(i)} aria-label={'Show '+item.title} aria-current={current.id===item.id?'true':undefined}><span/></button>)}</div><button className="hero-rotation" aria-label={paused?'Resume featured rotation':'Pause featured rotation'} aria-pressed={paused} onClick={()=>setPaused(!paused)}>{paused?<Play size={13}/>:<Pause size={13}/>}</button></div>
   </section>;

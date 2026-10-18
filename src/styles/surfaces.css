@@ -219,3 +219,17 @@ body { background:#161616; }
 }
 .unified-nav .nav-glass.glass-surface--fallback .glass-surface__sheen,.dock-glass.glass-surface--fallback .glass-surface__sheen{background:linear-gradient(160deg,#ffffff24 0%,#ffffff08 22%,transparent 45%,transparent 70%,#ffffff0d 100%)}
 .unified-nav .nav-glass.glass-surface--fallback .glass-surface__rim,.dock-glass.glass-surface--fallback .glass-surface__rim{padding:1.5px;background:linear-gradient(150deg,#ffffff8c,#ffffff14 35%,#ffffff05 55%,#ffffff40)}
+
+/* Hero copy and page ambience fades: resting state is fully visible, so a finished or interrupted animation can't flash. */
+.hero-copy-in { animation:hero-copy-in .45s cubic-bezier(.25,.46,.45,.94) both; }
+@keyframes hero-copy-in { from { opacity:0;translate:0 6px; } }
+.ambience-in { animation:ambience-in 1.2s ease-in-out both; }
+@keyframes ambience-in { from { opacity:0; } }
+@media(prefers-reduced-motion:reduce){.hero-copy-in,.ambience-in{animation-duration:1ms}}
+
+/* While a touch scroll is moving, the bars use GPU blur glass (same tint, rim and depth) instead of SVG refraction. */
+@media(hover:none){
+  html.is-scrolling .unified-nav .nav-glass.glass-surface--svg,html.is-scrolling .dock-glass.glass-surface--svg{
+    -webkit-backdrop-filter:blur(3px) saturate(1.7) brightness(1.06) contrast(1.06);backdrop-filter:blur(3px) saturate(1.7) brightness(1.06) contrast(1.06);
+  }
+}
