@@ -18,6 +18,7 @@ import { useAddons } from '@/hooks/useAddons';
 import { useResolvedSources } from '@/hooks/useResolvedSources';
 import { usePlaybackSelection } from '@/hooks/usePlaybackSelection';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useStreamingService } from '@/hooks/useStreamingService';
 import { toMediaItem, watchPath } from '@/lib/media';
 import { useWatchlist } from '@/hooks/useWatchlist';
 import { useAuth } from '@/contexts/AuthContext';
@@ -37,9 +38,9 @@ function WatchSession(){
   const [autoNext,setAutoNext]=useLocalStorage('admax-auto-next',false);
   const resume=true;
   const {addons}=useAddons();
-  const [service]=useLocalStorage<string>('admax-streaming-service','');
+  const {service}=useStreamingService();
   const [scan,setScan]=useState(0);
-  const resolved=useResolvedSources(type,id,season,episode,typeof service==='string'?service:undefined,scan);
+  const resolved=useResolvedSources(type,id,season,episode,service,scan);
   const {user}=useAuth();
   const {has,toggle}=useWatchlist();
   const warned=useRef(false);
@@ -51,7 +52,7 @@ function WatchSession(){
   const addonResults=useQuery({queryKey:['addon-streams',addons,streamId,service],enabled:!!imdb&&addons.some(a=>a.enabled),queryFn:async({signal})=>{
     const eligible=addons.filter(a=>a.enabled&&supportsResource(a.manifest,'stream',type==='movie'?'movie':'series',streamId));
     return Promise.all(eligible.map(async addon=>{
-      try{return {name:addon.manifest.name,streams:await addonStreams(addon,type==='movie'?'movie':'series',streamId,signal,typeof service==='string'?service:undefined),error:false};}
+      try{return {name:addon.manifest.name,streams:await addonStreams(addon,type==='movie'?'movie':'series',streamId,signal,service),error:false};}
       catch{return {name:addon.manifest.name,streams:[],error:true};}
     }));
   }});

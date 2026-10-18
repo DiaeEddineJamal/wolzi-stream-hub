@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import MainLayout from '@/layouts/MainLayout';
 import { useAddons } from '@/hooks/useAddons';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useStreamingService } from '@/hooks/useStreamingService';
 import { usePlaybackSelection } from '@/hooks/usePlaybackSelection';
 import { useArtworkTheme } from '@/hooks/useArtworkTheme';
 import { addonMeta, addonStreams, httpsUrl } from '@/integrations/api/stremio';
@@ -16,7 +17,7 @@ export default function AddonDetail(){const {addonId,type,id}=useParams();return
 function AddonSession(){
   const {addonId,type,id}=useParams();const {addons}=useAddons();
   const addon=addons.find(a=>a.manifest.id===addonId&&a.enabled);
-  const [service]=useLocalStorage<string>('admax-streaming-service','');
+  const {service}=useStreamingService();
   const [chosenVideo,setVideo]=useState<string>();
   const [sourcesOpen,setSourcesOpen]=useState(false);
   const [autoNext,setAutoNext]=useState(false);
@@ -24,7 +25,7 @@ function AddonSession(){
   const video=chosenVideo || (type==='series' ? meta.data?.videos?.[0]?.id : undefined) || id;
   const currentVideoIndex=meta.data?.videos?.findIndex(v=>v.id===video)??-1;
   const nextVideo=type==='series'&&currentVideoIndex>=0?meta.data?.videos?.[currentVideoIndex+1]:undefined;
-  const streams=useQuery({queryKey:['addon-title-streams',addon?.transportUrl,type,video,service],enabled:!!addon&&(type!=='series'||!!meta.data),queryFn:({signal})=>addonStreams(addon,type,video,signal,typeof service==='string'?service:undefined)});
+  const streams=useQuery({queryKey:['addon-title-streams',addon?.transportUrl,type,video,service],enabled:!!addon&&(type!=='series'||!!meta.data),queryFn:({signal})=>addonStreams(addon,type,video,signal,service)});
   const playback=usePlaybackSelection(streams.data||[],streams.isFetching,video);
   const {choices,active}=playback;
   let poster:string;try{poster=httpsUrl(meta.data?.background||meta.data?.poster);}catch{poster=undefined;}

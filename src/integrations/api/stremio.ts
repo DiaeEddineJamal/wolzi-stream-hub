@@ -113,11 +113,11 @@ export function classifyStream(stream: AddonStream, id: string, addonName: strin
   if ((stream.infoHash&&!stream.url) || stream.behaviorHints?.proxyHeaders) {
     if(service){try{return {...base,kind:'video',url:serviceStreamUrl(stream,service),service:normalizeServiceUrl(service),needsConversion:!!stream.infoHash&&!stream.url};}catch(e){return {...base,kind:'unsupported',reason:e instanceof Error?e.message:'This source could not be converted.'};}}
     if(stream.url){try{return {...base,kind:'video',url:mediaProxyUrl(httpsUrl(stream.url),stream.behaviorHints?.proxyHeaders?.request)};}catch{ /* Explain below. */ }}
-    return { ...base, kind:'unsupported',reason:'Connect your Stremio streaming service in Add-ons to use this source.' };
+    return { ...base, kind:'unsupported',reason:'Install and start Stremio Service on this computer, then retry. A&D MAX connects to it automatically.' };
   }
   if (stream.behaviorHints?.notWebReady) {
     if(service){try{return {...base,kind:'video',url:serviceStreamUrl(stream,service),service:normalizeServiceUrl(service),needsConversion:true};}catch{ /* Explain unsupported transports below. */ }}
-    return { ...base, kind:'unsupported',reason:'Connect Stremio Service in Add-ons for browser-compatible conversion.' };
+    return { ...base, kind:'unsupported',reason:'Install and start Stremio Service on this computer, then retry. A&D MAX connects to it automatically.' };
   }
   if (stream.ytId && /^[a-zA-Z0-9_-]{11}$/.test(stream.ytId)) return {...base,kind:'external',externalUrl:`https://www.youtube.com/watch?v=${stream.ytId}`};
   if (stream.url) {

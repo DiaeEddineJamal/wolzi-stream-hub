@@ -42,13 +42,16 @@ export default function StreamingPlayer({source,title,storageKey,poster,onEnded,
     setEngine(null);
     if(isHls){void import('hls.js').then(({default:HlsEngine})=>{
       if(cancelled)return;
-      if(HlsEngine.isSupported()){
+      // hls.js needs CORS, which Stremio Service grants only to stremio.com; the browser's own HLS player does not.
+      const corsBlocked=!!source?.service&&/^https?:/.test(source.service)&&new URL(source.service).origin!==window.location.origin;
+      if(corsBlocked&&media.canPlayType('application/vnd.apple.mpegurl')){media.src=playbackUrl;media.load();}
+      else if(HlsEngine.isSupported()){
         hls=new HlsEngine({maxBufferLength:30,backBufferLength:20,enableWorker:true});setEngine(hls);hls.attachMedia(media);hls.loadSource(playbackUrl);
         hls.on(HlsEngine.Events.ERROR,(_,data)=>{if(data.fatal&&!cancelled)playbackError();});
       }else if(media.canPlayType('application/vnd.apple.mpegurl')){media.src=playbackUrl;media.load();}else playbackError();
     }).catch(()=>{if(!cancelled)playbackError();});}
     return()=>{cancelled=true;hls?.destroy();};
-  },[media,playbackUrl,isHls,safe,playbackError]);
+  },[media,playbackUrl,isHls,safe,playbackError,source?.service]);
   useEffect(()=>{if(!loading||failed||!safe)return;const timeout=setTimeout(playbackError,everPlayed.current?8000:transcoding?20000:12000);return()=>clearTimeout(timeout);},[loading,failed,safe,transcoding,playbackError]);
   useEffect(()=>()=>uploadUrls.current.forEach(url=>URL.revokeObjectURL(url)),[]);
   const upload=async(file:File)=>{if(file.size>2_000_000)throw new Error('Choose a subtitle smaller than 2 MB.');const contents=toWebVTT(await file.text()),url=URL.createObjectURL(new Blob([contents],{type:'text/vtt'}));uploadUrls.current.push(url);setUploaded(previous=>[...previous,{url,lang:'und',label:file.name}]);};
