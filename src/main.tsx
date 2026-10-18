@@ -1,5 +1,4 @@
 import './lib/install'; // capture the install prompt before React mounts
-import './lib/device'; // scroll flag for the glass bars
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'

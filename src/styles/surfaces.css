@@ -43,7 +43,7 @@ body { background:#161616; }
 .unified-nav.floating-nav { width:calc(100% - 64px);max-width:1120px;left:50%;right:auto;transform:translateX(-50%);top:20px;pointer-events:auto;transition:transform .42s cubic-bezier(.22,.61,.36,1),opacity .28s; }
 .unified-nav.floating-nav.is-collapsed { transform:translate(-50%,calc(-100% - 32px));opacity:0;pointer-events:none; }
 .unified-nav .nav-glass { display:flex!important;position:relative!important;left:auto;transform:none;overflow:visible!important;border:1px solid #ffffff28;box-shadow:inset 0 1px #ffffff40,inset 0 -1px #ffffff12,inset 0 0 18px #ffffff09,0 8px 32px #0003; }
-.unified-nav .nav-glass.glass-surface--svg,.dock-glass.glass-surface--svg { background:hsl(0 0% 0% / var(--glass-frost));backdrop-filter:blur(2px) var(--filter-id) saturate(1.15); }
+.unified-nav .nav-glass.glass-surface--svg,.dock-glass.glass-surface--svg { background:hsl(0 0% 0% / var(--glass-frost));backdrop-filter:var(--filter-id); }
 .brand { position:relative;overflow:hidden;border-radius:12px;transition:transform .35s cubic-bezier(.22,.61,.36,1); }
 .brand { overflow:visible; }.brand img { transition:transform .45s cubic-bezier(.2,.7,.3,1),filter .45s; }.brand:is(:hover,:focus-visible) img { transform:translateY(-2px) scale(1.035);filter:drop-shadow(0 4px 12px #ffffff25); }.brand-wordmark { display:inline-flex;font-size:27px;font-weight:850;letter-spacing:-1.7px;line-height:1.3;perspective:600px;white-space:nowrap; }.brand-wordmark>span { display:inline-block; }
 .unified-nav .glass-surface__content { padding:5px 15px; }
@@ -252,10 +252,3 @@ a.profile-item:hover,button.profile-item:hover,a.profile-item:focus-visible { ba
 .ambience-in { animation:ambience-in 1.2s ease-in-out both; }
 @keyframes ambience-in { from { opacity:0; } }
 @media(prefers-reduced-motion:reduce){.hero-copy-in,.ambience-in{animation-duration:1ms}}
-
-/* While a touch scroll is moving, the bars use GPU blur glass (same tint, rim and depth) instead of SVG refraction. */
-@media(hover:none){
-  html.is-scrolling .unified-nav .nav-glass.glass-surface--svg,html.is-scrolling .dock-glass.glass-surface--svg{
-    -webkit-backdrop-filter:blur(3px) saturate(1.7) brightness(1.06) contrast(1.06);backdrop-filter:blur(3px) saturate(1.7) brightness(1.06) contrast(1.06);
-  }
-}

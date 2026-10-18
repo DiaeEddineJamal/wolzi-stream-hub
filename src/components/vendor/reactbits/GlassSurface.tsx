@@ -58,6 +58,8 @@ export interface GlassSurfaceProps {
   brightness?: number;
   opacity?: number;
   blur?: number;
+  /** Backdrop blur (px) folded into the filter's own Gaussian: one blur pass instead of two. */
+  preBlur?: number;
   displace?: number;
   backgroundOpacity?: number;
   saturation?: number;
@@ -77,6 +79,14 @@ export interface GlassSurfaceProps {
 }
 
 const FAR = 1e20;
+
+// Channel-select matrix with saturation folded in (luma weights from the SVG/CSS saturate definition).
+// Saturation is per-pixel, so applying it here instead of as a separate backdrop pass is exact.
+const channelMatrix = (channel: 0 | 1 | 2, s: number) => {
+  const w = [0.213, 0.715, 0.072];
+  const row = w.map((wk, k) => (k === channel ? wk + (1 - wk) * s : wk - wk * s).toFixed(4)).join(' ');
+  return [0, 1, 2].map(k => (k === channel ? `${row} 0 0` : '0 0 0 0 0')).join(' ') + ' 0 0 0 1 0';
+};
 
 const GLASS_VERTEX = `#version 300 es
 in vec2 aPosition;
@@ -360,6 +370,7 @@ const GlassSurface = ({
   opacity = 0.93,
   blur = 11,
   displace = 0,
+  preBlur = 0,
   backgroundOpacity = 0,
   saturation = 1,
   distortionScale = -180,
@@ -462,8 +473,9 @@ const GlassSurface = ({
       }
     });
 
-    gaussianBlurRef.current?.setAttribute('stdDeviation', displace.toString());
+    gaussianBlurRef.current?.setAttribute('stdDeviation', Math.hypot(displace, preBlur).toFixed(2));
   }, [
+    preBlur,
     boxSize,
     width,
     height,
@@ -832,10 +844,7 @@ const GlassSurface = ({
             <feColorMatrix
               in="dispRed"
               type="matrix"
-              values="1 0 0 0 0
-                      0 0 0 0 0
-                      0 0 0 0 0
-                      0 0 0 1 0"
+              values={channelMatrix(0, saturation)}
               result="red"
             />
 
@@ -849,10 +858,7 @@ const GlassSurface = ({
             <feColorMatrix
               in="dispGreen"
               type="matrix"
-              values="0 0 0 0 0
-                      0 1 0 0 0
-                      0 0 0 0 0
-                      0 0 0 1 0"
+              values={channelMatrix(1, saturation)}
               result="green"
             />
 
@@ -860,10 +866,7 @@ const GlassSurface = ({
             <feColorMatrix
               in="dispBlue"
               type="matrix"
-              values="0 0 0 0 0
-                      0 0 0 0 0
-                      0 0 1 0 0
-                      0 0 0 1 0"
+              values={channelMatrix(2, saturation)}
               result="blue"
             />
 
