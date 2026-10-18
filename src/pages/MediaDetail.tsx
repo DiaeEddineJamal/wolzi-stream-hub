@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState, type CSSProperties } from 'react';
+import { DetailSkeleton } from '@/components/primitives/Skeletons';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Check, Play, Plus, Film } from 'lucide-react';
@@ -27,7 +28,7 @@ export default function MediaDetail(){
   const trailers=(data?.videos?.results||[]).filter(v=>v.site==='YouTube'&&['Trailer','Teaser'].includes(v.type));
   const logo=data?.images?.logos?.filter(i=>i.iso_639_1==='en'&&i.width>i.height*1.8).sort((a,b)=>b.width-a.width)[0];
   useSEO({title:item?`${item.title} — A&D MAX`:'Explore title — A&D MAX',description:data?.overview,image:item?.backdropUrl});
-  if(result.isPending)return <MainLayout><div className="hero-skeleton page-shell"><LoadingState label="Opening this story"/></div></MainLayout>;
+  if(result.isPending)return <MainLayout><DetailSkeleton/></MainLayout>;
   if(result.isError||!item)return <MainLayout><div className="empty-state"><h1>This title couldn’t be loaded.</h1><Button onClick={()=>result.refetch()}>Try again</Button><Link to="/">Back to discover</Link></div></MainLayout>;
   return <MainLayout theme={theme as CSSProperties}><div className="detail-world">
     <section className="detail-hero"><img className="detail-backdrop" src={item.backdropUrl} srcSet={artworkSet(item.backdropUrl)} sizes="100vw" alt="" fetchPriority="high" decoding="async" width={1920} height={1080}/><div className="page-shell"><div className="detail-content"><p className="eyebrow">{type==='movie'?'A FILM TO GET LOST IN':type==='anime'?'ANOTHER WORLD AWAITS':'YOUR NEXT GREAT SERIES'}</p><h1>{logo?<img src={getPosterUrl(logo.file_path,'w500')} alt={item.title} className="detail-title-art"/>:item.title}</h1><div className="hero-meta">{item.rating>0&&<span>★ {item.rating.toFixed(1)}</span>}<span>{item.year}</span>{data.runtime>0&&<span>{Math.floor(data.runtime/60)}h {data.runtime%60}m</span>}<span>{item.genres?.slice(0,2).join(' · ')}</span></div><div className="hero-actions flex flex-wrap items-center gap-3"><Button size="lg" asChild><Link to={watchPath(type,id,season)}><Play size={17} fill="currentColor"/>Play</Link></Button><button className="icon-button" onClick={()=>toggle(item)} aria-pressed={has(item)} aria-label={has(item)?'Remove from My List':'Add to My List'}>{has(item)?<Check size={20}/>:<Plus size={20}/>}</button>{trailers.length>0&&<button className="icon-button" aria-label="Watch official trailer" onClick={()=>setTrailer(trailers[0].key)}><Film size={19}/></button>}</div><p className="detail-synopsis">{item.description}</p></div></div></section>

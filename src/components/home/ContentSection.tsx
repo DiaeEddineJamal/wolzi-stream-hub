@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { RailSkeleton } from '@/components/primitives/Skeletons';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import MediaCard from './MediaCard';
@@ -7,12 +8,12 @@ import type { MediaItem } from '@/lib/media';
 import { useDragScroll } from '@/hooks/useDragScroll';
 interface Props {
   eyebrow?: string; title: string; items: (MediaItem & { overview?: string })[];
-  viewMoreLink?: string; className?: string; showViewMore?: boolean; landscape?: boolean; ranked?: boolean;
+  viewMoreLink?: string; className?: string; showViewMore?: boolean; landscape?: boolean; ranked?: boolean; loading?: boolean;
 }
-export default function ContentSection({ title, eyebrow, items, viewMoreLink, className, showViewMore = true, landscape = true, ranked = false }: Props) {
+export default function ContentSection({ title, eyebrow, items, viewMoreLink, className, showViewMore = true, landscape = true, ranked = false, loading = false }: Props) {
   const rail = useRef<HTMLDivElement>(null);
   const drag=useDragScroll(rail);
-  if (!items.length) return null;
+  if (!items.length) return loading ? <RailSkeleton landscape={landscape} /> : null;
   const scroll = (direction: number) => rail.current?.scrollBy({ left: direction * rail.current.clientWidth * .85, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
   return <section className={cn('content-section', className)}>
     <header className="section-heading page-shell">

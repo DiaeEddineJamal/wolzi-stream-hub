@@ -41,6 +41,11 @@ export default function Profile(){
       toast.success('Photo updated');
     }catch{toast.error('Could not upload that photo. Try again.');}finally{setUploading(false);if(file.current)file.current.value='';}
   };
+  const removePhoto=async()=>{
+    setUploading(true);
+    try{await updateProfile({username:profile?.username||name,avatar_url:null});toast.success('Photo removed');}
+    catch{toast.error('Could not remove the photo. Try again.');}finally{setUploading(false);}
+  };
   return <MainLayout><div className="page-shell">
     <header className="catalog-header profile-hero">
       <div className="profile-identity">
@@ -65,7 +70,8 @@ export default function Profile(){
       <p className="eyebrow">PROFILE</p><h2 className="mb-5 text-xl">How you appear</h2>
       <label className="profile-field"><span>Display name</span><Input value={username} maxLength={80} required onChange={e=>{edited.current=true;setUsername(e.target.value);}}/></label>
       <label className="profile-field"><span>Email</span><Input value={user.email||''} disabled/></label>
-      <div className="flex flex-wrap items-center gap-3"><Button type="submit" disabled={saving||!username.trim()||username.trim()===profile?.username}>{saving?'Saving…':'Save changes'}</Button><Button type="button" variant="secondary" onClick={()=>file.current?.click()} disabled={uploading}><Camera size={16}/>{uploading?'Uploading…':'Change photo'}</Button></div>
+      <div className="flex flex-wrap items-center gap-3"><Button type="submit" disabled={saving||!username.trim()||username.trim()===profile?.username}>{saving?'Saving…':'Save changes'}</Button><Button type="button" variant="secondary" onClick={()=>file.current?.click()} disabled={uploading}><Camera size={16}/>{uploading?'Uploading…':profile?.avatar_url?'Change photo':'Add photo'}</Button>{profile?.avatar_url&&<Button type="button" variant="ghost" disabled={uploading} onClick={()=>void removePhoto()}>Remove photo</Button>}</div>
+      <p className="mt-4 text-xs text-muted-foreground">PNG, JPEG, WebP or GIF, up to 5 MB.</p>
     </form>
     <section className="settings-panel">
       <p className="eyebrow">PLAYBACK</p><h2 className="mb-5 text-xl">Sources and services</h2>

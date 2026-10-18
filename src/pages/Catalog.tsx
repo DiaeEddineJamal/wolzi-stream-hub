@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from 'react';
+import { HeroSkeleton } from '@/components/primitives/Skeletons';
 import { useQuery } from '@tanstack/react-query';
 import MainLayout from '@/layouts/MainLayout';
 import HeroBanner from '@/components/home/HeroBanner';
@@ -6,7 +7,6 @@ import ContentSection from '@/components/home/ContentSection';
 import SpotlightCarousel from '@/components/home/SpotlightCarousel';
 import tmdbApi from '@/integrations/api/tmdb';
 import { toMediaItem, type MediaType } from '@/lib/media';
-import LoadingState from '@/components/primitives/LoadingState';
 import { Button } from '@/components/ui/button';
 import { useSEO } from '@/hooks/useSEO';
 
@@ -29,12 +29,12 @@ export default function Catalog({type}:{type:MediaType}){
   const featured=(popular.data||[]).filter(item=>item.backdropUrl).slice(0,6).map(item=>({...item,imageUrl:item.backdropUrl,description:item.description||'',ctaLink:'/'+item.mediaType+'/'+item.id}));
   const base=type==='movie'?'/movies':type==='anime'?'/view-all/anime':'/tv';
   return <MainLayout theme={theme}><div className="home-world catalog-world">
-    {popular.isPending?<div className="hero-skeleton page-shell"><LoadingState label={'Exploring '+title.toLowerCase()}/></div>:popular.isError?<div className="hero-skeleton empty-state"><h1>The stories will be right back.</h1><Button onClick={()=>popular.refetch()}>Retry {title.toLowerCase()}</Button></div>:<HeroBanner key={type} featuredItems={featured} onThemeChange={setTheme}/>}
+    {popular.isPending?<HeroSkeleton/>:popular.isError?<div className="hero-skeleton empty-state"><h1>The stories will be right back.</h1><Button onClick={()=>popular.refetch()}>Retry {title.toLowerCase()}</Button></div>:<HeroBanner key={type} featuredItems={featured} onThemeChange={setTheme}/>}
     <SpotlightCarousel viewMoreLink={base+'/popular'} items={(popular.data||[]).filter(item=>item.backdropUrl).slice(0,8)}/>
-    <ContentSection title={type==='movie'?'In cinemas':type==='anime'?'Anime everyone’s talking about':'Series everyone’s talking about'} eyebrow={title.toUpperCase()} items={popular.data||[]} landscape={false} viewMoreLink={type==='movie'?'/movies/now-playing':base+'/popular'}/>
-    <ContentSection title={type==='movie'?'The films that stay with you':type==='anime'?'Extraordinary worlds':'One more unforgettable episode'} eyebrow="HIGHLY RATED" items={rated.data||[]} landscape={false} viewMoreLink={base+'/top-rated'}/>
+    <ContentSection title={type==='movie'?'In cinemas':type==='anime'?'Anime everyone’s talking about':'Series everyone’s talking about'} eyebrow={title.toUpperCase()} items={popular.data||[]} loading={popular.isPending} landscape={false} viewMoreLink={type==='movie'?'/movies/now-playing':base+'/popular'}/>
+    <ContentSection title={type==='movie'?'The films that stay with you':type==='anime'?'Extraordinary worlds':'One more unforgettable episode'} eyebrow="HIGHLY RATED" items={rated.data||[]} loading={rated.isPending} landscape={false} viewMoreLink={base+'/top-rated'}/>
     {rated.isError&&<div className="page-shell"><Button variant="secondary" onClick={()=>rated.refetch()}>Reload top rated</Button></div>}
-    <ContentSection title={type==='movie'?'Coming to the big screen':type==='anime'?'Fresh from Japan':'Fresh stories to settle into'} eyebrow="SOMETHING NEW" items={fresh.data||[]} landscape viewMoreLink={type==='tv'?undefined:base+(type==='anime'?'/on-air':'/upcoming')}/>
+    <ContentSection title={type==='movie'?'Coming to the big screen':type==='anime'?'Fresh from Japan':'Fresh stories to settle into'} eyebrow="SOMETHING NEW" items={fresh.data||[]} loading={fresh.isPending} landscape viewMoreLink={type==='tv'?undefined:base+(type==='anime'?'/on-air':'/upcoming')}/>
     {fresh.isError&&<div className="page-shell"><Button variant="secondary" onClick={()=>fresh.refetch()}>Reload new stories</Button></div>}
   </div></MainLayout>;
 }

@@ -6,7 +6,7 @@ type UserProfile=Tables<'profiles'>;
 interface AuthContextType {
   user:User|null;profile:UserProfile|null;session:Session|null;isLoggedIn:boolean;loading:boolean;
   login:(email:string,password:string)=>Promise<unknown>;
-  signup:(email:string,password:string,username:string)=>Promise<void>;
+  signup:(email:string,password:string,username:string)=>Promise<{needsConfirmation:boolean}>;
   logout:()=>Promise<boolean>;
   updateProfile:(profile:Partial<UserProfile>)=>Promise<UserProfile>;
 }
@@ -43,6 +43,7 @@ export function AuthProvider({children}:{children:ReactNode}){
     if(error)throw error;
     // Confirm-email signups have no session; profile creation waits for sign-in.
     if(data.session)setSession(data.session);
+    return {needsConfirmation:!data.session};
   };
   const logout=async()=>{
     const {error}=await supabase.auth.signOut();if(error)throw error;

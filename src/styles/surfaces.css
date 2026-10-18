@@ -153,3 +153,42 @@ body { background:#161616; }
 .profile-row>svg:first-child { color:#a7a7a7; }.profile-row strong { display:block;font-size:14px;font-weight:550; }.profile-row small { display:block;color:#9c9c9c;font-size:12px;margin-top:3px; }.profile-row>svg:last-child { color:#777;transition:transform .2s ease; }.profile-row:hover>svg:last-child { transform:translateX(3px); }
 @media(max-width:767px){.profile-hero{flex-direction:column;align-items:stretch}.profile-identity{gap:16px}.profile-avatar{width:76px;height:76px;font-size:24px}.profile-avatar i{width:26px;height:26px}.profile-stats{grid-template-columns:1fr;gap:10px}.profile-grid{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.profile-avatar,.profile-row>svg:last-child{transition:none}}
+
+/* Touch performance: same look, less GPU and layout work while scrolling. */
+@media(max-width:767px){
+  /* Blur a quarter-size copy and scale it up: identical for a heavy blur, ~1/64 of the raster work. */
+  .scene-ambience-art{inset:auto;left:-30%;top:-3%;width:40%;height:25.75%;transform:scale(4);transform-origin:0 0;filter:blur(15px) brightness(.6)}
+}
+@media(hover:none){
+  .home-world .content-section{content-visibility:auto;contain-intrinsic-size:auto 380px}
+}
+
+/* Skeletons: neutral surfaces with an opacity-only pulse (GPU-composited, no repaint). */
+.sk { display:block;background:linear-gradient(180deg,#ffffff0f,#ffffff08);border-radius:8px;animation:sk-pulse 1.4s ease-in-out infinite alternate; }
+.max-card-art.sk { box-shadow:none; }
+@keyframes sk-pulse { from { opacity:.45; } to { opacity:1; } }
+.sk-rail>article:nth-child(2) .sk,.sk-grid>article:nth-child(2) .sk { animation-delay:.12s; }.sk-rail>article:nth-child(3) .sk,.sk-grid>article:nth-child(3) .sk { animation-delay:.24s; }.sk-rail>article:nth-child(4) .sk,.sk-grid>article:nth-child(4) .sk { animation-delay:.36s; }.sk-rail>article:nth-child(n+5) .sk,.sk-grid>article:nth-child(n+5) .sk { animation-delay:.48s; }
+.sk-rail { overflow:hidden;pointer-events:none; }
+.sk-eyebrow { width:110px;height:9px;margin-bottom:12px; }.sk-heading { width:min(260px,60vw);height:24px; }
+.sk-caption { height:11px;width:78%;margin-top:12px; }.sk-short { width:52%; }
+.sk-hero { position:relative;height:100svh;min-height:720px;max-height:1080px;display:flex;align-items:flex-end;padding-bottom:145px;background:radial-gradient(120% 80% at 70% 20%,#ffffff08,transparent 60%); }
+.sk-detail { height:min(86svh,900px);min-height:660px;padding-bottom:90px; }
+.sk-story { display:flex;align-items:flex-end;gap:42px;width:100%; }.sk-story-copy { flex:1;min-width:0;max-width:620px; }
+.sk-poster { flex:0 0 auto;width:clamp(170px,15vw,240px);aspect-ratio:2/3;border-radius:22px; }
+.sk-title { width:min(480px,80%);height:clamp(36px,4vw,60px);margin:6px 0 22px;border-radius:12px; }
+.sk-meta { width:180px;height:10px;margin-bottom:18px; }.sk-line { width:100%;height:12px;margin-bottom:10px; }
+.sk-actions { display:flex;gap:12px;margin-top:22px; }.sk-button { width:170px;height:47px;border-radius:32px; }.sk-circle { width:44px;height:44px;border-radius:50%; }
+@media(max-width:767px){
+  .sk-hero{height:90svh;min-height:620px;max-height:850px;padding-bottom:85px}.sk-detail{height:auto;min-height:650px;padding-bottom:40px}
+  .sk-story{gap:18px}.sk-poster{width:105px;border-radius:12px;margin-bottom:58px}.sk-title{height:31px;margin-bottom:14px}
+  .sk-button{width:110px;height:39px}.sk-circle{width:33px;height:33px}
+}
+@media(prefers-reduced-motion:reduce){.sk{animation:none;opacity:.75}}
+
+/* Sign-up: check your inbox */
+.auth-inbox { text-align:center; }.auth-inbox h1 { font-size:34px;line-height:1.15;letter-spacing:-.045em;margin:6px 0 12px; }
+.auth-inbox-icon { width:60px;height:60px;margin:0 auto 22px;border-radius:50%;display:grid;place-items:center;background:#ffffff0a;border:1px solid #ffffff14;color:#f5f5f7; }
+.auth-inbox .auth-subtitle { color:#b4b4b4;font-size:14px;line-height:1.7;margin-bottom:12px; }.auth-inbox .auth-subtitle strong { color:#f5f5f7;font-weight:550;overflow-wrap:anywhere; }
+.auth-inbox-hint { color:#7d7d7d;font-size:12px;margin-bottom:24px; }
+.auth-inbox-actions { display:grid;gap:10px; }
+@media(max-width:767px){.auth-inbox h1{font-size:30px}}
