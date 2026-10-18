@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="supported-color-schemes" content="dark">
+<title>Reset your A&amp;D MAX password</title>
+</head>
+<body style="margin:0;padding:0;background:#161616;-webkit-text-size-adjust:100%;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">Choose a new password for your account.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#161616;">
+  <tr><td align="center" style="padding:48px 16px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;">
+      <tr><td align="center" style="padding-bottom:32px;">
+        <a href="{{ .SiteURL }}" style="text-decoration:none;"><img src="https://a-d-max.vercel.app/brand/admax-logo.png" alt="A&amp;D MAX" width="148" style="display:block;width:148px;max-width:148px;height:auto;border:0;"></a>
+      </td></tr>
+      <tr><td style="background:#1c1c1c;border:1px solid #2a2a2a;border-radius:20px;padding:44px 40px;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+        <p style="margin:0 0 14px;color:#a7a7a7;font-size:11px;font-weight:600;letter-spacing:2.2px;text-transform:uppercase;">Password reset</p>
+        <h1 style="margin:0 0 16px;color:#f5f5f7;font-size:30px;line-height:1.15;font-weight:600;letter-spacing:-1px;">Let&rsquo;s get you back in.</h1>
+        <p style="margin:0 0 32px;color:#b4b4b4;font-size:15px;line-height:1.65;">We received a request to reset the password for {{ .Email }}. Choose a new one to pick up right where you left off.</p>
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-radius:999px;background:#f5f5f7;">
+          <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:15px 34px;color:#161616;font-size:15px;font-weight:600;text-decoration:none;border-radius:999px;">Reset password</a>
+        </td></tr></table>
+        <p style="margin:32px 0 0;padding-top:24px;border-top:1px solid #2a2a2a;color:#7d7d7d;font-size:12px;line-height:1.6;">Didn&rsquo;t ask for this? Your password stays the same unless you use the button above.<br>If the button doesn&rsquo;t work, paste this link into your browser:<br><a href="{{ .ConfirmationURL }}" style="color:#a7a7a7;word-break:break-all;">{{ .ConfirmationURL }}</a></p>
+      </td></tr>
+      <tr><td align="center" style="padding-top:28px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#6b6b6b;font-size:11px;line-height:1.6;">
+        A&amp;D MAX &middot; A world of stories<br>You received this because of activity on your A&amp;D MAX account.
+      </td></tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>

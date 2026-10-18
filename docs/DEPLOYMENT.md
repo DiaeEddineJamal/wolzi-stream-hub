@@ -17,3 +17,6 @@ HTTPS direct streams can play without a companion. Torrent streams, custom reque
 Protocol/progress/player-state/origin-guard tests, application and server TypeScript, targeted lint, and Vite production build are required before publishing. Deployment readiness, canonical URL, deep links, static brand assets and Node endpoints are checked after publishing. Browser checks cover hero crossfade and mobile layout. Live account checks are deferred with Supabase setup.
 
 Generated media, screenshots, local credentials, and editor state stay outside source-control staging; generated brand assets and source/tests/migrations/docs are committed.
+
+## Auth emails
+Branded templates live in `supabase/templates/` (`confirmation`, `recovery`, `magic_link`, `email_change`). Paste each into Supabase → Authentication → Email Templates. Supabase → Authentication → URL Configuration must use Site URL `https://a-d-max.vercel.app` with redirect URLs `https://a-d-max.vercel.app/auth**` and `http://127.0.0.1:8080/auth**`; otherwise links fall back to `http://localhost:3000`. A custom sender address requires custom SMTP (Authentication → Emails → SMTP Settings) with a verified sending domain.

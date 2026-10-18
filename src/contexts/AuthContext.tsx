@@ -25,12 +25,12 @@ export function AuthProvider({children}:{children:ReactNode}){
   useEffect(()=>{
     let active=true;setProfile(null);
     if(!userId)return;
+    // Insert-if-missing without asking for the row back (that returned 406 when a parallel run won), then read it.
+    const read=()=>supabase.from('profiles').select('*').eq('id',userId).maybeSingle();
     void (async()=>{
-      const {data,error}=await supabase.from('profiles').select('*').eq('id',userId).maybeSingle();
-      if(error||!active)return;
-      if(data){setProfile(data);return;}
-      const {data:created}=await supabase.from('profiles').upsert({id:userId,username:username||'Viewer'},{onConflict:'id',ignoreDuplicates:true}).select().maybeSingle();
-      if(active&&created)setProfile(created);
+      let {data}=await read();
+      if(!data){await supabase.from('profiles').upsert({id:userId,username:username||'Viewer'},{onConflict:'id',ignoreDuplicates:true});({data}=await read());}
+      if(active&&data)setProfile(data);
     })().catch(()=>{});
     return()=>{active=false;};
   },[userId,username]);
