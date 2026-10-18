@@ -2,8 +2,9 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Public project values (safe in the browser); env vars override them. A missing key otherwise blanks the whole app.
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://ixbzfdomobyahxwcsxam.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable__TNv047eew1ziTDfjqu1Fw_-p7xFTlQ';
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
