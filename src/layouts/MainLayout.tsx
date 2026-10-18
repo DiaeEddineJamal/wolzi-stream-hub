@@ -11,5 +11,5 @@ export default function MainLayout({ children, theme }: { children: React.ReactN
   useEffect(() => { window.scrollTo(0, 0); document.title = 'A&D MAX — A world of stories'; document.querySelector('meta[name="robots"]')?.setAttribute('content', 'index, follow'); }, [pathname]);
   const cinematic = ['/', '/movies', '/tv-series', '/anime'].includes(pathname) || /^\/(movie|tv|anime)\/\d+/.test(pathname);
   const information = ['/privacy','/terms','/legal'].includes(pathname);
-  return <div className="app-shell" style={theme}><SceneAmbience theme={theme}/><a className="skip-link" href="#main">Skip to content</a><NavBar /><main id="main" className={`${cinematic ? 'cinematic-page' : 'standard-page'} ${information ? 'information-page' : ''} ${pathname === '/profile' ? 'account-page' : ''}`}>{children}</main><Footer /><MobileBottomNav /><InstallApp /></div>;
+  return <div className="app-shell" style={theme}><SceneAmbience theme={theme}/><a className="skip-link" href="#main">Skip to content</a><NavBar /><main id="main" className={`${cinematic ? 'cinematic-page' : 'standard-page'} ${information ? 'information-page' : ''}`}>{children}</main><Footer /><MobileBottomNav /><InstallApp /></div>;
 }
