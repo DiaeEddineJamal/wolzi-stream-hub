@@ -37,3 +37,7 @@ artifacts/
 .trae/
 cineby*_screenshot.png
 .vercel/
+
+# Local agent tooling
+.omc/
+.claude/
