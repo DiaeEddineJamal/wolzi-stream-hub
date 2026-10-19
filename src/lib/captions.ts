@@ -9,12 +9,13 @@ export function captionTimes(start:number,end:number,delay:number){
   return {start:Math.max(0,start+delay),end:Math.max(.001,end+delay)};
 }
 export function nextEpisodeDue(duration:number,time:number,ended=false){
-  return ended||(duration>20&&duration-time>0&&duration-time<=20);
+  return ended||(Number.isFinite(duration)&&duration>0&&time>=duration*0.9);
 }
 export function nextEpisodeProgress(duration:number,time:number,ended:boolean,countdown:number,autoplay:boolean){
   if(!Number.isFinite(duration)||duration<=0)return 0;
+  const windowSec=Math.max(0.001,duration*0.1);
   const remaining=ended?0:Math.max(0,duration-time);
-  const progress=autoplay?1-(remaining+(ended?countdown:5))/25:1-remaining/20;
+  const progress=autoplay?1-(remaining+(ended?countdown:5))/(windowSec+5):1-remaining/windowSec;
   return Math.min(1,Math.max(0,progress));
 }
 export function activateCaptionTrack(tracks:Pick<TextTrack,'mode'>[],index:number){

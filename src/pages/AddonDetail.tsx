@@ -20,7 +20,7 @@ function AddonSession(){
   const {service,recheck}=useStreamingService();
   const [chosenVideo,setVideo]=useState<string>();
   const [sourcesOpen,setSourcesOpen]=useState(false);
-  const [autoNext,setAutoNext]=useState(false);
+  const [autoNext,setAutoNext]=useState(true);
   const meta=useQuery({queryKey:['addon-meta',addon?.transportUrl,type,id],enabled:!!addon,queryFn:({signal})=>addonMeta(addon,type,id,signal)});
   const video=chosenVideo || (type==='series' ? meta.data?.videos?.[0]?.id : undefined) || id;
   const currentVideoIndex=meta.data?.videos?.findIndex(v=>v.id===video)??-1;
@@ -35,7 +35,7 @@ function AddonSession(){
     {!addon?<div className="empty-state"><h2>This add-on is not enabled.</h2><Button asChild><Link to="/addons">Manage add-ons</Link></Button></div>:<>
       {meta.data?.videos?.length>0&&<div className="mb-6"><label htmlFor="addon-episode" className="mr-4 text-xs">Choose an episode</label><ChoiceSelect id="addon-episode" label="Choose an episode" value={video} onValueChange={setVideo} options={meta.data.videos.map(v=>({value:v.id,label:(v.season?`S${v.season} E${v.episode} - `:"")+(v.title||v.id)}))}/></div>}
       {streams.isPending?<div className="empty-state"><LoadingState label="Finding streams"/></div>:streams.isError?<div className="empty-state"><h2>This add-on couldn’t return streams.</h2><Button onClick={()=>streams.refetch()}>Try again</Button></div>:<>
-        <div className="watch-player-layout"><StreamingPlayer key={video} source={active} title={meta.data?.name||id} storageKey={`addon-${addonId}-${video}`} poster={poster} onSourceReady={playback.onReady} onSourceError={playback.onFailure} onNextSource={playback.next} onRetryService={()=>{void recheck();void streams.refetch();}} onOpenSources={()=>setSourcesOpen(true)} nextEpisode={nextVideo?{label:nextVideo.title||nextVideo.id,image:nextPoster,eyebrow:nextVideo.episode?`Episode ${nextVideo.episode}`:undefined,onPlay:()=>setVideo(nextVideo.id)}:undefined} autoNext={autoNext} onAutoNextChange={setAutoNext}/><aside className="desktop-source-picker"><SourcePicker sources={choices} activeId={active?.id} onSelect={playback.onSelect}/></aside></div>
+        <div className="watch-player-layout"><StreamingPlayer source={active} title={meta.data?.name||id} storageKey={`addon-${addonId}-${video}`} poster={poster} onSourceReady={playback.onReady} onSourceError={playback.onFailure} onNextSource={playback.next} onRetryService={()=>{void recheck();void streams.refetch();}} onOpenSources={()=>setSourcesOpen(true)} nextEpisode={nextVideo?{label:nextVideo.title||nextVideo.id,image:nextPoster,eyebrow:nextVideo.episode?`Episode ${nextVideo.episode}`:undefined,onPlay:()=>setVideo(nextVideo.id)}:undefined} autoNext={autoNext} onAutoNextChange={setAutoNext}/><aside className="desktop-source-picker"><SourcePicker sources={choices} activeId={active?.id} onSelect={playback.onSelect}/></aside></div>
         <div className="selected-source-bar"><span>{active?.name||'No streams returned'}</span><Button variant="secondary" size="sm" onClick={()=>setSourcesOpen(true)}>Change source · {choices.length}</Button></div>
         <SourcePickerSheet sources={choices} activeId={active?.id} onSelect={playback.onSelect} open={sourcesOpen} onOpenChange={setSourcesOpen}/>
         {!choices.length&&<p className="py-6 text-sm text-muted-foreground">No streams were returned for this item. Try another episode or install a stream add-on.</p>}

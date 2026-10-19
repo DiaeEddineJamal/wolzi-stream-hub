@@ -25,7 +25,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePlaybackHistory } from '@/hooks/usePlaybackHistory';
 import { resumeSeconds } from '@/lib/watch-progress';
 import { toast } from 'sonner';
-export default function WatchNew(){ const {pathname,search}=useLocation();return <WatchSession key={pathname+search}/>; }
+export default function WatchNew(){ const {id}=useParams(),{pathname}=useLocation(); const type=pathname.includes('/movie/')?'movie':pathname.includes('/anime/')?'anime':'tv'; return <WatchSession key={`${type}-${id}`}/>; }
 function WatchSession(){
   const {id,season:seasonParam,episode:episodeParam}=useParams();
   const [params]=useSearchParams();
@@ -33,9 +33,10 @@ function WatchSession(){
   const navigate=useNavigate();
   const type=location.pathname.includes('/movie/')?'movie':location.pathname.includes('/anime/')?'anime':'tv';
   const season=Math.max(1,Number(seasonParam || params.get('season'))||1), episode=Math.max(1,Number(episodeParam)||1);
+  const episodeKey=`${type}-${id}-${season}-${episode}`;
 
   const [sourcesOpen,setSourcesOpen]=useState(false);
-  const [autoNext,setAutoNext]=useLocalStorage('admax-auto-next',false);
+  const [autoNext,setAutoNext]=useLocalStorage('admax-auto-next',true);
   const resume=true;
   const {addons}=useAddons();
   const {service,recheck,detectedOnce}=useStreamingService();
@@ -63,7 +64,7 @@ function WatchSession(){
       try{if(!sessionStorage.getItem('admax-service-prompt-dismissed'))openServiceSetup();}catch{openServiceSetup();}
     }
   },[detectedOnce,service,addonStreamList]);
-  const playback=usePlaybackSelection([...resolved.sources,...addonStreamList],resolved.checking||addonResults.isFetching);
+  const playback=usePlaybackSelection([...resolved.sources,...addonStreamList],resolved.checking||addonResults.isFetching,episodeKey);
   const {choices,active}=playback;
   const item=details.data?toMediaItem(details.data,type):null;
   const theme=useArtworkTheme(item?.backdropUrl);
