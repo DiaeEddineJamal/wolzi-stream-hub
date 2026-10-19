@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 import type Hls from 'hls.js';
 import { createPortal } from 'react-dom';
 import { Check, ChevronRight, Maximize, Minimize, Pause, PictureInPicture2, Play, RotateCcw, RotateCw, Settings2, SkipForward, Star, Subtitles, Upload, Volume2, VolumeX, X } from 'lucide-react';
-import { subtitleCodeBadge, subtitleFlagUrl, subtitleLanguage, subtitleNativeLanguage } from '@/lib/subtitles';
+import { preferredSubtitleIndex, subtitleCodeBadge, subtitleFlagUrl, subtitleLanguage, subtitleNativeLanguage } from '@/lib/subtitles';
 import { activateCaptionTrack, captionPreferences, captionTimes, defaultCaptions, nextEpisodeDue, nextEpisodeProgress } from '@/lib/captions';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { detectQualityTier, QUALITY_BADGES } from './SourcePicker';
@@ -36,7 +36,7 @@ export default function PlayerControls({captionKey='video',media,engine,containe
   const selectedCaption=useRef<TextTrack|null>();
   const [storedCaptions,saveCaptionStyle]=useLocalStorage<unknown>('admax-captions',defaultCaptions);
   const [offsets,saveOffsets]=useLocalStorage<Record<string,number>>('admax-caption-offsets',{});
-  const syncKey=captionKey+'|'+(tracks[trackIndex]?.label||'default');
+  const syncKey=captionKey+'|'+(tracks[trackIndex]?.id||tracks[trackIndex]?.label||'default');
   const captions=useMemo(()=>({...captionPreferences(storedCaptions),delay:captionPreferences({delay:offsets[syncKey]}).delay}),[storedCaptions,offsets,syncKey]);
   const setCaptions=(value:typeof defaultCaptions)=>{saveCaptionStyle({...value,delay:0});saveOffsets(previous=>({...previous,[syncKey]:value.delay}));};
   const cueTimes=useRef(new WeakMap<TextTrackCue,{start:number;end:number}>());
@@ -70,18 +70,16 @@ export default function PlayerControls({captionKey='video',media,engine,containe
       if(selectedCaption.current===undefined){
         try{
           const preferred=localStorage.getItem('admax-subtitle-language');
-          if(preferred==='off'){selected=-1;selectedCaption.current=null;}
-          else if(preferred){const match=all.findIndex(t=>subtitleLanguage(t.language)===subtitleLanguage(preferred));if(match>=0)selected=match;}
-          else if(selected<0&&all.length){const eng=all.findIndex(t=>subtitleLanguage(t.language)==='English');if(eng>=0)selected=eng;}
+          selected=preferredSubtitleIndex(all,preferred);
         }catch{/* Storage is optional. */}
-        if(selected>=0)selectedCaption.current=all[selected];
+        // Keep auto-selection open while slower providers add the preferred language.
       }
       activateCaptionTrack(all,selected);setTracks(all);setTrackIndex(selected);
     };
     const events=['timeupdate','loadedmetadata','durationchange','progress','volumechange','play','pause','ratechange','ended'];events.forEach(event=>media.addEventListener(event,update));
     media.textTracks.addEventListener('addtrack',updateTracks);media.textTracks.addEventListener('removetrack',updateTracks);media.textTracks.addEventListener('change',updateTracks);update();updateTracks();
     return()=>{events.forEach(event=>media.removeEventListener(event,update));media.textTracks.removeEventListener('addtrack',updateTracks);media.textTracks.removeEventListener('removetrack',updateTracks);media.textTracks.removeEventListener('change',updateTracks);};
-  },[media]);
+  },[media,captionKey]);
   useEffect(()=>{if(!engine)return;const events=(engine.constructor as typeof Hls).Events;const update=()=>{setQuality(engine.autoLevelEnabled?-1:engine.currentLevel);setAudio(engine.audioTrack);};engine.on(events.LEVEL_SWITCHED,update);engine.on(events.AUDIO_TRACK_SWITCHED,update);return()=>{engine.off(events.LEVEL_SWITCHED,update);engine.off(events.AUDIO_TRACK_SWITCHED,update);};},[engine]);
   useEffect(()=>{
     const stage=container.current;if(!stage)return;
@@ -214,13 +212,12 @@ export default function PlayerControls({captionKey='video',media,engine,containe
             const nat=subtitleNativeLanguage(track.language);
             const flag=subtitleFlagUrl(track.language);
             const badge=subtitleCodeBadge(track.language);
-            const isOpenSub=/opensubtitles/i.test(track.label||'');
             return <button className="cinema-menu-option" key={index} aria-pressed={trackIndex===index} onClick={()=>chooseTrack(index)}>
               <span className="caption-lang-row">
                 {flag?<img src={flag} alt="" className="caption-flag" loading="lazy"/>:<span className="caption-lang-code">{badge}</span>}
                 <span className="caption-lang-text">
                   <strong>{en}{nat&&nat.toLowerCase()!==en.toLowerCase()?` · ${nat}`:''}</strong>
-                  <small>{isOpenSub?'OpenSubtitles':track.label||'Embedded'} · {badge}</small>
+                  <small>{track.label||'Embedded'} · {badge}</small>
                 </span>
               </span>
               {trackIndex===index&&<Check size={15}/>}

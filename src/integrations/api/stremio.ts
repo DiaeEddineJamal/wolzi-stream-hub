@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { SubtitleTrack } from '@/lib/subtitles';
 const resourceSchema = z.union([z.string(), z.object({ name: z.string(), types: z.array(z.string()).optional(), idPrefixes: z.array(z.string()).optional() })]);
 export const manifestSchema = z.object({
   id: z.string().min(1).max(160), name: z.string().min(1).max(160), version: z.string().min(1),
@@ -16,7 +17,7 @@ export const streamSchema = z.object({
   behaviorHints: z.object({ notWebReady: z.boolean().optional(), isHls: z.boolean().optional(), proxyHeaders: z.object({request:z.record(z.string()).optional(),response:z.record(z.string()).optional()}).optional() }).optional(),
 }).passthrough();
 export type AddonStream = z.infer<typeof streamSchema>;
-export interface StreamChoice { id: string; name: string; description?: string; url?: string; externalUrl?: string; kind: 'video' | 'embed' | 'external' | 'unsupported'; reason?: string; service?: string; needsConversion?: boolean; availability?: 'checking'|'reachable'|'ready'|'failed'|'timeout'; provider?: string; subtitles?: { url: string; lang: string }[] }
+export interface StreamChoice { id: string; name: string; description?: string; url?: string; externalUrl?: string; kind: 'video' | 'embed' | 'external' | 'unsupported'; reason?: string; service?: string; needsConversion?: boolean; availability?: 'checking'|'reachable'|'ready'|'failed'|'timeout'; provider?: string; subtitles?: SubtitleTrack[] }
 export function httpsUrl(value: string): string {
   const url = new URL(value);
   if (url.protocol !== 'https:' || url.username || url.password) throw new Error('Use an HTTPS URL without embedded credentials.');
@@ -107,7 +108,7 @@ export function hlsPlaybackUrl(mediaUrl:string,service:string,sessionId:string,o
   return (base==='/streaming-service'?'':base)+'/hlsv2/'+encodeURIComponent(sessionId)+'/master.m3u8?'+params;
 }
 export function classifyStream(stream: AddonStream, id: string, addonName: string, service?: string): StreamChoice {
-  const base = { id, name: stream.name || addonName, description: stream.description || stream.title, subtitles: stream.subtitles?.filter(s => { try { return typeof s.lang === 'string' && !!httpsUrl(s.url); } catch { return false; } }).map(s => ({url:s.url,lang:s.lang})) };
+  const base = { id, name: stream.name || addonName, description: stream.description || stream.title, subtitles: stream.subtitles?.filter(s => { try { return typeof s.lang === 'string' && !!httpsUrl(s.url); } catch { return false; } }).map(s => ({id:s.id,url:s.url,lang:s.lang})) };
   if (stream.externalUrl) {
     try { return { ...base, kind: 'external', externalUrl: httpsUrl(stream.externalUrl) }; } catch { return {...base,kind:'unsupported',reason:'This external link is not a secure web address.'}; }
   }

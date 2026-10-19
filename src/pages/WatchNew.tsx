@@ -59,7 +59,6 @@ function WatchSession(){
       catch{return {name:addon.manifest.name,streams:[],error:true};}
     }));
   }});
-  const subtitles=useSubtitles(type==='movie'?'movie':'series',imdb?streamId:undefined);
   const addonStreamList=(addonResults.data || []).flatMap(r=>r.streams);
   useEffect(()=>{
     if(detectedOnce&&!service&&addonStreamList.some(s=>/Stremio Service/i.test(s.reason||''))){
@@ -68,6 +67,7 @@ function WatchSession(){
   },[detectedOnce,service,addonStreamList]);
   const playback=usePlaybackSelection([...resolved.sources,...addonStreamList],resolved.checking||addonResults.isFetching,episodeKey);
   const {choices,active}=playback;
+  const subtitles=useSubtitles(type==='movie'?'movie':'series',imdb?streamId:undefined,[details.data?.title||details.data?.name,active?.name,active?.description].filter(Boolean).join(' '),imdb?streamId:type==='movie'?id:`${id}:${season}:${episode}`);
   const item=details.data?toMediaItem(details.data,type):null;
   const theme=useArtworkTheme(item?.backdropUrl);
   const currentEpisode=episodes.data?.episodes?.find((ep:any)=>ep.episode_number===episode);

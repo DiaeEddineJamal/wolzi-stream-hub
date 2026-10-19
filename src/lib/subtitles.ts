@@ -1,3 +1,28 @@
+export interface SubtitleTrack {id?:string;url:string;lang:string;label?:string;release?:string}
+
+export function preferredSubtitleIndex(tracks:Pick<TextTrack,'language'|'mode'>[],preferred:string|null){
+  if(preferred==='off')return -1;
+  if(preferred){const match=tracks.findIndex(track=>normalizeLangCode(track.language)===normalizeLangCode(preferred));if(match>=0)return match;}
+  const showing=tracks.findIndex(track=>track.mode==='showing');
+  return showing>=0?showing:tracks.findIndex(track=>normalizeLangCode(track.language)==='en');
+}
+
+export function rankSubtitleTracks<T extends SubtitleTrack>(tracks:T[],release=''){
+  const tokens=(value:string)=>value.toLowerCase().replace(/web[ ._-]?(dl|rip)/g,'web$1').match(/[a-z0-9]{3,}/g)||[];
+  const wanted=new Set(tokens(release));
+  const score=(track:T)=>[...new Set(tokens(track.release||track.label||''))].filter(token=>wanted.has(token)).length;
+  return [...tracks].sort((a,b)=>score(b)-score(a));
+}
+
+export function decodeSubtitle(bytes:Uint8Array,contentType=''){
+  if(bytes[0]===255&&bytes[1]===254)return new TextDecoder('utf-16le').decode(bytes);
+  if(bytes[0]===254&&bytes[1]===255)return new TextDecoder('utf-16be').decode(bytes);
+  const charset=/charset=["']?([^\s;"']+)/i.exec(contentType)?.[1];
+  if(charset){try{return new TextDecoder(charset,{fatal:true}).decode(bytes);}catch{/* Some providers mislabel their encoding. */}}
+  // shortcut: unlabelled legacy files default to Arabic Windows-1256; other legacy encodings need provider charset metadata.
+  try{return new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch{return new TextDecoder('windows-1256').decode(bytes);}
+}
+
 export function toWebVTT(value:string){
   const text=value.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n').trim();
   if(text.startsWith('WEBVTT'))return text+'\n';

@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { publicMediaUrl } from './source-resolver.js';
-import { toWebVTT } from '../src/lib/subtitles.js';
+import { decodeSubtitle, toWebVTT } from '../src/lib/subtitles.js';
 export async function subtitleRoute(req:IncomingMessage,res:ServerResponse){
   if(req.method!=='GET'){res.writeHead(405).end();return;}
   try{
@@ -14,9 +14,10 @@ export async function subtitleRoute(req:IncomingMessage,res:ServerResponse){
       await response.body?.cancel();url=await publicMediaUrl(new URL(response.headers.get('location')||'',url).href);
     }
     if(!response?.ok||!response.body)throw new Error('Subtitle unavailable');
-    const reader=response.body.getReader(),decoder=new TextDecoder();let text='',size=0;
-    try{while(true){const part=await reader.read();if(part.done)break;size+=part.value.length;if(size>2_000_000)throw new Error('Subtitle too large');text+=decoder.decode(part.value,{stream:true});}}finally{await reader.cancel();}
-    text+=decoder.decode();
+    const reader=response.body.getReader(),chunks:Uint8Array[]=[];let size=0;
+    try{while(true){const part=await reader.read();if(part.done)break;size+=part.value.length;if(size>2_000_000)throw new Error('Subtitle too large');chunks.push(part.value);}}finally{await reader.cancel();}
+    const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
+    const text=decodeSubtitle(bytes,response.headers.get('content-type')||'');
     res.writeHead(200,{'Content-Type':'text/vtt; charset=utf-8','Cache-Control':'private, max-age=300','X-Content-Type-Options':'nosniff'});res.end(toWebVTT(text));
   }catch{if(!res.headersSent)res.writeHead(422,{'Content-Type':'text/plain'});res.end('This subtitle could not be loaded or converted.');}
 }

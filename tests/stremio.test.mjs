@@ -75,6 +75,7 @@ assert.equal(api.classifyStream({externalUrl:'data:text/html,hello'},'1','Test')
 assert.equal(api.classifyStream({infoHash:'a'.repeat(40)},'1','Test').kind,'unsupported');
 assert.equal(api.classifyStream({url:'https://example.com/video',behaviorHints:{notWebReady:true}},'1','Test').kind,'unsupported');
 assert.equal(api.classifyStream({url:'https://example.com/video',subtitles:[{url:'javascript:alert(1)',lang:'en'}]},'1','Test').subtitles.length,0);
+assert.equal(api.classifyStream({url:'https://example.com/video',subtitles:[{id:'arabic-release',url:'https://example.com/ar.srt',lang:'ar'}]},'1','Test').subtitles[0].id,'arabic-release');
 assert.equal(api.serviceStreamUrl({infoHash:'A'.repeat(40)},'https://service.example'),`https://service.example/${'a'.repeat(40)}/-1`);
 assert.equal(api.serviceStreamUrl({infoHash:'a'.repeat(40),fileIdx:2},'http://127.0.0.1:11470'),`http://127.0.0.1:11470/${'a'.repeat(40)}/2`);
 assert.throws(()=>api.serviceStreamUrl({infoHash:'../../settings'},'https://service.example'));
@@ -112,6 +113,22 @@ assert.equal(subtitles.subtitleLanguage('eng'),'English');
 assert.equal(subtitles.subtitleLanguage('und'),'Unknown language');
 assert.equal(subtitles.subtitleUrl('https://example.com/en.srt'),'/api/playback/subtitles?url=https%3A%2F%2Fexample.com%2Fen.srt');
 assert.equal(subtitles.subtitleUrl('blob:test'),'blob:test');
+assert.equal(subtitles.normalizeLangCode('ara'),'ar');
+assert.equal(subtitles.normalizeLangCode('ar_SA'),'ar');
+assert.equal(subtitles.decodeSubtitle(new TextEncoder().encode('العربية')),'العربية');
+assert.equal(subtitles.decodeSubtitle(Uint8Array.from([0xc7,0xe1,0xda,0xd1,0xc8,0xed,0xc9])),'العربية');
+assert.equal(subtitles.decodeSubtitle(Uint8Array.from([0xff,0xfe,0x27,0x06,0x44,0x06])),'ال');
+assert.equal(subtitles.decodeSubtitle(Uint8Array.from([0xe9]),'text/plain; charset=windows-1252'),'é');
+const releaseTracks=Array.from({length:7},(_,i)=>({url:`https://example.com/${i}.srt`,lang:'ar',release:i===6?'Movie.2025.1080p.WEB-DL.GROUP':'Movie.2025.720p.BluRay.OTHER'}));
+const ranked=subtitles.rankSubtitleTracks(releaseTracks,'Movie.2025.1080p.WEB-DL.GROUP');
+assert.equal(ranked.length,7); // Keep alternatives beyond the former three-track limit.
+assert.equal(ranked[0],releaseTracks[6]);
+assert.deepEqual(subtitles.rankSubtitleTracks(releaseTracks),releaseTracks);
+const arrivingTracks=[{language:'eng',mode:'showing'}];
+assert.equal(subtitles.preferredSubtitleIndex(arrivingTracks,'ar'),0);
+arrivingTracks.push({language:'ara',mode:'disabled'});
+assert.equal(subtitles.preferredSubtitleIndex(arrivingTracks,'ar'),1); // Late Arabic replaces the automatic English fallback.
+assert.equal(subtitles.preferredSubtitleIndex(arrivingTracks,'off'),-1);
 assert.match(artwork.artworkSet('https://image.tmdb.org/t/p/w500/test.jpg','poster'),/w780\/test.jpg 780w/);
 assert.equal(artwork.artworkSet('https://example.com/poster.jpg'),undefined);
 assert.equal(artwork.paletteFromPixels([180,30,20,255])['--scene-color'],'#161616');
@@ -215,10 +232,24 @@ try {
   assert.equal(calledUrl.searchParams.get('season'),'2');
   assert.equal(calledUrl.searchParams.get('episode'),'3');
   assert.equal(calledUrl.searchParams.get('source'),'all');
+  assert.equal(calledUrl.searchParams.has('limit'),false);
   const result=JSON.parse(found.body);
   assert.equal(result.subtitles.length,1);
   assert.match(result.subtitles[0].url,/to=vtt/);
   assert.doesNotMatch(found.body,/server-only-secret/);
+  globalThis.fetch=async url=>{calledUrl=new URL(url);return {ok:true,json:async()=>[
+    ...Array.from({length:205},(_,i)=>({id:i,language:'en',url:`https://sub.wyzie.io/c/${i}?tok=scoped`})),
+    {id:'arabic',language:'ar',url:'https://sub.wyzie.io/c/arabic?tok=scoped',source:'lima',release:'Movie.WEB-DL',releases:['Movie.GROUP'],fileName:'Movie.ar.srt'},
+  ]};};
+  const arabic=subtitleResponse();
+  await createSubtitleSearch('server-only-secret')({method:'GET',url:'/?id=1399:2:3&language=ar'},arabic);
+  assert.equal(calledUrl.searchParams.get('id'),'1399');
+  assert.equal(calledUrl.searchParams.get('language'),'ar');
+  assert.equal(calledUrl.searchParams.get('season'),'2');
+  const arabicTrack=JSON.parse(arabic.body).subtitles.find(track=>track.lang==='ar');
+  assert.equal(arabicTrack.id,'lima:arabic');
+  assert.match(arabicTrack.release,/Movie.GROUP/);
+  assert.doesNotMatch(arabic.body,/server-only-secret/);
 }finally{globalThis.fetch=realFetch;}
 
 const {matchesTrendingFilters}=await load('src/lib/catalog-filters.ts');
