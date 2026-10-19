@@ -1,0 +1,157 @@
+/* Shared Apple TV typography, density and shape. SF is used where installed;
+   the bundled Inter fallback keeps non-Apple devices consistent. */
+@font-face {
+  font-family:'Inter';src:url('/fonts/InterVariable.woff2') format('woff2');
+  font-style:normal;font-weight:100 900;font-display:swap;
+}
+:root {
+  --font-display:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Inter','Helvetica Neue',Arial,sans-serif;
+  --font-body:'SF Pro Text',-apple-system,BlinkMacSystemFont,'Inter','Helvetica Neue',Arial,sans-serif;
+  --type-10:10px;--type-11:11px;--type-12:12px;--type-13:13px;
+  --type-14:14px;--type-17:17px;--type-19:19px;--type-20:20px;
+  --type-21:21px;--type-24:24px;--type-29:29px;--type-35:35px;
+  --type-40:40px;--type-44:44px;--type-48:48px;--type-58:58px;
+  --type-67:67px;--type-80:80px;
+  --space-unit:4px;--section-gap:90px;--card-padding:28px;--element-gap:20px;
+  --radius-link:10px;--radius-nav:20px;--radius-card:28px;--radius-image:28px;
+  --radius-pill:36px;--radius-input:980px;
+  --shadow-soft:0 8px 24px #0003;--shadow-raised:0 20px 56px #0005;
+  --source-surface:#262626;
+}
+body { font-family:var(--font-body);font-size:var(--type-14);line-height:1.47;letter-spacing:-.22px;font-weight:400;font-optical-sizing:auto; }
+button,input,textarea,select { font-family:inherit; }
+h1,h2,h3,h4,h5,h6 { font-family:var(--font-display);font-weight:600; }
+.app-shell :is(h1,h2,h3,h4,h5,h6) { font-weight:600; }
+.cinema-controls,.cinema-menu,.source-picker { font-family:var(--font-body); }
+.cinema-player video::cue { font-family:var(--font-body); }
+.hero-display,.hero-editorial h1,.detail-content h1,.auth-story h1 {
+  font-family:var(--font-display);font-size:clamp(40px,5.6vw,var(--type-80));
+  font-weight:600;line-height:1.05;letter-spacing:-.015em;
+}
+.feature-heading,.section-heading h2,.apple-episodes-header h2,.editorial-band h2,.policy-section h2 {
+  font-size:clamp(24px,3vw,var(--type-40));font-weight:600;line-height:1;letter-spacing:normal;
+}
+.standard-page h1,.catalog-header h1,.apple-watch-hero h1 { font-size:clamp(35px,4vw,var(--type-44));font-weight:600;line-height:1.05;letter-spacing:-.015em; }
+.product-kicker { font-family:var(--font-display);font-size:var(--type-21);font-weight:600;line-height:1;letter-spacing:.23px; }
+.product-nav-title { font-family:var(--font-display);font-size:var(--type-19);font-weight:600;line-height:1.21;letter-spacing:.23px; }
+.apple-watch-ep-title,.auth-form-panel h2,.settings-panel h2 { font-size:var(--type-24);font-weight:600;line-height:1.17;letter-spacing:normal; }
+.hero-description,.apple-watch-synopsis,.policy-section>p { font-size:var(--type-17);line-height:1.47;letter-spacing:-.37px; }
+.card-caption h3,.apple-ep-body h3,.catalog-card h3 { font-family:var(--font-display);font-size:var(--type-19);font-weight:500;line-height:1.21;letter-spacing:.23px; }
+.apple-ep-body p,.source-result strong,.settings-row p { font-size:var(--type-14);line-height:1.47;letter-spacing:-.22px; }
+.desktop-links a,.unified-nav .nav-item-label,.nav-signin,.view-all,.choice-select,.cinema-menu-option { font-size:var(--type-12);font-weight:500;line-height:1.38;letter-spacing:-.12px; }
+.eyebrow,.card-meta,.source-summary,.source-result-meta,.cinema-menu-label { font-size:var(--type-10);line-height:1.38;letter-spacing:-.37px;font-weight:500; }
+.eyebrow,.cinema-menu-label { letter-spacing:.08em;font-weight:600; }
+.source-picker h2,.cinema-menu h3 { font-family:var(--font-display);font-size:var(--type-19);font-weight:600;line-height:1.21;letter-spacing:.23px; }
+.source-search input,.nav-search-input { font-family:Arial,sans-serif;font-size:13px;line-height:1.2;letter-spacing:normal; }
+.content-section,.provider-hub-section,.apple-episodes-section,.apple-cast-section { margin-block:var(--section-gap); }
+.section-heading { margin-bottom:var(--element-gap); }
+.media-rail,.apple-episode-rail,.catalog-grid,.episode-grid { gap:var(--element-gap); }
+.apple-ep-body,.settings-panel,.addon-card { padding:var(--card-padding); }
+.max-card-art,.apple-ep-card,.episode-card,.episode-story-card,.trailer-story-card,.auth-form-panel,.settings-panel,.addon-card { border-radius:var(--radius-card); }
+.max-card-art>img,.episode-story-card>img,.trailer-story-card>img { border-radius:var(--radius-image); }
+.floating-nav .nav-inner,.mobile-bottom-nav,.nav-glass { border-radius:var(--radius-nav); }
+.floating-nav .desktop-links a,.nav-current-lens { border-radius:var(--radius-link); }
+.provider-logo-pill,.provider-clear-btn,.apple-genre-chip,.apple-episode-pill,[data-slot=button] { border-radius:var(--radius-pill); }
+.source-search,.caption-search,input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=color]):not([type=file]) { border-radius:var(--radius-input); }
+
+/* No chromatic tint on sources or their selected/verified states. */
+.source-picker { background:var(--source-surface);border-radius:var(--radius-card); }
+.source-result { background:#ffffff04;border-color:#ffffff12; }
+.source-result.active { background:#ffffff0b;border-color:#ffffff66;box-shadow:inset 3px 0 #e5e5e5,var(--shadow-soft); }
+.source-result.active svg,.source-reachable { color:#dedede; }
+.source-provider-tag,.source-result-meta,.source-picker .source-summary { color:#bcbcbc; }
+.source-result strong { font-weight:600; }
+.source-sheet>.source-picker { background:transparent; }
+.glass-popup.source-sheet { background:linear-gradient(145deg,#ffffff08,transparent 55%),rgba(38,38,38,.55)!important; }
+.source-item-badge { width:40px;height:32px; }
+
+/* Player popovers have their own bounds, independent of general dialog sizing. */
+[role=dialog].cinema-menu.glass-popup { width:360px;max-width:calc(100% - 32px);max-height:calc(100% - 100px);left:auto;right:20px;bottom:84px;inset-block-start:auto;border-radius:var(--radius-card);padding:20px; }
+.cinema-player:fullscreen [role=dialog].cinema-menu.glass-popup { width:380px;max-height:calc(100% - 150px);right:32px;bottom:110px; }
+@media(min-width:1024px) {
+  .source-sheet.glass-popup {
+    width:min(560px,calc(100vw - 64px));height:min(760px,calc(100dvh - 64px));max-height:none;
+    inset:50% auto auto 50%;transform:translate(-50%,-50%);padding:24px;
+    border-radius:var(--radius-card);background:#262626ed!important;
+    animation:none;transition:opacity .2s;
+  }
+  .source-sheet>.source-picker { max-width:none;border-radius:0; }
+  .source-sheet .source-picker>header { padding:12px 0 16px; }
+  .source-sheet .source-scroll { padding:16px 0; }
+  .source-sheet .source-picker>footer { padding:12px 0 0; }
+  .source-sheet>button { top:24px;right:24px; }
+}
+@media(max-width:767px) {
+  :root { --section-gap:56px;--card-padding:20px; }
+  .hero-editorial h1,.detail-content h1,.auth-story h1 { font-size:clamp(29px,8vw,40px);line-height:1.05; }
+  .hero-description,.apple-watch-synopsis,.policy-section>p { font-size:var(--type-14);line-height:1.47;letter-spacing:-.22px; }
+  .section-heading h2,.apple-episodes-header h2,.editorial-band h2 { font-size:var(--type-24);line-height:1.17; }
+  [role=dialog].cinema-menu.glass-popup,.cinema-player:fullscreen [role=dialog].cinema-menu.glass-popup {
+    width:auto;max-width:none;max-height:80dvh;inset:auto 8px max(8px,env(safe-area-inset-bottom));padding:20px;
+  }
+  .cinema-player:fullscreen [role=dialog].cinema-menu.glass-popup { max-height:calc(100% - 16px); }
+  .source-search input,.caption-search { font-size:16px; }
+}
+
+/* Browse controls: one clear toolbar, a genre rail, and grouped refinements. */
+.browse-filters { padding:24px 0;margin-bottom:28px;border-bottom:1px solid #ffffff12; }
+.browse-filter-toolbar { display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap; }
+.browse-primary-groups,.browse-filter-actions { display:flex;align-items:center;gap:12px;flex-wrap:wrap; }
+.browse-filter-intro>span { color:#a3a3a3;font-size:10px;letter-spacing:.08em;font-weight:500; }
+.browse-filter-intro h2 { font-size:24px;line-height:1.17;letter-spacing:0;margin-top:6px; }
+.browse-segment { display:flex;gap:3px;padding:4px;border-radius:13px;background:#ffffff06;border:1px solid #ffffff10; }
+.browse-segment button { min-height:36px;padding:8px 14px;border-radius:9px;font-size:12px;font-weight:500;color:#bcbcbc;white-space:nowrap; }
+.browse-segment button[aria-pressed=true] { background:#f5f5f5;color:#191919;box-shadow:0 2px 8px #0002; }
+.browse-action { display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:44px;padding:10px 16px;border:1px solid #ffffff20;background:#ffffff06;border-radius:12px;font-size:12px;font-weight:500;white-space:nowrap;color:#eee; }
+.browse-action:hover,.browse-action[aria-expanded=true] { background:#ffffff12;border-color:#ffffff38; }
+.browse-action small { min-width:19px;height:19px;display:grid;place-items:center;border-radius:50%;background:#f5f5f5;color:#222;font-size:10px; }
+.browse-genre-rail { display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:22px 0 12px; }
+.browse-genre-rail button { flex-shrink:0;min-height:40px;padding:8px 16px;border-radius:36px;color:#bcbcbc;font-size:12px;border:1px solid transparent;background:transparent;white-space:nowrap; }
+.browse-genre-rail button:hover { color:#fff;background:#ffffff08; }
+.browse-genre-rail button[aria-pressed=true] { color:#fff;background:#ffffff12;border-color:#ffffff22; }
+.browse-active-filters { display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding-top:8px; }
+.browse-active-filters>button:not(.browse-clear) { display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:6px 10px;border-radius:8px;border:1px solid #ffffff18;background:#ffffff07;color:#ddd;font-size:11px; }
+.browse-clear { min-height:40px;font-size:12px;color:#c4c4c4;padding:8px;text-decoration:underline;text-underline-offset:4px; }
+.browse-sort-menu.glass-popup { width:240px;padding:8px;border-radius:16px; }
+.browse-sort-menu>p { font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.08em;padding:12px; }
+.browse-sort-menu>button { display:flex;align-items:center;justify-content:space-between;width:100%;min-height:44px;padding:10px 12px;border-radius:9px;font-size:13px;text-align:left; }
+.browse-sort-menu>button:hover,.browse-sort-menu>button[aria-checked=true] { background:#ffffff12; }
+.browse-filter-dialog.glass-popup { max-width:620px;padding:28px;gap:24px;border-radius:28px; }
+.browse-filter-dialog h2 { font-size:24px;letter-spacing:0;line-height:1.17; }
+.browse-filter-dialog [id$=description] { color:#bcbcbc;font-size:13px; }
+.browse-refinements { display:flex;flex-direction:column;gap:28px; }
+.browse-refinements legend { font-size:13px;font-weight:600;color:#eee;margin-bottom:12px; }
+.browse-option-grid { display:flex;flex-wrap:wrap;gap:8px; }
+.browse-option-grid button { min-height:44px;padding:10px 16px;border-radius:10px;border:1px solid #ffffff15;font-size:12px;color:#c4c4c4;background:#ffffff04; }
+.browse-option-grid button[aria-pressed=true] { background:#f5f5f5;border-color:#f5f5f5;color:#202020;font-weight:600; }
+.browse-filter-dialog footer { display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid #ffffff12;padding-top:20px; }
+.browse-done { background:#f5f5f5;color:#202020;min-height:44px;padding:12px 24px;border-radius:36px;font-size:13px;font-weight:600; }
+.browse-filters button:focus-visible,.browse-sort-menu button:focus-visible { outline:2px solid #e5e5e5;outline-offset:3px; }
+@media(max-width:767px) {
+  .browse-filters { padding:20px 0;margin-bottom:20px; }
+  .browse-filter-toolbar { align-items:stretch;gap:16px; }
+  .browse-primary-groups { width:100%;gap:10px; }
+  .browse-segment { max-width:100%; }
+  .browse-segment button { min-height:40px;padding-inline:12px; }
+  .browse-filter-actions { width:100%;gap:10px; }
+  .browse-filter-actions .browse-action { flex:1; }
+  .browse-genre-rail { padding-top:16px; }
+  .browse-genre-rail button { min-height:44px;padding-inline:14px; }
+  .browse-active-filters>button:not(.browse-clear) { min-height:40px; }
+  [role=dialog].browse-filter-dialog.glass-popup {
+    inset:auto 8px max(8px,env(safe-area-inset-bottom));transform:none;width:auto;max-width:none;max-height:88dvh;
+    padding:24px 20px;gap:24px;border-radius:24px;animation:none;
+  }
+  .browse-filter-dialog footer { position:sticky;bottom:-24px;background:transparent;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding-bottom:12px;margin-bottom:-12px; }
+}
+@media(max-width:360px) {
+  .browse-segment button { padding-inline:9px;font-size:11px; }
+}
+
+.browse-genre-rail::-webkit-scrollbar { display:none; }
+
+@media(max-width:767px) {
+  .browse-filter-dialog>div:first-child { text-align:left;padding-right:36px; }
+  .browse-filter-dialog h2 { font-size:21px; }
+  .browse-filter-dialog>button:last-child { top:12px;right:12px;width:44px;height:44px;display:grid;place-items:center;border-radius:10px; }
+}

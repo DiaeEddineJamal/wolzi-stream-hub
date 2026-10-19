@@ -360,23 +360,6 @@ void main() {
 }
 `;
 
-const Digits = ({ value }: { value: number }) => (
-  <span className="flex-carousel__digits">
-    {String(value)
-      .padStart(2, '0')
-      .split('')
-      .map((digit, index) => (
-        <span key={index} className="flex-carousel__digit">
-          <span className="flex-carousel__reel" style={{ transform: `translateY(${-Number(digit) * 10}%)` }}>
-            {'0123456789'.split('').map(n => (
-              <span key={n}>{n}</span>
-            ))}
-          </span>
-        </span>
-      ))}
-  </span>
-);
-
 const FlexCarousel = ({
   items = DEFAULT_ITEMS,
   preset = 'liquid',
@@ -413,7 +396,7 @@ const FlexCarousel = ({
   const callbacksRef = useRef<Callbacks>({ onChange, onSelect });
   const [active, setActive] = useState(0);
   const [revealed, setRevealed] = useState(false);
-  const [focusOpen, setFocusOpen] = useState(false);
+  const [, setFocusOpen] = useState(false);
 
   const base = BEND_PRESETS[preset] || BEND_PRESETS.liquid;
   const pick = <K extends keyof PresetValues>(value: PresetValues[K] | undefined, key: K): PresetValues[K] =>
@@ -554,7 +537,6 @@ const FlexCarousel = ({
     let dirty = true;
     let activeIndex = -1;
     let interactedAt = -Infinity;
-    let autoplayAt = performance.now();
     let hasFocus = false;
     let deform = 0;
     let deformVel = 0;
@@ -816,7 +798,7 @@ const FlexCarousel = ({
     const resize = () => {
       width = Math.max(1, container.clientWidth);
       height = Math.max(1, container.clientHeight);
-      renderer.dpr = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(PIXEL_BUDGET / (width * height)));
+      renderer.dpr = Math.min(window.devicePixelRatio || 1, width < 768 ? 1.5 : 2, Math.sqrt(PIXEL_BUDGET / (width * height)));
       renderer.setSize(width, height);
       target.setSize(Math.max(2, Math.round(width * renderer.dpr)), Math.max(2, Math.round(height * renderer.dpr)));
       lensUniforms.tScene.value = target.texture;
@@ -874,6 +856,22 @@ const FlexCarousel = ({
         goal = snapPoint(m, goal);
         mode = 'spring';
       }
+      if (
+        s.autoplay &&
+        !reducedMotion &&
+        introState.done &&
+        focus.target === 0 &&
+        focus.t < 0.01 &&
+        !pointer.over &&
+        !pointer.down &&
+        !pointer.dragging &&
+        !hasFocus &&
+        mode === 'spring' &&
+        now - interactedAt > 1600
+      ) {
+        const span = (m.widths[nearest(m, pos)] || m.cardH) + m.gap;
+        goal += (span / Math.max(s.interval, 0.5)) * dt;
+      }
       if (!pointer.dragging) {
         const spinning = introState.running && introState.kind === 'spin';
         const stiffness = spinning ? 9 : mode === 'wheel' ? 80 : 55;
@@ -914,23 +912,6 @@ const FlexCarousel = ({
         else focus.pending = -1;
       }
 
-      if (
-        s.autoplay &&
-        !reducedMotion &&
-        introState.done &&
-        focus.target === 0 &&
-        focus.t < 0.01 &&
-        !pointer.over &&
-        !pointer.down &&
-        !hasFocus &&
-        mode === 'spring' &&
-        Math.abs(goal - pos) < 1 &&
-        now - interactedAt > 3000 &&
-        now - autoplayAt > s.interval * 1000
-      ) {
-        autoplayAt = now;
-        step(m, 1);
-      }
       if (s.autoplay && !reducedMotion) animating = true;
 
       const travel = Math.abs(pos - lastPos) / dt;
@@ -1376,11 +1357,6 @@ const FlexCarousel = ({
           <span key={active} className="flex-carousel__title">
             {current.title || current.alt}
             {current.subtitle && <span className="flex-carousel__subtitle">{current.subtitle}</span>}
-          </span>
-          <span className="flex-carousel__count" data-hidden={focusOpen ? '' : undefined}>
-            <Digits value={active + 1} />
-            <span className="flex-carousel__slash">/</span>
-            <span>{String(list.length).padStart(2, '0')}</span>
           </span>
         </div>
       )}

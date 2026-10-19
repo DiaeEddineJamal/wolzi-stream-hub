@@ -72,7 +72,7 @@
 .cinema-volume input { width:68px;height:4px;accent-color:white;cursor:pointer; }
 .cinema-clock { display:inline-flex;align-items:center;gap:6px;padding:0 12px;height:36px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);font-size:11px;font-weight:550;color:#f2f2f5;font-variant-numeric:tabular-nums;white-space:nowrap; }
 .cinema-clock i { color:#ffffff55;font-style:normal; }
-.control-active-dot { width:5px;height:5px;background:#fff;box-shadow:0 0 8px #fff;position:absolute;bottom:4px;border-radius:50%; }
+.cinema-toolbar button[data-caption-active=true] { color:#d8e9f6; }
 
 /* Apple TV Frosted Glass Audio/Subtitles & Settings Popover */
 .cinema-menu { position:absolute;bottom:96px;right:26px;width:360px;max-width:calc(100% - 30px);max-height:min(70vh,520px);overflow-y:auto;padding:20px;border-radius:26px;border:1px solid #ffffff30;background:linear-gradient(155deg,rgba(255,255,255,.14),rgba(255,255,255,.03)),rgba(18,18,22,.82);backdrop-filter:blur(42px) saturate(190%);-webkit-backdrop-filter:blur(42px) saturate(190%);box-shadow:inset 0 1px #ffffff38,0 28px 80px rgba(0,0,0,.78);z-index:8;pointer-events:auto;animation:cinema-menu-in .24s cubic-bezier(.22,1,.36,1);scrollbar-width:thin; }
@@ -133,7 +133,7 @@
 @keyframes apple-next-in { from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none} }
 
 .cinema-toast { position:absolute;top:80px;left:50%;transform:translateX(-50%);max-width:80%;padding:10px 14px;background:#242424e8;border:1px solid #ffffff20;border-radius:12px;font-size:11px;display:flex;gap:15px;align-items:center;pointer-events:auto;z-index:10; }.cinema-toast button { flex-shrink:0; }
-.cinema-player .player-status { left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;width:96px;height:96px;backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);background:linear-gradient(145deg,#ffffff14,#ffffff05),#121214a8;border:1px solid #ffffff26;border-radius:26px;box-shadow:inset 0 1px #ffffff30,0 20px 50px #0007;padding:14px;pointer-events:none;z-index:4; }
+.cinema-player .player-status { left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;width:auto;height:auto;backdrop-filter:none;-webkit-backdrop-filter:none;background:none;border:0;border-radius:0;box-shadow:none;padding:0;pointer-events:none;z-index:4; }
 .apple-spinner { position:relative;width:34px;height:34px;display:inline-block; }
 .apple-spinner i { position:absolute;left:50%;top:50%;width:3px;height:9px;margin-left:-1.5px;margin-top:-4.5px;border-radius:999px;background:#ffffff;transform:rotate(calc(var(--blade)*30deg)) translateY(-11px);animation:apple-blade 1s linear infinite;animation-delay:calc(var(--blade)*-0.0833s); }
 .apple-status-label { font-size:10px;font-weight:500;letter-spacing:.01em;color:#ffffffcc; }
@@ -148,3 +148,51 @@
  .cinema-topbar{padding:13px 15px 45px}.cinema-topbar span{font-size:7px}.cinema-topbar h2{font-size:12px;margin-top:4px;max-width:190px}.cinema-source-label{font-size:9px;padding:5px 10px;max-width:44%}.cinema-source-qbadge{height:12px}.cinema-center-play{width:54px;height:54px}.cinema-center-play svg{width:22px}.cinema-bottom{padding:35px 12px 8px}.cinema-timeline{height:18px}.cinema-timeline input{height:18px}.cinema-timeline input::-webkit-slider-thumb{width:11px;height:11px;margin-top:-3.5px}.cinema-toolbar{gap:6px}.cinema-toolbar-start,.cinema-toolbar-end{gap:4px}.cinema-toolbar button{width:32px;height:32px}.cinema-toolbar svg{width:17px;height:17px}.cinema-volume{padding-right:0}.cinema-volume input{display:none}.cinema-clock{font-size:9px;gap:4px;padding:0 8px;height:30px}.cinema-clock i{margin:0}.cinema-skip small{top:11.5px;font-size:5.5px}.cinema-topbar .cinema-source-label svg{width:10px}.cinema-menu{position:fixed;bottom:16px;right:12px;left:12px;width:auto;max-width:none;max-height:74svh;padding:18px;z-index:85}.cinema-menu h3{font-size:16px}.cinema-menu-option{font-size:12px;padding:10px 11px}.cinema-caption-list{max-height:220px}.cinema-menu-note{font-size:11px}.cinema-quality-options button,.cinema-speed-options button{padding:8px 11px}.caption-search{font-size:12px;padding:10px}.cinema-toast{font-size:9px;top:55px;padding:7px 10px;max-width:90%}.cinema-player .player-slow{top:49px;left:auto;right:10px;transform:none;max-width:60%;padding:6px 9px;font-size:8px;gap:8px}.cinema-player .player-slow>span{max-width:120px}.cinema-player .player-hint{top:50px;font-size:9px;padding:8px;max-width:85%}.cinema-player:fullscreen .cinema-topbar{padding:18px 22px 45px}.cinema-player:fullscreen .cinema-bottom{padding:50px 22px 14px}.cinema-player:fullscreen .cinema-toolbar-start,.cinema-player:fullscreen .cinema-toolbar-end{gap:7px}.cinema-player:fullscreen .cinema-toolbar button{width:34px;height:35px}.cinema-player:fullscreen .cinema-clock{font-size:10px}.cinema-player:fullscreen .cinema-menu{position:absolute;left:auto;right:20px;bottom:90px;width:320px;max-height:calc(100% - 105px)}
 }
 @media(prefers-reduced-motion:reduce){.cinema-menu,.cinema-pause-idle{animation:none}.cinema-topbar,.cinema-bottom,.cinema-center-play{transition:none}}
+
+/* Quiet controls over the picture, with a dedicated touch transport row. */
+.cinema-mobile-transport { display:none; }
+.cinema-toolbar button { background:transparent;border-color:transparent;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none; }
+.cinema-clock { background:none;border:0;padding-inline:6px;color:#e5e5e9; }
+.cinema-volume { background:none;border:0;backdrop-filter:none; }
+.cinema-source-label { box-shadow:none;background:#1c1c2080;border-color:#ffffff1f; }
+.cinema-source-label>span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:0;text-transform:none;font-weight:500; }
+.apple-status-label { text-shadow:0 1px 8px #000; }
+@media(max-width:767px) {
+  .cinema-topbar,.cinema-player:fullscreen .cinema-topbar { padding:8px 12px 22px;align-items:center;gap:12px; }
+  .cinema-topbar-title>span { display:none; }
+  .cinema-topbar h2 { font-size:12px;max-width:none;margin:0; }
+  .cinema-source-label { min-height:44px;max-width:38%;padding:8px 10px;flex-shrink:0; }
+  .cinema-source-label>span { font-size:10px; }
+  .cinema-controls .cinema-center-play { display:none; }
+  .cinema-mobile-transport { position:absolute;z-index:2;top:48%;left:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:28px;pointer-events:auto; }
+  .cinema-mobile-transport button { position:relative;width:44px;height:44px;display:grid;place-items:center;background:transparent;border:0;filter:drop-shadow(0 2px 6px #0008);border-radius:50%; }
+  .cinema-mobile-transport .cinema-mobile-play { width:56px;height:56px; }
+  .cinema-mobile-play svg { width:30px;height:30px; }
+  .cinema-mobile-transport .cinema-skip small { top:17px;font-size:8px; }
+  .cinema-bottom,.cinema-player:fullscreen .cinema-bottom { padding:16px max(12px,env(safe-area-inset-right)) max(4px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left)); }
+  .cinema-timeline,.cinema-timeline input { height:24px; }
+  .cinema-timeline { margin-bottom:0; }
+  .cinema-toolbar { gap:8px; }
+  .cinema-toolbar-start>button,.cinema-toolbar-start>.cinema-volume { display:none; }
+  .cinema-toolbar-start,.cinema-player:fullscreen .cinema-toolbar-start { gap:0;min-width:0; }
+  .cinema-toolbar-end,.cinema-player:fullscreen .cinema-toolbar-end { gap:4px; }
+  .cinema-toolbar button,.cinema-player:fullscreen .cinema-toolbar button { width:44px;height:44px; }
+  .cinema-toolbar svg { width:21px;height:21px; }
+  .cinema-clock,.cinema-player:fullscreen .cinema-clock { font-size:10px;padding:0;gap:5px; }
+  .cinema-pause-idle { background:#0003; }
+  .cinema-pause-content,.cinema-pause-watermark { display:none; }
+  .cinema-menu,.cinema-player:fullscreen .cinema-menu { position:fixed;inset:auto 8px max(8px,env(safe-area-inset-bottom));width:auto;max-height:80dvh;border-radius:20px;padding:16px; }
+  .cinema-menu>header button { width:44px;height:44px; }
+  .cinema-menu-option,.cinema-quality-options button,.cinema-speed-options button,.cinema-menu-upload { min-height:44px; }
+  .caption-search { min-height:44px;font-size:16px; }
+  .cinema-player .player-slow { top:54px;right:12px;left:12px;max-width:none;justify-content:center;font-size:10px; }
+  .cinema-player .player-slow>span { max-width:none; }
+  .cinema-controls[data-menu-open=true] .cinema-mobile-transport { visibility:hidden; }
+}
+@media(max-width:360px) {
+  .cinema-toolbar-end,.cinema-player:fullscreen .cinema-toolbar-end { gap:0; }
+  .cinema-toolbar-end>button:first-child:has(.lucide-skip-forward) { display:none; }
+}
+@media(max-height:500px) and (orientation:landscape) {
+  .cinema-player:fullscreen .cinema-menu { position:absolute;inset:8px 8px 8px auto;width:min(360px,90%);max-height:none; }
+}

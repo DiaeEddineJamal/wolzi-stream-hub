@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Check, ExternalLink, Layers, RefreshCw, Search, Server } from 'lucide-react';
+import { Check, ExternalLink, Layers, RefreshCw, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { ChoiceSelect } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import LoadingState from '@/components/primitives/LoadingState';
 import type { StreamChoice } from '@/integrations/api/stremio';
@@ -10,12 +11,12 @@ interface Props { sources: StreamChoice[]; activeId?: string; onSelect: (id:stri
 export type QualityTier = '4k' | '1080' | '720' | '480' | '360' | 'auto';
 
 export const QUALITY_BADGES: Record<QualityTier, { label: string; short: string; icon?: string }> = {
-  '4k': { label: '4K Ultra HD', short: '4K', icon: '/badges/4k-uhd.svg' },
-  '1080': { label: 'Full HD 1080p', short: '1080p', icon: '/badges/1080p-fhd.svg' },
-  '720': { label: 'HD 720p', short: '720p', icon: '/badges/720p-hd.svg' },
-  '480': { label: 'SD 480p', short: '480p', icon: '/badges/480p-sd.svg' },
-  '360': { label: 'Data Saver 360p', short: '360p', icon: '/badges/360p-sd.svg' },
-  'auto': { label: 'Adaptive / Multi-Quality', short: 'AUTO', icon: '/badges/1080p-fhd.svg' },
+  '4k': { label: '4K Ultra HD', short: '4K', icon: '/badges/4k.png' },
+  '1080': { label: 'Full HD 1080p', short: '1080p', icon: '/badges/1080p.png' },
+  '720': { label: 'HD 720p', short: '720p', icon: '/badges/720p.png' },
+  '480': { label: 'SD 480p', short: '480p', icon: '/badges/480p.png' },
+  '360': { label: 'Data Saver 360p', short: '360p', icon: '/badges/360p.png' },
+  'auto': { label: 'Adaptive / Multi-Quality', short: 'AUTO', icon: undefined },
 };
 
 export function detectQualityTier(text: string): QualityTier {
@@ -70,18 +71,6 @@ export function SourcePicker({sources,activeId,onSelect,loading,errors=[],onRetr
     return matchesProv && text.includes(query.toLowerCase()) && matchesQualityFilter(text,filter,!!s.provider);
   }),[sources,query,filter,providerFilter]);
 
-  const qualityCounts=useMemo(()=>{
-    const counts:Record<string,number>={all:sources.length,'4k':0,'1080':0,'720':0,'480':0,'360':0,providers:0};
-    sources.forEach(s=>{
-      const text=(s.name+' '+(s.description||'')+' '+(s.url||'')).toLowerCase();
-      if(s.provider)counts.providers++;
-      (['4k','1080','720','480','360'] as const).forEach(q=>{
-        if(matchesQualityFilter(text,q,!!s.provider))counts[q]++;
-      });
-    });
-    return counts;
-  },[sources]);
-
   return <section className="source-picker" aria-label="Playback sources">
     <header>
       <div className="flex items-center justify-between">
@@ -93,27 +82,11 @@ export function SourcePicker({sources,activeId,onSelect,loading,errors=[],onRetr
       </div>
       <p className="source-summary">{sources.filter(s=>s.kind==='video'&&s.availability!=='failed').length} playable streams · {providersList.length} servers{sources.some(s=>s.availability==='checking')?` · ${sources.filter(s=>s.availability==='checking').length} checking`:''}</p>
       <div className="source-search"><Search size={14}/><input aria-label="Filter sources" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search server, codec, or resolution…"/></div>
-      <div className="source-filters" role="group" aria-label="Filter by resolution">
-        {[
-          {key:'all',label:'All',icon:undefined},
-          {key:'4k',label:'4K',icon:'/badges/4k-uhd.svg'},
-          {key:'1080',label:'1080p',icon:'/badges/1080p-fhd.svg'},
-          {key:'720',label:'720p',icon:'/badges/720p-hd.svg'},
-          {key:'480',label:'480p',icon:'/badges/480p-sd.svg'},
-          {key:'360',label:'360p',icon:'/badges/360p-sd.svg'},
-          {key:'providers',label:'Web Servers',icon:undefined},
-        ].map(({key,label,icon})=><button key={key} type="button" onClick={()=>setFilter(key)} aria-pressed={filter===key} className="source-filter-pill">
-          {icon&&<img src={icon} alt="" className="source-badge-icon"/>}
-          <span>{label}</span>
-          {qualityCounts[key]>0&&<small>{qualityCounts[key]}</small>}
-        </button>)}
+      <div className="source-filter-controls">
+        <label><span>Quality</span><ChoiceSelect label="Filter by resolution" value={filter} onValueChange={setFilter} options={[{value:'all',label:'Any quality'},...(['4k','1080','720','480','360'] as QualityTier[]).map(tier=>({value:tier,label:QUALITY_BADGES[tier].label}))]}/></label>
+        <label><span>Server</span><ChoiceSelect label="Filter by provider" value={providerFilter} onValueChange={setProviderFilter} options={[{value:'all',label:'All servers'},...providersList.map(p=>({value:p.id,label:`${p.label} (${p.count})`}))]}/></label>
       </div>
-      {providersList.length>1&&<div className="source-provider-strip" role="group" aria-label="Filter by provider">
-        <button type="button" aria-pressed={providerFilter==='all'} onClick={()=>setProviderFilter('all')}>All Servers</button>
-        {providersList.map(p=><button key={p.id} type="button" aria-pressed={providerFilter===p.id} onClick={()=>setProviderFilter(providerFilter===p.id?'all':p.id)}>
-          <Server size={11}/><span>{p.label}</span>{p.ready>0&&<small>{p.ready}</small>}
-        </button>)}
-      </div>}
+      <div className="source-filter-status"><span>{visible.length} matching {visible.length===1?'stream':'streams'}</span>{(filter!=='all'||providerFilter!=='all'||query)&&<button type="button" onClick={()=>{setFilter('all');setProviderFilter('all');setQuery('');}}>Clear filters</button>}</div>
     </header>
     <div className="source-scroll">
       {loading&&<div className="px-3 py-3"><LoadingState label="Scanning watch-chain servers"/></div>}
@@ -141,7 +114,7 @@ export function SourcePicker({sources,activeId,onSelect,loading,errors=[],onRetr
       {!visible.length&&!loading&&<p className="p-5 text-xs leading-6 text-muted-foreground">No matching sources for this filter. Try selecting All Servers or another resolution.</p>}
       {errors.length>0&&<div className="px-3 py-4"><p className="mb-3 text-xs text-muted-foreground">{errors.join(', ')} couldn’t be reached.</p><Button variant="secondary" size="sm" onClick={onRetry}>Check sources again</Button></div>}
     </div>
-    <footer>Select any server or resolution to switch immediately.</footer>
+    <footer>Choose a stream to play. Use resolution and server filters to narrow the list. <a href="https://icons8.com" target="_blank" rel="noopener noreferrer">Quality images by Icons8</a>.</footer>
   </section>;
 }
 export function SourcePickerSheet({open,onOpenChange,...props}:Props&{open:boolean;onOpenChange:(open:boolean)=>void}){

@@ -115,7 +115,7 @@ function WatchSession(){
           nextEpisode={next?{label:next.name,image:getBackdropUrl(next.still_path)||item?.backdropUrl,eyebrow:`S${season} · E${next.episode_number}`,onPlay:()=>navigate(watchPath(type,id,season,next.episode_number))}:undefined}
           autoNext={autoNext}
           onAutoNextChange={setAutoNext}
-          subtitleStatus={subtitles.isPending?'Loading OpenSubtitles…':subtitles.data?.failed.length?subtitles.data.failed.join(', ')+' is temporarily unavailable.':undefined}
+          subtitleStatus={subtitles.isPending?'Finding subtitle tracks…':subtitles.data?.failed.length?subtitles.data.failed.join(', ')+' is temporarily unavailable.':undefined}
           idleMeta={idleMeta}
         />
         <aside className="desktop-source-picker"><SourcePicker {...pickerProps}/></aside>
@@ -138,8 +138,8 @@ function WatchSession(){
             {item?.rating&&item.rating>0&&<span className="apple-meta-rating"><Star size={13} fill="currentColor"/>{item.rating.toFixed(1)}</span>}
             {item?.year&&<span>{item.year}</span>}
             <span className="apple-cert-badge">{idleMeta.contentRating}</span>
-            <img src="/badges/4k-uhd.svg" alt="4K UHD" className="h-4 w-auto opacity-90"/>
-            <img src="/badges/1080p-fhd.svg" alt="Full HD" className="h-4 w-auto opacity-85"/>
+            <img src="/badges/4k.png" alt="4K UHD" className="h-4 w-auto opacity-90"/>
+            <img src="/badges/1080p.png" alt="Full HD" className="h-4 w-auto opacity-85"/>
             {(currentEpisode?.runtime||details.data?.runtime)>0&&<span className="inline-flex items-center gap-1"><Clock size={12}/>{currentEpisode?.runtime||details.data?.runtime} min</span>}
             {item?.genres?.slice(0,3).map(g=><span key={g} className="apple-genre-chip">{g}</span>)}
           </div>
@@ -168,12 +168,12 @@ function WatchSession(){
             const isCurrent=ep.episode_number===episode;
             const epProgress=watched.find(w=>w.content_id===id&&w.content_type===type&&(w.season||1)===season&&(w.episode||1)===ep.episode_number)?.progress_percent;
             const thumb=getBackdropUrl(ep.still_path,'w780')||item?.backdropUrl||'/poster-placeholder.svg';
-            return <Link key={ep.id} to={watchPath(type,id,season,ep.episode_number)} className={`apple-ep-card ${isCurrent?'is-active':''}`}>
+            return <Link key={ep.id} to={watchPath(type,id,season,ep.episode_number)} aria-current={isCurrent?'true':undefined} className={`apple-ep-card ${isCurrent?'is-active':''}`}>
               <div className="apple-ep-art">
                 <img src={thumb} srcSet={artworkSet(thumb)} sizes="(max-width:767px) 76vw, 310px" alt="" loading="lazy" decoding="async"/>
                 <span className="apple-ep-shade"/>
                 <span className="apple-ep-play"><Play size={15} fill="currentColor"/></span>
-                {isCurrent&&<span className="apple-ep-playing-badge"><Sparkles size={11}/>NOW PLAYING</span>}
+                {isCurrent&&<span className="apple-ep-playing-badge"><span className="episode-playing-icon" aria-hidden="true"><i/><i/><i/></span>NOW PLAYING</span>}
                 {ep.runtime>0&&<span className="apple-ep-duration">{ep.runtime}m</span>}
                 {epProgress!=null&&epProgress>0&&<span className="apple-ep-progress"><i style={{width:`${Math.min(100,epProgress)}%`}}/></span>}
               </div>

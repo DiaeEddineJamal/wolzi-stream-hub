@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQueries } from '@tanstack/react-query';
 import { useAddons } from './useAddons';
 import { httpsUrl, requestJson, resourceUrl, supportsResource, type InstalledAddon } from '@/integrations/api/stremio';
 import { normalizeLangCode, subtitleLanguage } from '@/lib/subtitles';
@@ -10,29 +10,34 @@ const PRIORITY_LANGS=['en','es','fr','ar','de','pt-BR','pt','it','ja','ko','zh',
 export function useSubtitles(type:string,id?:string){
   const {addons}=useAddons();
   const providers=[...addons,...builtins.filter(a=>!addons.some(existing=>existing.manifest.id===a.manifest.id))].filter(a=>a.enabled&&id&&supportsResource(a.manifest,'subtitles',type,id));
-  return useQuery({queryKey:['subtitles',type,id,addons],enabled:!!id,staleTime:300000,queryFn:async({signal})=>{
-    const results=await Promise.allSettled(providers.map(async addon=>({name:addon.manifest.name,result:await requestJson(resourceUrl(addon.transportUrl,'subtitles',type,id),signal)})));
-    const failed:string[]=[],rawTracks:{url:string;lang:string;label:string}[]=[];
-    results.forEach((result,index)=>{
-      if(result.status!=='fulfilled'){failed.push(providers[index].manifest.name);return;}
-      const data=result.value.result as {subtitles?:{url:string;lang:string}[]};
-      if(!Array.isArray(data?.subtitles)){failed.push(result.value.name);return;}
-      data.subtitles.forEach(track=>{try{if(typeof track.lang==='string'&&!rawTracks.some(t=>t.url===track.url))rawTracks.push({url:httpsUrl(track.url),lang:track.lang,label:result.value.name});}catch{/* Ignore invalid provider tracks. */}});
-    });
-    // Keep up to 2 variants per language so every language loads quickly and cleanly in the player
-    const counts=new Map<string,number>();
-    const tracks=rawTracks.filter(t=>{
-      const code=normalizeLangCode(t.lang);
-      const c=counts.get(code)||0;
-      if(c>=2)return false;
-      counts.set(code,c+1);
-      return true;
-    }).sort((a,b)=>{
-      const ca=normalizeLangCode(a.lang),cb=normalizeLangCode(b.lang);
-      const ia=PRIORITY_LANGS.indexOf(ca),ib=PRIORITY_LANGS.indexOf(cb);
-      if(ia!==-1||ib!==-1)return (ia===-1?999:ia)-(ib===-1?999:ib);
-      return subtitleLanguage(a.lang).localeCompare(subtitleLanguage(b.lang));
-    });
-    return {tracks,failed:tracks.length?[]:failed};
-  }});
+  const results=useQueries({queries:[...providers.map(addon=>({
+    queryKey:['subtitles',type,id,addon.transportUrl],enabled:!!id,staleTime:300000,retry:1,
+    queryFn:async({signal}:{signal:AbortSignal})=>{
+      const data=await requestJson(resourceUrl(addon.transportUrl,'subtitles',type,id!),signal) as {subtitles?:{url:string;lang:string;label?:string}[]};
+      if(!Array.isArray(data.subtitles))throw new Error('Invalid subtitle response');
+      return {name:addon.manifest.name,tracks:data.subtitles.map(track=>({...track,label:track.label||addon.manifest.name}))};
+    }
+  })),{
+    queryKey:['subtitles-extra',id],enabled:!!id,staleTime:300000,retry:1,
+    queryFn:async({signal}:{signal:AbortSignal})=>{
+      const response=await fetch('/api/playback/subtitle-search?'+new URLSearchParams({id:id!}),{signal});
+      if(!response.ok)throw new Error('Additional providers unavailable');
+      const data=await response.json();
+      return {name:'Wyzie',tracks:(data.subtitles||[]) as {url:string;lang:string;label:string}[]};
+    }
+  }]});
+  const seen=new Set<string>(),counts=new Map<string,number>();
+  const tracks=results.flatMap(result=>result.data?.tracks||[]).flatMap(track=>{
+    try {
+      const url=httpsUrl(track.url),lang=normalizeLangCode(track.lang);
+      // Preserve release alternatives from each provider instead of discarding later providers.
+      const key=lang+'|'+track.label.split(' · ')[0],count=counts.get(key)||0;
+      if(seen.has(url)||count>=3)return [];
+      seen.add(url);counts.set(key,count+1);return [{...track,url,lang}];
+    }catch{return [];}
+  }).sort((a,b)=>{
+    const ia=PRIORITY_LANGS.indexOf(a.lang),ib=PRIORITY_LANGS.indexOf(b.lang);
+    return (ia<0?999:ia)-(ib<0?999:ib)||subtitleLanguage(a.lang).localeCompare(subtitleLanguage(b.lang));
+  });
+  return {isPending:!!id&&results.some(result=>result.isPending),data:{tracks,failed:results.flatMap((result,index)=>result.isError?[providers[index]?.manifest.name||'Additional providers']:[])}};
 }

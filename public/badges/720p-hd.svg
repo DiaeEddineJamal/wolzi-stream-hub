@@ -1,5 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 40" fill="none">
-  <rect x="1.5" y="1.5" width="65" height="37" rx="7.5" fill="#fff" fill-opacity="0.1" stroke="#fff" stroke-width="2.5"/>
-  <text x="34" y="18" fill="#fff" font-family="-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif" font-size="12" font-weight="800" letter-spacing="1.8" text-anchor="middle">HD</text>
-  <text x="34" y="32" fill="#fff" font-family="-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif" font-size="13.5" font-weight="700" letter-spacing="0.2" text-anchor="middle">720p</text>
+<!--
+tags: [high-definition, 720p, 1080p, resolution, video, quality, screen, display, badge, hd]
+category: Badges
+version: "1.106"
+unicode: "f55b"
+-->
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="24"
+  height="24"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="#e4eaf0"
+  stroke-width="2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-10" />
+  <path d="M14 9v6h1a2 2 0 0 0 2 -2v-2a2 2 0 0 0 -2 -2h-1" />
+  <path d="M7 15v-6" />
+  <path d="M10 15v-6" />
+  <path d="M7 12h3" />
 </svg>

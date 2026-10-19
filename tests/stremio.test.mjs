@@ -194,3 +194,44 @@ const {STREAMING_PLATFORMS}=await load('src/pages/Index.tsx');
 assert.equal(STREAMING_PLATFORMS.some(p=>p.name==='Netflix'&&p.logo==='/providers/netflix.png'),true);
 assert.equal(STREAMING_PLATFORMS.some(p=>p.name==='HBO Max'&&p.logo==='/providers/max.png'),true);
 console.log('Stremio protocol, source verification, service conversion, trust boundaries, routing, and recovery checks passed.');
+
+const {createSubtitleSearch}=await load('server/subtitle-search.ts');
+const subtitleResponse=()=>({status:0,body:'',writeHead(status){this.status=status;return this;},end(body){this.body=body;}});
+const noKey=subtitleResponse();
+await createSubtitleSearch('')({method:'GET',url:'/?id=tt0944947:1:1'},noKey);
+assert.deepEqual(JSON.parse(noKey.body),{subtitles:[],configured:false});
+const badId=subtitleResponse();
+await createSubtitleSearch('test')({method:'GET',url:'/?id=https://private.example'},badId);
+assert.equal(badId.status,400);
+const realFetch=globalThis.fetch;
+try {
+  let calledUrl;
+  globalThis.fetch=async url=>{calledUrl=new URL(url);return {ok:true,json:async()=>[
+    {language:'en',url:'https://sub.wyzie.io/c/test?tok=scoped',source:'charlie',release:'Release A'},
+    {language:'en',url:'https://untrusted.example/subtitle.srt'},
+  ]};};
+  const found=subtitleResponse();
+  await createSubtitleSearch('server-only-secret')({method:'GET',url:'/?id=tt0944947:2:3'},found);
+  assert.equal(calledUrl.searchParams.get('season'),'2');
+  assert.equal(calledUrl.searchParams.get('episode'),'3');
+  assert.equal(calledUrl.searchParams.get('source'),'all');
+  const result=JSON.parse(found.body);
+  assert.equal(result.subtitles.length,1);
+  assert.match(result.subtitles[0].url,/to=vtt/);
+  assert.doesNotMatch(found.body,/server-only-secret/);
+}finally{globalThis.fetch=realFetch;}
+
+const {matchesTrendingFilters}=await load('src/lib/catalog-filters.ts');
+const trendingBase={mediaType:'all',genre:'all',year:'all',minRating:'all'};
+const trendingMovie={media_type:'movie',genre_ids:[28,16],original_language:'ja',release_date:'2026-02-03',vote_average:8.2};
+assert.equal(matchesTrendingFilters(trendingMovie,trendingBase),true);
+assert.equal(matchesTrendingFilters({...trendingMovie,media_type:'person'},trendingBase),false);
+assert.equal(matchesTrendingFilters(trendingMovie,{...trendingBase,mediaType:'tv'}),false);
+assert.equal(matchesTrendingFilters(trendingMovie,{...trendingBase,mediaType:'anime'}),true);
+assert.equal(matchesTrendingFilters({...trendingMovie,original_language:'en'},{...trendingBase,mediaType:'anime'}),false);
+assert.equal(matchesTrendingFilters(trendingMovie,{...trendingBase,year:'2026',genre:'28',minRating:'8'}),true);
+assert.equal(matchesTrendingFilters(trendingMovie,{...trendingBase,year:'2010s'}),false);
+assert.equal(matchesTrendingFilters(trendingMovie,{...trendingBase,genre:'18'}),false);
+assert.equal(matchesTrendingFilters({...trendingMovie,release_date:''},{...trendingBase,year:'2026'}),false);
+
+assert.equal(matchesTrendingFilters({...trendingMovie,media_type:'tv',genre_ids:[10759]},{...trendingBase,genre:'28'}),true);

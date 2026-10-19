@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { createSourceResolver } from './server/source-resolver';
+import { createSubtitleSearch } from './server/subtitle-search';
 import { subtitleRoute } from './server/subtitles';
 import { mediaProxyRoute } from './server/media-proxy';
 
@@ -24,8 +25,10 @@ const localServiceGuard = (server: {middlewares:ViteDevServer['middlewares']}):v
 export default defineConfig(({ mode }) => {
   const env=loadEnv(mode,process.cwd(),'');
   const resolveSources=createSourceResolver(env.TMDB_API_KEY||env.VITE_TMDB_API_KEY);
+  const searchSubtitles=createSubtitleSearch(env.WYZIE_API_KEY);
   const sourceRoutes=(server:{middlewares:ViteDevServer['middlewares']})=>{
     server.middlewares.use('/api/playback/media',(req,res)=>{void mediaProxyRoute(req,res).catch(()=>{if(!res.headersSent)res.writeHead(502);res.end();});});
+    server.middlewares.use('/api/playback/subtitle-search',(req,res)=>{void searchSubtitles(req,res);});
     server.middlewares.use('/api/playback/subtitles',(req,res)=>{void subtitleRoute(req,res);});
     server.middlewares.use('/api/playback/sources',(req,res)=>{void resolveSources(req,res).catch(()=>{if(!res.headersSent)res.writeHead(500);res.end();});});
   };

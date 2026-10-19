@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject, type ReactNode } from 'react';
 import type Hls from 'hls.js';
+import { createPortal } from 'react-dom';
 import { Check, ChevronRight, Maximize, Minimize, Pause, PictureInPicture2, Play, RotateCcw, RotateCw, Settings2, SkipForward, Star, Subtitles, Upload, Volume2, VolumeX, X } from 'lucide-react';
 import { subtitleCodeBadge, subtitleFlagUrl, subtitleLanguage, subtitleNativeLanguage } from '@/lib/subtitles';
 import { activateCaptionTrack, captionPreferences, captionTimes, defaultCaptions, nextEpisodeDue, nextEpisodeProgress } from '@/lib/captions';
@@ -18,11 +19,13 @@ export interface PlayerIdleMeta {
   description?:string;
   backdropUrl?:string;
 }
-interface Props {media:HTMLVideoElement|null;engine:Hls|null;container:RefObject<HTMLDivElement>;title:string;sourceName:string;loading:boolean;nextEpisode?:NextEpisode;autoNext?:boolean;onAutoNextChange?:(value:boolean)=>void;onNextSource?:()=>void;onOpenSources?:()=>void;onUpload:(file:File)=>Promise<void>;subtitleStatus?:string;converted:boolean;onCompatibility?:()=>void;idleMeta?:PlayerIdleMeta}
+interface Props {captionKey?:string;media:HTMLVideoElement|null;engine:Hls|null;container:RefObject<HTMLDivElement>;title:string;sourceName:string;loading:boolean;nextEpisode?:NextEpisode;autoNext?:boolean;onAutoNextChange?:(value:boolean)=>void;onNextSource?:()=>void;onOpenSources?:()=>void;onUpload:(file:File)=>Promise<void>;subtitleStatus?:string;converted:boolean;onCompatibility?:()=>void;idleMeta?:PlayerIdleMeta}
 type NativeAudioTrack={label:string;language:string;enabled:boolean};
 const clock=(seconds:number)=>{const value=Math.max(0,Math.floor(seconds||0));return value>=3600?`${Math.floor(value/3600)}:${String(Math.floor(value/60)%60).padStart(2,'0')}:${String(value%60).padStart(2,'0')}`:`${Math.floor(value/60)}:${String(value%60).padStart(2,'0')}`;};
-const qualityBadgeForHeight=(h?:number)=>!h?undefined:h>=2160?'/badges/4k-uhd.svg':h>=1080?'/badges/1080p-fhd.svg':h>=720?'/badges/720p-hd.svg':h>=480?'/badges/480p-sd.svg':'/badges/360p-sd.svg';
-export default function PlayerControls({media,engine,container,title,sourceName,loading,nextEpisode,autoNext,onAutoNextChange,onNextSource,onOpenSources,onUpload,subtitleStatus,converted,onCompatibility,idleMeta}:Props){
+const qualityBadgeForHeight=(h?:number)=>!h?undefined:h>=2160?'/badges/4k.png':h>=1080?'/badges/1080p.png':h>=720?'/badges/720p.png':h>=480?'/badges/480p.png':'/badges/360p.png';
+export default function PlayerControls({captionKey='video',media,engine,container,title,sourceName,loading,nextEpisode,autoNext,onAutoNextChange,onNextSource,onOpenSources,onUpload,subtitleStatus,converted,onCompatibility,idleMeta}:Props){
+  const [compact,setCompact]=useState(()=>typeof window!=='undefined'&&window.matchMedia('(max-width:767px)').matches);
+  useEffect(()=>{const query=window.matchMedia('(max-width:767px)');const update=()=>setCompact(query.matches);query.addEventListener('change',update);return()=>query.removeEventListener('change',update);},[]);
   const [state,setState]=useState({time:0,duration:0,buffered:0,paused:true,volume:1,muted:false,rate:1,ended:false});
   const [visible,setVisible]=useState(true),[menu,setMenu]=useState<'settings'|'subtitles'|null>(null),[fullscreen,setFullscreen]=useState(false),[hint,setHint]=useState('');
   const [tracks,setTracks]=useState<TextTrack[]>([]),[trackIndex,setTrackIndex]=useState(-1),[quality,setQuality]=useState(-1),[audio,setAudio]=useState(0),[languageQuery,setLanguageQuery]=useState('');
@@ -30,8 +33,11 @@ export default function PlayerControls({media,engine,container,title,sourceName,
   const dragging=useRef(false),timer=useRef<ReturnType<typeof setTimeout>>(),menuRef=useRef<HTMLDivElement>(null),fileInput=useRef<HTMLInputElement>(null);
   const advanced=useRef(false);
   const selectedCaption=useRef<TextTrack|null>();
-  const [storedCaptions,setCaptions]=useLocalStorage<unknown>('admax-captions',defaultCaptions);
-  const captions=useMemo(()=>captionPreferences(storedCaptions),[storedCaptions]);
+  const [storedCaptions,saveCaptionStyle]=useLocalStorage<unknown>('admax-captions',defaultCaptions);
+  const [offsets,saveOffsets]=useLocalStorage<Record<string,number>>('admax-caption-offsets',{});
+  const syncKey=captionKey+'|'+(tracks[trackIndex]?.label||'default');
+  const captions=useMemo(()=>({...captionPreferences(storedCaptions),delay:captionPreferences({delay:offsets[syncKey]}).delay}),[storedCaptions,offsets,syncKey]);
+  const setCaptions=(value:typeof defaultCaptions)=>{saveCaptionStyle({...value,delay:0});saveOffsets(previous=>({...previous,[syncKey]:value.delay}));};
   const cueTimes=useRef(new WeakMap<TextTrackCue,{start:number;end:number}>());
   const cueLines=useRef(new WeakMap<VTTCue,{line:VTTCue['line'];snap:boolean}>());
   const wake=useCallback(()=>{setVisible(true);clearTimeout(timer.current);timer.current=setTimeout(()=>setVisible(false),3500);},[]);
@@ -105,9 +111,9 @@ export default function PlayerControls({media,engine,container,title,sourceName,
       if(cue.line!==target)cue.line=target;
       }));
     };
-    tracks.forEach(track=>track.addEventListener('cuechange',position));media.addEventListener('loadeddata',position);media.addEventListener('seeked',position);position();
+    tracks.forEach(track=>track.addEventListener('cuechange',position));media.addEventListener('load',position,true);media.addEventListener('loadeddata',position);media.addEventListener('seeked',position);position();
     const interval=setInterval(position,1000);
-    return()=>{clearInterval(interval);tracks.forEach(track=>track.removeEventListener('cuechange',position));media.removeEventListener('loadeddata',position);media.removeEventListener('seeked',position);};
+    return()=>{clearInterval(interval);tracks.forEach(track=>track.removeEventListener('cuechange',position));media.removeEventListener('load',position,true);media.removeEventListener('loadeddata',position);media.removeEventListener('seeked',position);};
   },[tracks,show,captions,media,container]);
   const progress=state.duration?((scrub??state.time)/state.duration)*100:0;
   const nativeAudio=(media as HTMLVideoElement&{audioTracks?:ArrayLike<NativeAudioTrack>})?.audioTracks;
@@ -119,6 +125,8 @@ export default function PlayerControls({media,engine,container,title,sourceName,
   const sourceTier=detectQualityTier(sourceName);
   const sourceBadge=QUALITY_BADGES[sourceTier]?.icon||qualityBadgeForHeight(media?.videoHeight);
   const showPausedIdle=Boolean(idleMeta&&state.paused&&!state.ended&&!loading&&!menu&&scrub==null);
+  // Fixed mobile menus must escape the player's clipped backdrop and stacking context.
+  const renderMenu=(content:ReactNode)=>compact&&!fullscreen?createPortal(content,document.body):content;
   return <div className={`cinema-controls ${show?'is-visible':''} ${showPausedIdle?'is-paused-idle':''}`} data-menu-open={!!menu}>
     <button className="player-click-surface" tabIndex={-1} aria-label={state.paused?'Play video':'Pause video'} onPointerDown={e=>{lastTouch.current=e.pointerType==='touch';}} onClick={onSurfaceClick} onDoubleClick={toggleFullscreen}/>
     {showPausedIdle&&idleMeta&&<div className="cinema-pause-idle" aria-hidden="true">
@@ -141,13 +149,18 @@ export default function PlayerControls({media,engine,container,title,sourceName,
         <span>{idleMeta?.episodeCode?`NOW PLAYING · ${idleMeta.episodeCode}`:'NOW PLAYING'}</span>
         <h2>{title}{idleMeta?.subtitle?` — ${idleMeta.subtitle}`:''}</h2>
       </div>
-      <button className="cinema-source-label" onClick={onOpenSources||onNextSource}>
+      <button className="cinema-source-label" aria-label={`Change source: ${sourceName}`} onClick={onOpenSources||onNextSource}>
         {sourceBadge&&<img src={sourceBadge} alt="" className="cinema-source-qbadge"/>}
         <span>{sourceName}</span>
         <ChevronRight size={14}/>
       </button>
     </header>
     {!state.ended&&!loading&&(state.paused||visible)&&<button className={state.paused?'cinema-center-play':'cinema-center-play is-playing'} aria-label={state.paused?'Play':'Pause'} onClick={toggle}>{state.paused?<Play fill="currentColor" size={33}/>:<Pause fill="currentColor" size={31}/>}</button>}
+    {!state.ended&&!loading&&(state.paused||visible)&&<div className="cinema-mobile-transport">
+      <button className="cinema-skip" aria-label="Rewind 10 seconds" onClick={()=>{seek((media?.currentTime||0)-10);wake();}}><RotateCcw size={28}/><small>10</small></button>
+      <button className="cinema-mobile-play" aria-label={state.paused?'Play':'Pause'} onClick={toggle}>{state.paused?<Play fill="currentColor" size={30}/>:<Pause fill="currentColor" size={28}/>}</button>
+      <button className="cinema-skip" aria-label="Forward 10 seconds" onClick={()=>{seek((media?.currentTime||0)+10);wake();}}><RotateCw size={28}/><small>10</small></button>
+    </div>}
     <div className="cinema-bottom">
       <div className="cinema-timeline">
         <div className="cinema-buffered" style={{width:`${state.duration?state.buffered/state.duration*100:0}%`}}/>
@@ -167,19 +180,19 @@ export default function PlayerControls({media,engine,container,title,sourceName,
         </div>
         <div className="cinema-toolbar-end">
           {nextEpisode&&<button aria-label="Next episode" onClick={playNextEpisode}><SkipForward size={21}/></button>}
-          <button aria-label="Audio and subtitles" aria-expanded={menu==='subtitles'} data-player-menu onClick={()=>{setMenu(menu==='subtitles'?null:'subtitles');setVisible(true);}}><Subtitles size={22}/>{trackIndex>=0&&<span className="control-active-dot"/>}</button>
+          <button aria-label="Audio and subtitles" aria-expanded={menu==='subtitles'} data-caption-active={trackIndex>=0} data-player-menu onClick={()=>{setMenu(menu==='subtitles'?null:'subtitles');setVisible(true);}}><Subtitles size={22}/></button>
           <button aria-label="Playback settings" aria-expanded={menu==='settings'} data-player-menu onClick={()=>{setMenu(menu==='settings'?null:'settings');setVisible(true);}}><Settings2 size={21}/></button>
           {document.pictureInPictureEnabled&&<button className="cinema-pip" aria-label="Picture in picture" onClick={()=>{if(!media)return;if(document.pictureInPictureElement)void document.exitPictureInPicture();else void media.requestPictureInPicture().catch(()=>setHint('Picture in picture is unavailable for this video.'));}}><PictureInPicture2 size={21}/></button>}
           <button aria-label={fullscreen?'Exit fullscreen':'Enter fullscreen'} onClick={toggleFullscreen}>{fullscreen?<Minimize size={22}/>:<Maximize size={22}/>}</button>
         </div>
       </div>
     </div>
-    {menu&&<div ref={menuRef} className="cinema-menu" role="dialog" aria-label={menu==='subtitles'?'Audio and subtitles':'Playback settings'}>
+    {menu&&renderMenu(<div ref={menuRef} className="cinema-menu glass-popup" role="dialog" aria-label={menu==='subtitles'?'Audio and subtitles':'Playback settings'}>
       <header><h3>{menu==='subtitles'?'Audio & Subtitles':'Playback Settings'}</h3><button aria-label="Close player menu" onClick={()=>setMenu(null)}><X size={16}/></button></header>
       {menu==='subtitles'?<>
         <p className="cinema-menu-label">AUDIO TRACKS</p>
         {audioTracks.length?audioTracks.map(track=><button className="cinema-menu-option" key={track.index} aria-pressed={audio===track.index} onClick={()=>chooseAudio(track.index)}><span>{track.label}</span>{audio===track.index&&<Check size={15}/>}</button>):<p className="cinema-menu-note">Original Master Audio</p>}
-        <div className="flex items-center justify-between"><p className="cinema-menu-label">SUBTITLES & OPENSUBTITLES</p><span className="text-[10px] text-white/50">{tracks.length} available</span></div>
+        <div className="flex items-center justify-between"><p className="cinema-menu-label">SUBTITLE TRACKS</p><span className="text-[10px] text-white/50">{tracks.length} available</span></div>
         <input className="caption-search" aria-label="Filter subtitle languages" placeholder="Search language (English, Arabic, Français, Español…)" value={languageQuery} onChange={e=>setLanguageQuery(e.target.value)}/>
         <div className="cinema-caption-list">
           <button className="cinema-menu-option" aria-pressed={trackIndex===-1} onClick={()=>chooseTrack(-1)}>
@@ -233,7 +246,7 @@ export default function PlayerControls({media,engine,container,title,sourceName,
         {onCompatibility&&<button className="cinema-menu-option" onClick={onCompatibility}><span>{converted?'Browser-compatible mode':'Convert for this browser'}</span>{converted&&<Check size={15}/>}</button>}
         <button className="cinema-menu-option" onClick={()=>{(onOpenSources||onNextSource)?.();setMenu(null);}}><span>Switch server / resolution</span><ChevronRight size={15}/></button>
       </>}
-    </div>}
+    </div>)}
     {nextEpisode&&!dismissNext&&nextEpisodeDue(state.duration,state.time,state.ended)&&<aside className="cinema-next-up" aria-label="Up next">
       <button className="cinema-next-close" aria-label="Dismiss next episode" onClick={()=>setDismissNext(true)}><X size={14}/></button>
       <div className="cinema-next-thumb" onClick={playNextEpisode}>

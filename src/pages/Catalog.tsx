@@ -6,7 +6,7 @@ import HeroBanner from '@/components/home/HeroBanner';
 import ContentSection from '@/components/home/ContentSection';
 import CatalogCards from '@/components/home/CatalogCards';
 import SpotlightCarousel from '@/components/home/SpotlightCarousel';
-import { ChoiceSelect } from '@/components/ui/select';
+import BrowseFilters from '@/components/home/BrowseFilters';
 import tmdbApi from '@/integrations/api/tmdb';
 import { ANIME_GENRES, MOVIE_GENRES, TV_GENRES } from '@/constants/tmdb-genres';
 import { toMediaItem, type MediaType } from '@/lib/media';
@@ -78,19 +78,14 @@ export default function Catalog({type}:{type:MediaType}){
   return <MainLayout theme={theme}><div className="home-world catalog-world">
     {popular.isPending?<HeroSkeleton/>:popular.isError?<div className="hero-skeleton empty-state"><h1>The stories will be right back.</h1><Button onClick={()=>popular.refetch()}>Retry {title.toLowerCase()}</Button></div>:<HeroBanner key={type} featuredItems={featured} onThemeChange={setTheme}/>}
     <section className="page-shell pt-8">
-      <div className="catalog-filter-bar">
-        <div className="filter-pills">
-          <button className={genre==='all'?'active':''} aria-pressed={genre==='all'} onClick={()=>{setGenre('all');setPage(1);}}>All {title}</button>
-          {genres.map(g=><button key={g.id} className={genre===g.id?'active':''} aria-pressed={genre===g.id} onClick={()=>{setGenre(genre===g.id?'all':g.id);setPage(1);}}>{g.label}</button>)}
-        </div>
-        <div className="filter-selects">
-          <ChoiceSelect label="Year" value={year} onValueChange={v=>{setYear(v);setPage(1);}} options={[{value:'all',label:'All Years'},{value:'2026',label:'2026'},{value:'2025',label:'2025'},{value:'2024',label:'2024'},{value:'2020s',label:'2020s'},{value:'2010s',label:'2010s'},{value:'classic',label:'Before 2010'}]}/>
-          <ChoiceSelect label="Rating" value={minRating} onValueChange={v=>{setMinRating(v);setPage(1);}} options={[{value:'all',label:'Any Rating'},{value:'8',label:'★ 8.0+'},{value:'7',label:'★ 7.0+'},{value:'6',label:'★ 6.0+'}]}/>
-          {type!=='anime'&&<ChoiceSelect label="Language" value={lang} onValueChange={v=>{setLang(v);setPage(1);}} options={[{value:'all',label:'All Languages'},{value:'en',label:'English'},{value:'ja',label:'Japanese'},{value:'ko',label:'Korean'},{value:'es',label:'Spanish'},{value:'fr',label:'French'}]}/>}
-          <ChoiceSelect label="Sort by" value={sortBy} onValueChange={v=>{setSortBy(v);setPage(1);}} options={[{value:'popularity.desc',label:'Most Popular'},{value:'vote_average.desc',label:'Highest Rated'},{value:type==='movie'?'primary_release_date.desc':'first_air_date.desc',label:'Newest Releases'}]}/>
-          {hasFilters&&<Button variant="ghost" size="sm" onClick={()=>{setGenre('all');setYear('all');setMinRating('all');setSortBy('popularity.desc');setLang('all');setPage(1);}}>Reset filters</Button>}
-        </div>
-      </div>
+      <BrowseFilters title={title} genre={genre} genres={genres} onGenreChange={value=>{setGenre(value);setPage(1);}}
+        fields={[
+          {id:'year',label:'Release year',value:year,onChange:value=>{setYear(value);setPage(1);},options:[{value:'all',label:'Any year'},...Array.from({length:3},(_,i)=>({value:String(new Date().getFullYear()-i),label:String(new Date().getFullYear()-i)})),{value:'2020s',label:'2020s'},{value:'2010s',label:'2010s'},{value:'classic',label:'Before 2010'}]},
+          {id:'rating',label:'Minimum rating',value:minRating,onChange:value=>{setMinRating(value);setPage(1);},options:[{value:'all',label:'Any rating'},{value:'8',label:'8.0+ stars'},{value:'7',label:'7.0+ stars'},{value:'6',label:'6.0+ stars'}]},
+          ...(type!=='anime'?[{id:'language',label:'Original language',value:lang,onChange:(value:string)=>{setLang(value);setPage(1);},options:[{value:'all',label:'Any language'},{value:'en',label:'English'},{value:'ja',label:'Japanese'},{value:'ko',label:'Korean'},{value:'es',label:'Spanish'},{value:'fr',label:'French'}]}]:[])
+        ]}
+        sort={{id:'sort',label:'Sort by',value:sortBy,defaultValue:'popularity.desc',onChange:value=>{setSortBy(value);setPage(1);},options:[{value:'popularity.desc',label:'Most popular'},{value:'vote_average.desc',label:'Highest rated'},{value:type==='movie'?'primary_release_date.desc':'first_air_date.desc',label:'Newest releases'}]}}
+        onReset={()=>{setGenre('all');setYear('all');setMinRating('all');setSortBy('popularity.desc');setLang('all');setPage(1);}}/>
     </section>
     {hasFilters?<section className="page-shell py-4">
       <header className="section-heading"><div><p className="eyebrow">FILTERED {title.toUpperCase()}</p><h2>{genres.find(g=>g.id===genre)?.label||`All ${title}`}</h2></div><span className="text-xs text-muted-foreground">{filtered.data?.totalResults?.toLocaleString()||0} titles</span></header>

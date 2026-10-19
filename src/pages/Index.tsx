@@ -118,6 +118,8 @@ export default function Index() {
           squeeze={0.18}
           focusOnClick={false}
           captureWheel={false}
+          autoplay
+          interval={7}
           captions
           onSelect={index => {
             const picked = STREAMING_PLATFORMS[index];
