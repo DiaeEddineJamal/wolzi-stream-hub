@@ -1,5 +1,5 @@
 import { ChoiceSelect } from '@/components/ui/select';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Check, ExternalLink, Layers, Play, Plus, SkipForward } from 'lucide-react';
@@ -18,7 +18,7 @@ import { useAddons } from '@/hooks/useAddons';
 import { useResolvedSources } from '@/hooks/useResolvedSources';
 import { usePlaybackSelection } from '@/hooks/usePlaybackSelection';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { useStreamingService } from '@/hooks/useStreamingService';
+import { openServiceSetup, useStreamingService } from '@/hooks/useStreamingService';
 import { toMediaItem, watchPath } from '@/lib/media';
 import { useWatchlist } from '@/hooks/useWatchlist';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,7 +38,7 @@ function WatchSession(){
   const [autoNext,setAutoNext]=useLocalStorage('admax-auto-next',false);
   const resume=true;
   const {addons}=useAddons();
-  const {service,recheck}=useStreamingService();
+  const {service,recheck,detectedOnce}=useStreamingService();
   const [scan,setScan]=useState(0);
   const resolved=useResolvedSources(type,id,season,episode,service,scan);
   const {user}=useAuth();
@@ -57,7 +57,13 @@ function WatchSession(){
     }));
   }});
   const subtitles=useSubtitles(type==='movie'?'movie':'series',imdb?streamId:undefined);
-  const playback=usePlaybackSelection([...resolved.sources,...(addonResults.data || []).flatMap(r=>r.streams)],resolved.checking||addonResults.isFetching);
+  const addonStreamList=(addonResults.data || []).flatMap(r=>r.streams);
+  useEffect(()=>{
+    if(detectedOnce&&!service&&addonStreamList.some(s=>/Stremio Service/i.test(s.reason||''))){
+      try{if(!sessionStorage.getItem('admax-service-prompt-dismissed'))openServiceSetup();}catch{openServiceSetup();}
+    }
+  },[detectedOnce,service,addonStreamList]);
+  const playback=usePlaybackSelection([...resolved.sources,...addonStreamList],resolved.checking||addonResults.isFetching);
   const {choices,active}=playback;
   const item=details.data?toMediaItem(details.data,type):null;
   const theme=useArtworkTheme(item?.backdropUrl);

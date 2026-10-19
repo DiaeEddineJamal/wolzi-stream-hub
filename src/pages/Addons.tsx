@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowUpRight, Globe, Plus, Puzzle } from 'lucide-react';
 import MainLayout from '@/layouts/MainLayout';
 import { useAddons } from '@/hooks/useAddons';
+import { openServiceSetup, useStreamingService } from '@/hooks/useStreamingService';
 import { addonCatalog, httpsUrl, installAddon, type InstalledAddon } from '@/integrations/api/stremio';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,10 +26,11 @@ function CatalogPreview({addon,catalog}:{addon:InstalledAddon;catalog:InstalledA
 }
 export default function Addons(){
   const {addons,install,remove,toggle}=useAddons();
+  const {service}=useStreamingService();
   const [url,setUrl]=useState('');
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
-  const add=async(value:string)=>{setBusy(true);setError('');try{const addon=await installAddon(value);install(addon);setUrl('');toast.success(`${addon.manifest.name} installed`);}catch(e){setError(e instanceof Error&&e.name!=='ZodError'?e.message:'This endpoint did not return a valid Stremio manifest.');}finally{setBusy(false);}};
+  const add=async(value:string)=>{setBusy(true);setError('');try{const addon=await installAddon(value);install(addon);setUrl('');toast.success(`${addon.manifest.name} installed`);if(!service&&addon.manifest.resources.some(r=>(typeof r==='string'?r:r.name)==='stream'))openServiceSetup();}catch(e){setError(e instanceof Error&&e.name!=='ZodError'?e.message:'This endpoint did not return a valid Stremio manifest.');}finally{setBusy(false);}};
   const previews=addons.filter(a=>a.enabled).flatMap(addon=>addon.manifest.catalogs.filter(c=>!c.extra?.some(e=>e.isRequired)).map(catalog=>({addon,catalog})));
   return <MainLayout><div className="page-shell"><header className="catalog-header"><div><p className="eyebrow">MORE WAYS TO DISCOVER</p><h1>Your world. Expanded.</h1><p>Connect Stremio-compatible add-ons to bring your catalogs and sources together.</p></div><Puzzle className="hidden text-muted-foreground md:block" size={36}/></header>
     <section className="settings-panel mb-9"><h2 className="mb-2 text-xl">Bring an add-on</h2><p className="mb-5 text-xs leading-6 text-muted-foreground">Paste its HTTPS manifest address or stremio:// link. Install only add-ons you trust: they receive requests for the titles you open. Your configuration stays in this browser.</p>
