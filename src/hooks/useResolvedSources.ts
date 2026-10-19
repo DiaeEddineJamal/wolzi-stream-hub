@@ -24,7 +24,7 @@ export function useResolvedSources(type:'movie'|'tv'|'anime',id:string,season:nu
       }catch{setError('A provider returned an invalid response.');stop();}
     };
     events.onerror=()=>{setError('Source discovery could not connect. Retry, or choose an installed add-on.');stop();};
-    const timeout=setTimeout(()=>{setSources(previous=>previous.map(s=>s.availability==='checking'?{...s,availability:'timeout',reason:'This provider did not finish within the quick-check window.'}:s));stop();},20000);
+    const timeout=setTimeout(()=>{setSources(previous=>previous.map(s=>s.availability==='checking'?{...s,availability:'timeout',reason:'This provider did not finish within the quick-check window.'}:s));stop();},32000);
     return()=>{clearTimeout(timeout);events.close();};
   },[type,id,season,episode,service,scan]);
   return {sources,checking,error};

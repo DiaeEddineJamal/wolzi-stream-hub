@@ -53,8 +53,19 @@ export function AuthProvider({children}:{children:ReactNode}){
   };
   const updateProfile=async(value:Partial<UserProfile>)=>{
     if(!user)throw new Error('Sign in to update your profile.');
-    const {data,error}=await supabase.from('profiles').update({username:value.username,avatar_url:value.avatar_url,updated_at:new Date().toISOString()}).eq('id',user.id).select().single();
-    if(error)throw error;setProfile(data);return data;
+    const nextUsername=value.username!==undefined?value.username:(profile?.username||user.user_metadata?.username||user.email?.split('@')[0]||'Viewer');
+    const nextAvatar=value.avatar_url!==undefined?value.avatar_url:(profile?.avatar_url??(user.user_metadata?.avatar_url as string|null)??null);
+    const now=new Date().toISOString();
+    const fallback:UserProfile={id:user.id,username:nextUsername,avatar_url:nextAvatar,created_at:profile?.created_at||user.created_at||now,updated_at:now};
+    const [authRes,dbRes]=await Promise.all([
+      supabase.auth.updateUser({data:{username:nextUsername,avatar_url:nextAvatar}}),
+      supabase.from('profiles').upsert({id:user.id,username:nextUsername,avatar_url:nextAvatar,updated_at:now},{onConflict:'id'}).select().maybeSingle(),
+    ]);
+    if(dbRes.error&&authRes.error)throw dbRes.error;
+    if(authRes.data?.user)setSession(prev=>prev?{...prev,user:authRes.data.user}:prev);
+    const updated=dbRes.data||fallback;
+    setProfile(updated);
+    return updated;
   };
   return <AuthContext.Provider value={{user,profile,session,isLoggedIn:!!user,loading,login,signup,logout,updateProfile}}>{children}</AuthContext.Provider>;
 }

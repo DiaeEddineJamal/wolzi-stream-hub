@@ -49,7 +49,7 @@ export async function requestJson(url: string, signal?: AbortSignal, localServic
   const cancel = () => controller.abort();
   if (signal?.aborted) controller.abort();
   signal?.addEventListener('abort', cancel, { once: true });
-  const timer = setTimeout(cancel, 12000);
+  const timer = setTimeout(cancel, 25000);
   try {
     const response = await fetch(localService && url.startsWith('/streaming-service/') ? url : localService ? normalizeServiceUrl(url) : httpsUrl(url), { signal: controller.signal, credentials: 'omit', referrerPolicy: 'no-referrer' });
     if (!response.ok) throw new Error(`The add-on returned HTTP ${response.status}.`);

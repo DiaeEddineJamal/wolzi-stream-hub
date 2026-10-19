@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 import { build } from 'esbuild';
 const require=createRequire(import.meta.url);
 async function load(file){
-  const result=await build({entryPoints:[file],bundle:true,write:false,platform:'node',format:'cjs',packages:'external',tsconfig:'tsconfig.app.json',define:{'import.meta.env':'{}'},logLevel:'silent'});
+  const result=await build({entryPoints:[file],bundle:true,write:false,platform:'node',format:'cjs',packages:'external',loader:{'.css':'empty'},tsconfig:'tsconfig.app.json',define:{'import.meta.env':'{}'},logLevel:'silent'});
   const module={exports:{}};
   new Function('require','module','exports',result.outputFiles[0].text)(require,module,module.exports);
   return module.exports;
@@ -159,4 +159,17 @@ assert.match(rewritten,/URI="\/api\/playback\/media\/key\.bin\?u=https%3A%2F%2Fc
 assert.match(rewritten,/\n\/api\/playback\/media\/1\.ts\?u=https%3A%2F%2Fcdn\.example%2Fhls%2Fseg%2F1\.ts&h=/);
 assert.equal(api.isNativeVideoUrl(rewritten.split('\n').at(-2)),true);
 assert.equal(api.classifyStream({url:'https://cdn.example/a.m3u8',behaviorHints:{proxyHeaders:{request:{Referer:'https://site.example/'}}}},'x','Add-on').url,'/api/playback/media/a.m3u8?u=https%3A%2F%2Fcdn.example%2Fa.m3u8&h=Referer%3Ahttps%3A%2F%2Fsite.example%2F');
+const {matchesQualityFilter}=await load('src/components/watch/SourcePicker.tsx');
+assert.equal(matchesQualityFilter('Torrentio 4K UHD 2160p','4k'),true);
+assert.equal(matchesQualityFilter('Torrentio 1080p BluRay','1080'),true);
+assert.equal(matchesQualityFilter('Torrentio 720p WEB-DL','720'),true);
+assert.equal(matchesQualityFilter('Provider · 480p','480'),true);
+assert.equal(matchesQualityFilter('Provider · 360p','360'),true);
+assert.equal(matchesQualityFilter('Provider · 360p','4k'),false);
+const candidates=resolver.selectCandidates([{url:'https://cdn.example/2160.m3u8',quality:'4K'},{url:'https://cdn.example/1080a.m3u8',quality:'1080p'},{url:'https://cdn.example/1080b.m3u8',quality:'1080p'},{url:'https://cdn.example/720.m3u8',quality:'720p'},{url:'https://cdn.example/480.m3u8',quality:'480p'},{url:'https://cdn.example/360.m3u8',quality:'360p'}]);
+assert.equal(candidates.some(c=>c.quality==='480p'),true);
+assert.equal(candidates.some(c=>c.quality==='360p'),true);
+const {clampCropOffset}=await load('src/pages/Profile.tsx');
+assert.deepEqual(clampCropOffset({x:500,y:-500},{w:800,h:400},1,240),{x:120,y:0});
+assert.deepEqual(clampCropOffset({x:0,y:0},{w:400,h:400},1,240),{x:0,y:0});
 console.log('Stremio protocol, source verification, service conversion, trust boundaries, routing, and recovery checks passed.');

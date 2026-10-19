@@ -27,22 +27,35 @@ async function mediaPrefix(value:string,headers:Record<string,string>,signal:Abo
   const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
   return {bytes,text:new TextDecoder().decode(bytes),type:response.headers.get('content-type')||''};
 }
-export async function verifyMedia(url:string,headers:Record<string,string>={}) {
-  const signal=AbortSignal.timeout(4500);
+export function verifyMedia(url:string,headers:Record<string,string>={}) {
+  const signal=AbortSignal.timeout(9000);
   let target=url;
-  for(let depth=0;depth<3;depth++){
-    const sample=await mediaPrefix(target,headers,signal);
-    if(!sample.text.trimStart().startsWith('#EXTM3U'))return isMediaSample(sample);
-    const child=sample.text.split(/\r?\n/).map(line=>line.trim()).find(line=>line&&!line.startsWith('#'));
-    if(!child)return false;
-    target=new URL(child,target).href;
-  }
-  return false;
+  return (async()=>{
+    for(let depth=0;depth<3;depth++){
+      const sample=await mediaPrefix(target,headers,signal);
+      if(!sample.text.trimStart().startsWith('#EXTM3U'))return isMediaSample(sample);
+      const child=sample.text.split(/\r?\n/).map(line=>line.trim()).find(line=>line&&!line.startsWith('#'));
+      if(!child)return false;
+      target=new URL(child,target).href;
+    }
+    return false;
+  })();
 }
 export function isMediaSample(sample:{text:string;type:string;bytes:Uint8Array}){
   if(sample.text.trimStart().startsWith('#EXTM3U'))return sample.text.includes('#EXT-X-')||sample.text.includes('#EXTINF');
   if(/^\s*</.test(sample.text)||/html|json/.test(sample.type))return false;
   return sample.bytes.length>16&&(/^(video|audio)\//.test(sample.type)||/ftyp|styp/.test(sample.text.slice(4,12))||sample.bytes[0]===0x47||sample.bytes.slice(0,4).every((b,i)=>b===[0x1a,0x45,0xdf,0xa3][i]));
+}
+export function selectCandidates<T extends {url:string;quality?:string;label?:string}>(items:T[]){
+  const seen=new Set<string>();
+  const unique=items.filter(item=>item.url&&!seen.has(item.url)&&seen.add(item.url));
+  const picked:T[]=[];
+  for(const pattern of [/4k|2160|uhd/i,/1080|fhd/i,/720|\bhd\b/i,/480|\bsd\b/i,/360|240|\bld\b/i]){
+    const match=unique.find(item=>!picked.includes(item)&&pattern.test((item.quality||'')+' '+(item.label||'')+' '+item.url));
+    if(match)picked.push(match);
+  }
+  for(const item of unique)if(picked.length<6&&!picked.includes(item))picked.push(item);
+  return picked;
 }
 const querySchema=z.object({type:z.enum(['movie','tv']),id:z.string().regex(/^\d{1,9}$/),season:z.coerce.number().int().min(1).max(10000).optional(),episode:z.coerce.number().int().min(1).max(10000).optional()}).refine(q=>q.type==='movie'||!!(q.season&&q.episode));
 const candidateSchema=z.object({url:z.string(),quality:z.string().optional(),label:z.string().optional(),server:z.string().optional(),headers:z.record(z.string()).optional(),type:z.string().optional()});
@@ -64,7 +77,7 @@ export function createSourceResolver(tmdbApiKey?:string){
     try{
       const sdk=await getSdk(),providers=sdk.getSources(true),query=parsed.data;
       send({type:'providers',providers:providers.map(p=>({id:p.key,name:p.label}))});
-      const deadline=Date.now()+16000;let index=0,completed=0;
+      const deadline=Date.now()+28000;let index=0,completed=0;
       await Promise.all(Array.from({length:8},async()=>{
         while(!closed&&index<providers.length){
           const provider=providers[index++];
@@ -77,12 +90,13 @@ export function createSourceResolver(tmdbApiKey?:string){
               const empty={provider:provider.key,name:provider.label,status:'unavailable' as const,streams:[]};
               try{
                 const raw=resultSchema.parse(await sdk.getStream(provider.key,query.id,query.type==='tv'?query.season:null,query.type==='tv'?query.episode:null));
-                const candidates=raw.allUrls?.length?raw.allUrls:raw.url?[candidateSchema.parse(raw)]:[];
-                const streams:Payload['streams']=[];
-                for(const candidate of candidates.slice(0,3)){
+                const candidates=selectCandidates(raw.allUrls?.length?raw.allUrls:raw.url?[candidateSchema.parse(raw)]:[]);
+                const checked=await Promise.all(candidates.map(async candidate=>{
                   const headers=candidate.headers||raw.headers||{};
-                  if(await verifyMedia(candidate.url,headers).catch(()=>false))streams.push({url:candidate.url,name:provider.label+(candidate.quality?' · '+candidate.quality:''),...(Object.keys(headers).length?{behaviorHints:{proxyHeaders:{request:headers}}}:{})});
-                }
+                  const q=candidate.quality||candidate.label||candidate.url.match(/\b(2160p|4k|1080p|720p|480p|360p)\b/i)?.[1];
+                  return await verifyMedia(candidate.url,headers).catch(()=>false)?{url:candidate.url,name:provider.label+(q?' · '+q:''),...(Object.keys(headers).length?{behaviorHints:{proxyHeaders:{request:headers}}}:{})}:null;
+                }));
+                const streams=checked.filter((s):s is NonNullable<typeof s>=>!!s);
                 return {...empty,status:streams.length?'reachable':'unavailable',streams};
               }catch{return empty;}
             })();
@@ -92,7 +106,7 @@ export function createSourceResolver(tmdbApiKey?:string){
           }
           let timer:ReturnType<typeof setTimeout>;
           const timeout:Payload={provider:provider.key,name:provider.label,status:'timeout',streams:[]};
-          const value=await Promise.race([task,new Promise<Payload>(resolve=>{timer=setTimeout(()=>resolve(timeout),Math.min(6500,Math.max(1,deadline-Date.now())));})]);clearTimeout(timer!);
+          const value=await Promise.race([task,new Promise<Payload>(resolve=>{timer=setTimeout(()=>resolve(timeout),Math.min(12000,Math.max(1,deadline-Date.now())));})]);clearTimeout(timer!);
           completed++;send({type:'result',...value,completed,total:providers.length});
         }
       }));
