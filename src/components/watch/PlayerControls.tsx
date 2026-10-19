@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject, type ReactNode } from 'react';
 import type Hls from 'hls.js';
+import type { BufferAppendedData } from 'hls.js';
 import { createPortal } from 'react-dom';
 import { Check, ChevronRight, Maximize, Minimize, Pause, PictureInPicture2, Play, RotateCcw, RotateCw, Settings2, SkipForward, Star, Subtitles, Upload, Volume2, VolumeX, X } from 'lucide-react';
 import { preferredSubtitleIndex, subtitleCodeBadge, subtitleFlagUrl, subtitleLanguage, subtitleNativeLanguage } from '@/lib/subtitles';
-import { activateCaptionTrack, captionPreferences, captionTimes, defaultCaptions, nextEpisodeDue, nextEpisodeProgress } from '@/lib/captions';
+import { activateCaptionTrack, applyCaptionTiming, captionPreferences, defaultCaptions, nextEpisodeDue, nextEpisodeProgress, type CaptionTiming } from '@/lib/captions';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { detectQualityTier, QUALITY_BADGES } from './SourcePicker';
 import CaptionSettings from './CaptionSettings';
@@ -39,7 +40,8 @@ export default function PlayerControls({captionKey='video',media,engine,containe
   const syncKey=captionKey+'|'+(tracks[trackIndex]?.id||tracks[trackIndex]?.label||'default');
   const captions=useMemo(()=>({...captionPreferences(storedCaptions),delay:captionPreferences({delay:offsets[syncKey]}).delay}),[storedCaptions,offsets,syncKey]);
   const setCaptions=(value:typeof defaultCaptions)=>{saveCaptionStyle({...value,delay:0});saveOffsets(previous=>({...previous,[syncKey]:value.delay}));};
-  const cueTimes=useRef(new WeakMap<TextTrackCue,{start:number;end:number}>());
+  const cueTimes=useRef(new WeakMap<object,CaptionTiming>());
+  const [timelineOffset,setTimelineOffset]=useState(0);
   const cueLines=useRef(new WeakMap<VTTCue,{line:VTTCue['line'];snap:boolean}>());
   const wake=useCallback(()=>{setVisible(true);clearTimeout(timer.current);timer.current=setTimeout(()=>{if(!dragging.current)setVisible(false);},touchControls?1800:3500);},[touchControls]);
   useEffect(()=>{if(!state.paused&&!loading)wake();},[state.paused,loading,wake]);
@@ -82,6 +84,20 @@ export default function PlayerControls({captionKey='video',media,engine,containe
   },[media,captionKey]);
   useEffect(()=>{if(!engine)return;const events=(engine.constructor as typeof Hls).Events;const update=()=>{setQuality(engine.autoLevelEnabled?-1:engine.currentLevel);setAudio(engine.audioTrack);};engine.on(events.LEVEL_SWITCHED,update);engine.on(events.AUDIO_TRACK_SWITCHED,update);return()=>{engine.off(events.LEVEL_SWITCHED,update);engine.off(events.AUDIO_TRACK_SWITCHED,update);};},[engine]);
   useEffect(()=>{
+    setTimelineOffset(0);
+    if(!engine)return;
+    const event=(engine.constructor as typeof Hls).Events.BUFFER_APPENDED;
+    const align=(_:unknown,{frag}:BufferAppendedData)=>{
+      const video=frag.elementaryStreams.video;
+      if(frag.type!=='main'||frag.sn==='initSegment'||!video)return;
+      const offset=video.startPTS-frag.start;
+      if(!Number.isFinite(offset))return;
+      setTimelineOffset(offset);engine.off(event,align);
+    };
+    engine.on(event,align);
+    return()=>{engine.off(event,align);};
+  },[engine,media]);
+  useEffect(()=>{
     const stage=container.current;if(!stage)return;
     const change=()=>{const full=document.fullscreenElement===stage;setFullscreen(full);if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches)stage.animate?.([{opacity:.72,transform:`scale(${full ? .985 : 1.015})`},{opacity:1,transform:'scale(1)'}],{duration:300,easing:'cubic-bezier(.2,.7,.3,1)'});};
     const key=(e:KeyboardEvent)=>{if(!stage.contains(document.activeElement)&&document.fullscreenElement!==stage)return;if(e.target instanceof HTMLInputElement||e.target instanceof HTMLSelectElement||e.target instanceof HTMLTextAreaElement)return;if(e.key==='Escape'){setMenu(null);return;}if((e.code==='Space'&&!(e.target instanceof HTMLButtonElement))||e.key.toLowerCase()==='k'){e.preventDefault();toggle();}else if(e.key==='ArrowRight'||e.key.toLowerCase()==='l'){e.preventDefault();seek((media?.currentTime||0)+10);wake();}else if(e.key==='ArrowLeft'||e.key.toLowerCase()==='j'){e.preventDefault();seek((media?.currentTime||0)-10);wake();}else if(e.key.toLowerCase()==='m'&&media){media.muted=!media.muted;}else if(e.key.toLowerCase()==='f'){e.preventDefault();toggleFullscreen();}};
@@ -102,10 +118,10 @@ export default function PlayerControls({captionKey='video',media,engine,containe
     const position=()=>{
       const controlHeight=stage.querySelector<HTMLElement>('.cinema-bottom')?.offsetHeight||90;
       const available=show?Math.max(20,100-(controlHeight+12)/Math.max(1,media.clientHeight)*100):94;
+      // HLS already maps its own tracks; only standalone files need the stream offset.
+      const external=new Set(Array.from(media.querySelectorAll('track')).map(element=>element.track));
       tracks.filter(track=>track.mode!=='disabled').forEach(track=>Array.from(track.cues||[]).forEach(cue=>{
-      if(!cueTimes.current.has(cue))cueTimes.current.set(cue,{start:cue.startTime,end:cue.endTime});
-      const original=cueTimes.current.get(cue)!,time=captionTimes(original.start,original.end,captions.delay);
-      if(cue.startTime!==time.start)cue.startTime=time.start;if(cue.endTime!==time.end)cue.endTime=time.end;
+      applyCaptionTiming(cue,captions.delay+(external.has(track)?timelineOffset:0),cueTimes.current);
       if(!(cue instanceof VTTCue))return;
       if(!cueLines.current.has(cue))cueLines.current.set(cue,{line:cue.line,snap:cue.snapToLines});
       const line=cueLines.current.get(cue)!;
@@ -118,7 +134,7 @@ export default function PlayerControls({captionKey='video',media,engine,containe
     tracks.forEach(track=>track.addEventListener('cuechange',position));media.addEventListener('load',position,true);media.addEventListener('loadeddata',position);media.addEventListener('seeked',position);position();
     const interval=setInterval(position,1000);
     return()=>{clearInterval(interval);tracks.forEach(track=>track.removeEventListener('cuechange',position));media.removeEventListener('load',position,true);media.removeEventListener('loadeddata',position);media.removeEventListener('seeked',position);};
-  },[tracks,show,captions,media,container]);
+  },[tracks,show,captions,media,container,timelineOffset]);
   const progress=state.duration?((scrub??state.time)/state.duration)*100:0;
   const nativeAudio=(media as HTMLVideoElement&{audioTracks?:ArrayLike<NativeAudioTrack>})?.audioTracks;
   const audioTracks=engine?.audioTracks?.length?engine.audioTracks.map((t,index)=>({index,label:t.name&&!/^\d+$/.test(t.name)?t.name:t.lang&&t.lang!=='und'?subtitleLanguage(t.lang):`Audio track ${index+1}`})):Array.from(nativeAudio||[]).map((t,index)=>({index,label:t.label||(t.language&&t.language!=='und'?subtitleLanguage(t.language):`Audio track ${index+1}`)}));

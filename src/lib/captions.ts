@@ -8,6 +8,21 @@ export function captionPreferences(value:unknown):CaptionPreferences{
 export function captionTimes(start:number,end:number,delay:number){
   return {start:Math.max(0,start+delay),end:Math.max(.001,end+delay)};
 }
+export interface CaptionTiming {start:number;end:number;appliedStart:number;appliedEnd:number}
+export function applyCaptionTiming(cue:Pick<TextTrackCue,'startTime'|'endTime'>,delay:number,times:WeakMap<object,CaptionTiming>){
+  let original=times.get(cue);
+  if(!original&&delay===0)return;
+  // HLS can correct cue timestamps after a seek or discontinuity; retain its new baseline.
+  if(!original||cue.startTime!==original.appliedStart||cue.endTime!==original.appliedEnd){
+    original={start:cue.startTime,end:cue.endTime,appliedStart:cue.startTime,appliedEnd:cue.endTime};
+    times.set(cue,original);
+  }
+  const time=captionTimes(original.start,original.end,delay);
+  original.appliedStart=time.start;original.appliedEnd=time.end;
+  if(time.end>cue.endTime&&cue.endTime!==time.end)cue.endTime=time.end;
+  if(cue.startTime!==time.start)cue.startTime=time.start;
+  if(cue.endTime!==time.end)cue.endTime=time.end;
+}
 export function nextEpisodeDue(duration:number,time:number,ended=false){
   return ended||(Number.isFinite(duration)&&duration>0&&time>=duration*0.9);
 }

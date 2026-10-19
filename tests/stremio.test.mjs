@@ -138,6 +138,22 @@ assert.deepEqual(captions.captionPreferences({size:999,color:'url(javascript:tes
 assert.equal(captions.captionPreferences({size:NaN,delay:Infinity}).size,100);
 assert.deepEqual(captions.captionTimes(1,3,-2),{start:0,end:1});
 assert.deepEqual(captions.captionTimes(1,3,1.5),{start:2.5,end:4.5});
+const cueTiming=new WeakMap(),timedCue={startTime:10,endTime:12};
+captions.applyCaptionTiming(timedCue,1.5,cueTiming);
+captions.applyCaptionTiming(timedCue,1.5,cueTiming);
+assert.deepEqual(timedCue,{startTime:11.5,endTime:13.5}); // Repeated updates never accumulate delay.
+captions.applyCaptionTiming(timedCue,-2,cueTiming);
+assert.deepEqual(timedCue,{startTime:8,endTime:10});
+captions.applyCaptionTiming(timedCue,0,cueTiming);
+assert.deepEqual(timedCue,{startTime:10,endTime:12});
+timedCue.startTime=40;timedCue.endTime=42; // Playback engine corrects its timeline after a discontinuity.
+captions.applyCaptionTiming(timedCue,1.5,cueTiming);
+assert.deepEqual(timedCue,{startTime:41.5,endTime:43.5});
+captions.applyCaptionTiming(timedCue,0,cueTiming);
+assert.deepEqual(timedCue,{startTime:40,endTime:42});
+const untouchedCue={startTime:7,endTime:9};
+captions.applyCaptionTiming(untouchedCue,0,cueTiming);
+assert.equal(cueTiming.has(untouchedCue),false); // Unadjusted native cues remain owned by HLS.
 assert.equal(captions.nextEpisodeDue(100,89.9),false);
 assert.equal(captions.nextEpisodeDue(100,90),true);
 assert.equal(captions.nextEpisodeDue(200,179.9),false);
