@@ -80,6 +80,27 @@ export interface GlassSurfaceProps {
 
 const FAR = 1e20;
 
+// SVG displacement map -> cached bitmap (blob URL). Same pixels, but a plain texture the GPU can sample directly.
+const rasterMaps = new Map<string, string>();
+const rasterizeMap = async (svgUrl: string) => {
+  try {
+    const image = new Image();
+    image.src = svgUrl;
+    await image.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(image.naturalWidth));
+    canvas.height = Math.max(1, Math.round(image.naturalHeight));
+    canvas.getContext('2d')?.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) return null;
+    const url = URL.createObjectURL(blob);
+    rasterMaps.set(svgUrl, url);
+    return url;
+  } catch {
+    return null; // Keep the SVG map; the glass still works.
+  }
+};
+
 // Channel-select matrix with saturation folded in (luma weights from the SVG/CSS saturate definition).
 // Saturation is per-pixel, so applying it here instead of as a separate backdrop pass is exact.
 const channelMatrix = (channel: 0 | 1 | 2, s: number) => {
@@ -455,8 +476,14 @@ const GlassSurface = ({
   };
 
   const updateDisplacementMap = () => {
-    mapUrlRef.current = shapeMapRef.current || generateDisplacementMap();
-    feImageRef.current?.setAttribute('href', mapUrlRef.current);
+    const url = shapeMapRef.current || generateDisplacementMap();
+    mapUrlRef.current = url;
+    feImageRef.current?.setAttribute('href', rasterMaps.get(url) || url);
+    // The SVG map (gradients + a 12px blur + a blend mode) can't live on the GPU, so browsers redraw it on the CPU
+    // whenever the backdrop filter runs, i.e. every scroll frame. Render it once into a bitmap and use that instead.
+    if (!rasterMaps.has(url) && url.startsWith('data:image/svg')) void rasterizeMap(url).then(bitmap => {
+      if (bitmap && mapUrlRef.current === url) feImageRef.current?.setAttribute('href', bitmap);
+    });
   };
 
   useEffect(() => {
