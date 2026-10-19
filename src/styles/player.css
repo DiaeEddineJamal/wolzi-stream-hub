@@ -1,33 +1,116 @@
-.cinema-player { isolation:isolate;box-shadow:0 15px 60px #0004;background:#060606; }
-.cinema-player video { position:absolute;inset:0;object-fit:contain; }
-.cinema-player video::cue { font-family:'DM Sans',sans-serif;font-size:calc(clamp(14px,1.5vw,30px)*var(--caption-scale,1));color:var(--caption-color,white);background:#0009;line-height:1.5; }
+.cinema-player { isolation:isolate;box-shadow:0 24px 80px #0008;background:#050507; }
+.cinema-player video { position:absolute;inset:0;object-fit:contain;transition:filter .35s ease; }
+.cinema-player video::cue { font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','DM Sans',sans-serif;font-weight:500;font-size:calc(clamp(15px,1.55vw,31px)*var(--caption-scale,1));color:var(--caption-color,white);background:rgba(12,12,14,.74);text-shadow:0 2px 10px rgba(0,0,0,.95);line-height:1.45; }
 .cinema-player:fullscreen { width:100%;height:100%;aspect-ratio:auto;border-radius:0;background:black; }
-.cinema-controls { position:absolute;inset:0;z-index:3;pointer-events:none;color:#f7f7f7;font-family:'DM Sans',sans-serif; }
-.cinema-controls button { color:inherit; }.cinema-controls button:focus-visible { outline-offset:2px;outline:2px solid #d4d4d4; }
+.cinema-controls { position:absolute;inset:0;z-index:3;pointer-events:none;color:#f7f7f9;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','SF Pro Text','DM Sans',sans-serif; }
+.cinema-controls button { color:inherit; }.cinema-controls button:focus-visible { outline-offset:2px;outline:2px solid #e5e5e7; }
 .player-click-surface { position:absolute;inset:0;width:100%;height:100%;pointer-events:auto;border:0;background:none!important;z-index:0;cursor:default; }
 .cinema-controls:not(.is-visible):not(:focus-within) .player-click-surface { cursor:none; }
-.cinema-topbar { position:absolute;inset:0 0 auto;padding:25px 30px 55px;display:flex;align-items:start;justify-content:space-between;gap:20px;background:linear-gradient(#000b,transparent);opacity:0;transform:translateY(-5px);transition:opacity .25s,transform .3s;pointer-events:none; }
-.cinema-topbar>div { min-width:0; }.cinema-topbar span { font-size:8px;letter-spacing:.2em;color:#ffffff80;font-weight:600; }.cinema-topbar h2 { font-size:18px;font-weight:500;letter-spacing:-.02em;line-height:1.2;margin-top:7px;max-width:550px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden; }
-.cinema-source-label { display:flex;align-items:center;gap:8px;max-width:38%;border:1px solid #ffffff1b;background:#ffffff0a;padding:8px 11px;border-radius:20px;font-size:9px;pointer-events:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-.cinema-center-play { position:absolute;z-index:2;top:50%;left:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:80px;height:80px;border-radius:50%;border:1px solid #ffffff50;background:#ffffff18;backdrop-filter:blur(12px);box-shadow:inset 0 1px #ffffff30,0 12px 35px #0003;pointer-events:auto;transition:background .2s,scale .3s,opacity .2s; }.cinema-center-play:not(.is-playing) svg { margin-left:4px; }.cinema-center-play:hover { background:#ffffff32;scale:1.06; }
+
+/* Apple TV / Cinejoy Pause Idle Overlay */
+.cinema-pause-idle { position:absolute;inset:0;z-index:1;pointer-events:none;display:flex;align-items:center;padding:clamp(24px,5vw,68px);background:radial-gradient(110% 90% at 22% 55%,rgba(0,0,0,.84) 0%,rgba(0,0,0,.62) 52%,rgba(0,0,0,.38) 100%);animation:apple-pause-in .45s cubic-bezier(.22,1,.36,1) both;overflow:hidden; }
+.cinema-pause-watermark { position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.14;filter:blur(2px) contrast(1.1);pointer-events:none; }
+.cinema-pause-content { position:relative;z-index:1;max-width:min(540px,78%);display:flex;flex-direction:column;align-items:flex-start;gap:10px;text-align:left; }
+.cinema-pause-logo { max-width:min(320px,65vw);max-height:96px;width:auto;height:auto;object-fit:contain;filter:drop-shadow(0 8px 28px rgba(0,0,0,.75));margin-bottom:4px; }
+.cinema-pause-title { font-size:clamp(28px,4vw,52px);font-weight:750;letter-spacing:-.045em;line-height:1.03;color:#fff;text-shadow:0 6px 28px rgba(0,0,0,.8);margin:0; }
+.cinema-pause-subtitle { font-size:clamp(16px,2vw,24px);font-weight:650;letter-spacing:-.02em;color:#f5f5f7;margin:2px 0 0; }
+.cinema-pause-meta { display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:12px;font-weight:550;color:#d6d6dc;margin-top:2px; }
+.cinema-pause-meta>span+span:before { content:'·';margin-right:10px;color:#ffffff55; }
+.cinema-pause-rating { display:inline-flex;align-items:center;gap:4px;color:#fbbf24;font-weight:650; }
+.cinema-pause-badge { padding:2px 7px;border-radius:5px;border:1px solid #ffffff45;background:#ffffff12;font-size:10px;font-weight:700;letter-spacing:.04em;color:#f5f5f7; }
+.cinema-pause-badge:before { display:none!important; }
+.cinema-pause-qbadge { height:16px;width:auto;opacity:.92; }
+.cinema-pause-desc { font-size:clamp(12px,1.25vw,14px);line-height:1.65;color:#c8c8d0;max-width:490px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin:4px 0 0;text-shadow:0 2px 12px rgba(0,0,0,.85); }
+@keyframes apple-pause-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+/* Top bar */
+.cinema-topbar { position:absolute;inset:0 0 auto;z-index:2;padding:24px 28px 55px;display:flex;align-items:flex-start;justify-content:space-between;gap:20px;background:linear-gradient(180deg,rgba(0,0,0,.78) 0%,rgba(0,0,0,.32) 55%,transparent 100%);opacity:0;transform:translateY(-6px);transition:opacity .28s ease,transform .32s cubic-bezier(.22,1,.36,1);pointer-events:none; }
+.cinema-topbar-title { min-width:0; }
+.cinema-topbar span { font-size:9px;letter-spacing:.18em;color:#ffffff90;font-weight:700;text-transform:uppercase; }
+.cinema-topbar h2 { font-size:17px;font-weight:600;letter-spacing:-.02em;line-height:1.25;margin-top:5px;max-width:560px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;text-shadow:0 2px 14px #0009; }
+.cinema-source-label { display:inline-flex;align-items:center;gap:8px;max-width:42%;border:1px solid #ffffff2b;background:linear-gradient(145deg,#ffffff1a,#ffffff08),rgba(20,20,24,.65);backdrop-filter:blur(24px) saturate(160%);-webkit-backdrop-filter:blur(24px) saturate(160%);box-shadow:inset 0 1px #ffffff30,0 8px 24px #0005;padding:7px 13px;border-radius:999px;font-size:11px;font-weight:550;pointer-events:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:transform .2s ease,background .2s ease,border-color .2s ease; }
+.cinema-source-label:hover { transform:scale(1.03);border-color:#ffffff4d;background:rgba(255,255,255,.16); }
+.cinema-source-qbadge { height:15px;width:auto;flex-shrink:0; }
+
+/* Center Play/Pause Pill */
+.cinema-center-play { position:absolute;z-index:2;top:50%;left:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:78px;height:78px;border-radius:50%;border:1px solid #ffffff48;background:linear-gradient(145deg,#ffffff2e,#ffffff12),rgba(18,18,22,.48);backdrop-filter:blur(26px) saturate(170%);-webkit-backdrop-filter:blur(26px) saturate(170%);box-shadow:inset 0 1px #ffffff45,0 16px 45px #0007;pointer-events:auto;transition:background .22s ease,scale .28s cubic-bezier(.22,1,.36,1),opacity .22s ease; }
+.cinema-center-play:not(.is-playing) svg { margin-left:4px; }
+.cinema-center-play:hover { background:rgba(255,255,255,.32);scale:1.07; }
+.cinema-controls.is-paused-idle .cinema-center-play { left:auto;right:clamp(36px,6vw,84px);transform:translateY(-50%); }
 @media(hover:hover) and (pointer:fine){.cinema-center-play.is-playing{display:none}}
-.cinema-bottom { position:absolute;inset:auto 0 0;padding:55px 25px 16px;background:linear-gradient(transparent,#000c 65%,#000e);opacity:0;transform:translateY(6px);transition:opacity .25s,transform .3s;pointer-events:none; }
+
+/* Apple TV Floating Bottom Dock */
+.cinema-bottom { position:absolute;inset:auto 0 0;z-index:2;padding:48px 26px 20px;background:linear-gradient(transparent,rgba(0,0,0,.72) 55%,rgba(0,0,0,.9));opacity:0;transform:translateY(8px);transition:opacity .28s ease,transform .32s cubic-bezier(.22,1,.36,1);pointer-events:none; }
 .cinema-controls:is(.is-visible,:focus-within) .cinema-topbar,.cinema-controls:is(.is-visible,:focus-within) .cinema-bottom { opacity:1;transform:none; }
 .cinema-controls.is-visible .cinema-bottom,.cinema-controls:focus-within .cinema-bottom { pointer-events:auto; }
-.cinema-timeline { position:relative;height:24px;display:flex;align-items:center; }.cinema-timeline:before { content:'';position:absolute;left:0;right:0;height:3px;background:#ffffff35;border-radius:4px; }
-.cinema-buffered { position:absolute;height:3px;border-radius:4px;left:0;background:#ffffff55;pointer-events:none; }
-.cinema-timeline input { width:100%;height:24px;appearance:none;-webkit-appearance:none;position:relative;margin:0;background:transparent;cursor:pointer; }
-.cinema-timeline input::-webkit-slider-runnable-track { height:3px;background:linear-gradient(90deg,#f0f0f0 var(--played),transparent var(--played));border-radius:6px;transition:height .12s; }
-.cinema-timeline input::-moz-range-track { height:3px;background:#ffffff30; }.cinema-timeline input::-moz-range-progress { height:3px;background:#f0f0f0; }
-.cinema-timeline input::-webkit-slider-thumb { appearance:none;-webkit-appearance:none;width:11px;height:11px;background:white;border-radius:50%;margin-top:-4px;box-shadow:0 0 12px #0004;transition:transform .2s; }.cinema-timeline input::-moz-range-thumb { width:11px;height:11px;background:white;border:0;border-radius:50%; }.cinema-timeline input:is(:hover,:focus-visible)::-webkit-slider-thumb { transform:scale(1.25); }
-.cinema-seek-time { position:absolute;bottom:32px;transform:translateX(-50%);padding:6px 10px;background:#202020cc;border:1px solid #ffffff25;backdrop-filter:blur(10px);border-radius:8px;font-size:11px;font-variant-numeric:tabular-nums;pointer-events:none; }
-.cinema-toolbar { display:flex;justify-content:space-between;align-items:center;gap:15px; }.cinema-toolbar-start,.cinema-toolbar-end { display:flex;align-items:center;gap:12px; }.cinema-toolbar button { display:inline-flex;width:32px;height:37px;align-items:center;justify-content:center;position:relative;border-radius:8px;transition:transform .2s,color .2s; }.cinema-toolbar button:hover { transform:scale(1.12); }.cinema-toolbar-end { gap:15px; }
-.cinema-skip small { position:absolute;top:14px;font-size:7px;line-height:1; }.cinema-volume { display:flex;align-items:center;gap:6px; }.cinema-volume input { width:65px;height:3px;accent-color:white;cursor:pointer; }.cinema-clock { display:flex;gap:8px;font-size:10px;color:#eaeaea;font-variant-numeric:tabular-nums;white-space:nowrap; }.cinema-clock i { color:#ffffff60;font-style:normal; }
-.control-active-dot { width:3px;height:3px;background:#dcdcdc;position:absolute;bottom:1px;border-radius:50%; }
-.cinema-menu { position:absolute;bottom:104px;right:25px;width:310px;max-width:calc(100% - 30px);max-height:min(65vh,480px);overflow-y:auto;padding:18px;border-radius:22px;border:1px solid #ffffff28;background:#222222df;backdrop-filter:blur(28px) saturate(150%);box-shadow:inset 0 1px #ffffff15,0 20px 70px #0007;z-index:8;pointer-events:auto;animation:cinema-menu-in .22s cubic-bezier(.2,.7,.3,1);scrollbar-width:thin; }
-.cinema-menu>header { display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px; }.cinema-menu h3 { font-size:15px;font-weight:500;letter-spacing:-.02em; }.cinema-menu>header button { display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#ffffff0b; }.cinema-menu-label { font-size:8px;font-weight:600;letter-spacing:.16em;color:#ffffff65;margin:18px 0 9px; }.cinema-menu-option { display:flex;align-items:center;justify-content:space-between;gap:15px;width:100%;text-align:left;font-size:11px;line-height:1.4;padding:10px;border-radius:9px;margin-block:2px; }.cinema-menu-option:hover { background:#ffffff0a; }.cinema-menu-option[aria-pressed=true] { background:#ffffff10;color:white; }.cinema-menu-option svg { flex-shrink:0; }.cinema-menu-note { font-size:10px;color:#ffffff70;line-height:1.7;margin:9px 0; }
-.cinema-quality-options,.cinema-speed-options { display:flex;gap:5px;flex-wrap:wrap; }.cinema-quality-options button,.cinema-speed-options button { border:1px solid #ffffff18;padding:7px 9px;border-radius:8px;font-size:10px; }.cinema-quality-options button[aria-pressed=true],.cinema-speed-options button[aria-pressed=true] { background:#f5f5f5;color:#161616;border-color:#f5f5f5; }.cinema-toggle { width:27px;height:16px;border-radius:20px;background:#ffffff30;position:relative;transition:background .2s;flex-shrink:0; }.cinema-toggle:after { content:'';position:absolute;left:2px;top:2px;width:12px;height:12px;border-radius:50%;background:#fff;transition:transform .2s; }.cinema-toggle.on { background:#b2b2b2; }.cinema-toggle.on:after { transform:translateX(11px); }
-.caption-search { width:100%;padding:9px 11px;font-size:10px;background:#13131388;border:1px solid #ffffff15;border-radius:10px;outline:none; }.caption-search:focus { border-color:#c2c2c2; }.cinema-caption-list { max-height:180px;overflow:auto;overscroll-behavior:contain;margin-top:7px;scrollbar-width:thin; }.cinema-menu-upload { display:flex;gap:8px;align-items:center;font-size:10px;color:#d1d1d1!important;padding:13px 5px 0;border-top:1px solid #ffffff12;margin-top:12px;width:100%; }
+
+/* Apple TV Scrubbing Timeline */
+.cinema-timeline { position:relative;height:26px;display:flex;align-items:center;margin-bottom:4px; }
+.cinema-timeline:before { content:'';position:absolute;left:0;right:0;height:5px;background:rgba(255,255,255,.24);border-radius:999px;transition:height .18s ease; }
+.cinema-timeline:hover:before { height:7px; }
+.cinema-buffered { position:absolute;height:5px;border-radius:999px;left:0;background:rgba(255,255,255,.42);pointer-events:none;transition:height .18s ease; }
+.cinema-timeline:hover .cinema-buffered { height:7px; }
+.cinema-timeline input { width:100%;height:26px;appearance:none;-webkit-appearance:none;position:relative;margin:0;background:transparent;cursor:pointer; }
+.cinema-timeline input::-webkit-slider-runnable-track { height:5px;background:linear-gradient(90deg,#ffffff var(--played),transparent var(--played));border-radius:999px;transition:height .18s ease; }
+.cinema-timeline:hover input::-webkit-slider-runnable-track { height:7px; }
+.cinema-timeline input::-moz-range-track { height:5px;background:#ffffff30;border-radius:999px; }
+.cinema-timeline input::-moz-range-progress { height:5px;background:#fff;border-radius:999px; }
+.cinema-timeline input::-webkit-slider-thumb { appearance:none;-webkit-appearance:none;width:14px;height:14px;background:#ffffff;border-radius:50%;margin-top:-4.5px;box-shadow:0 2px 10px rgba(0,0,0,.6);transition:transform .18s cubic-bezier(.22,1,.36,1); }
+.cinema-timeline input::-moz-range-thumb { width:14px;height:14px;background:#fff;border:0;border-radius:50%; }
+.cinema-timeline input:is(:hover,:focus-visible)::-webkit-slider-thumb { transform:scale(1.28); }
+.cinema-seek-time { position:absolute;bottom:34px;transform:translateX(-50%);padding:6px 11px;background:rgba(24,24,28,.86);border:1px solid #ffffff30;backdrop-filter:blur(16px);border-radius:10px;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;pointer-events:none;box-shadow:0 8px 24px #0006; }
+
+/* Apple TV Pill Control Buttons */
+.cinema-toolbar { display:flex;justify-content:space-between;align-items:center;gap:14px; }
+.cinema-toolbar-start,.cinema-toolbar-end { display:flex;align-items:center;gap:8px; }
+.cinema-toolbar button { display:inline-flex;width:40px;height:40px;align-items:center;justify-content:center;position:relative;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:inset 0 1px rgba(255,255,255,.18);transition:transform .2s cubic-bezier(.22,1,.36,1),background .2s ease,border-color .2s ease; }
+.cinema-toolbar button:hover { background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.32);transform:scale(1.06); }
+.cinema-toolbar button:active { transform:scale(.95); }
+.cinema-skip small { position:absolute;top:14.5px;font-size:7px;font-weight:750;line-height:1;letter-spacing:-.02em; }
+.cinema-volume { display:inline-flex;align-items:center;gap:8px;padding-right:12px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(18px); }
+.cinema-volume button { background:transparent!important;border:0!important;box-shadow:none!important; }
+.cinema-volume input { width:68px;height:4px;accent-color:white;cursor:pointer; }
+.cinema-clock { display:inline-flex;align-items:center;gap:6px;padding:0 12px;height:36px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);font-size:11px;font-weight:550;color:#f2f2f5;font-variant-numeric:tabular-nums;white-space:nowrap; }
+.cinema-clock i { color:#ffffff55;font-style:normal; }
+.control-active-dot { width:5px;height:5px;background:#fff;box-shadow:0 0 8px #fff;position:absolute;bottom:4px;border-radius:50%; }
+
+/* Apple TV Frosted Glass Audio/Subtitles & Settings Popover */
+.cinema-menu { position:absolute;bottom:96px;right:26px;width:360px;max-width:calc(100% - 30px);max-height:min(70vh,520px);overflow-y:auto;padding:20px;border-radius:26px;border:1px solid #ffffff30;background:linear-gradient(155deg,rgba(255,255,255,.14),rgba(255,255,255,.03)),rgba(18,18,22,.82);backdrop-filter:blur(42px) saturate(190%);-webkit-backdrop-filter:blur(42px) saturate(190%);box-shadow:inset 0 1px #ffffff38,0 28px 80px rgba(0,0,0,.78);z-index:8;pointer-events:auto;animation:cinema-menu-in .24s cubic-bezier(.22,1,.36,1);scrollbar-width:thin; }
+.cinema-menu>header { display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.12);gap:10px; }
+.cinema-menu h3 { font-size:16px;font-weight:650;letter-spacing:-.02em;color:#fff; }
+.cinema-menu>header button { display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18); }
+.cinema-menu>header button:hover { background:rgba(255,255,255,.22); }
+.cinema-menu-label { font-size:10px;font-weight:700;letter-spacing:.14em;color:#ffffff80;margin:16px 0 8px; }
+.cinema-menu-option { display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;text-align:left;font-size:12.5px;font-weight:500;line-height:1.35;padding:10px 12px;border-radius:14px;margin-block:3px;border:1px solid transparent;transition:background .18s,border-color .18s; }
+.cinema-menu-option:hover { background:rgba(255,255,255,.09); }
+.cinema-menu-option[aria-pressed=true] { background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.28);color:#fff;font-weight:600; }
+.cinema-menu-option svg { flex-shrink:0; }
+.cinema-menu-note { font-size:11px;color:#ffffff85;line-height:1.6;margin:8px 0; }
+.cinema-quality-note { display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);font-size:12px;font-weight:550;color:#f5f5f7; }
+
+/* Language Flag & Badge Rows in Subtitles Menu */
+.caption-lang-row { display:flex;align-items:center;gap:11px;min-width:0; }
+.caption-flag { width:22px;height:15px;object-fit:cover;border-radius:3px;box-shadow:0 1px 4px #0006;flex-shrink:0; }
+.caption-lang-code { display:inline-grid;place-items:center;min-width:26px;height:18px;padding:0 5px;border-radius:5px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.24);font-size:9px;font-weight:750;letter-spacing:.05em;color:#fff;flex-shrink:0; }
+.caption-lang-text { display:flex;flex-direction:column;min-width:0; }
+.caption-lang-text strong { font-size:12.5px;font-weight:600;color:#f5f5f7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.caption-lang-text small { font-size:10px;color:#ffffff75;margin-top:1px; }
+
+.cinema-quality-options,.cinema-speed-options { display:flex;gap:6px;flex-wrap:wrap; }
+.cinema-quality-options button,.cinema-speed-options button { display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);padding:8px 11px;border-radius:11px;font-size:11px;font-weight:600; }
+.cinema-quality-options button[aria-pressed=true],.cinema-speed-options button[aria-pressed=true] { background:#f5f5f7;color:#121214;border-color:#f5f5f7; }
+.cinema-quality-options button[aria-pressed=true] img { filter:invert(1); }
+.cinema-toggle { width:32px;height:18px;border-radius:999px;background:rgba(255,255,255,.26);position:relative;transition:background .2s;flex-shrink:0; }
+.cinema-toggle:after { content:'';position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s; }
+.cinema-toggle.on { background:#34d399; }
+.cinema-toggle.on:after { transform:translateX(14px);background:#fff; }
+.caption-search { width:100%;padding:10px 13px;font-size:12px;background:rgba(0,0,0,.38);border:1px solid rgba(255,255,255,.18);border-radius:13px;outline:none;color:#fff; }
+.caption-search:focus { border-color:#ffffff66;background:rgba(0,0,0,.52); }
+.cinema-caption-list { max-height:215px;overflow:auto;overscroll-behavior:contain;margin-top:8px;padding-right:2px;scrollbar-width:thin; }
+.cinema-menu-upload { display:flex;gap:8px;align-items:center;justify-content:center;font-size:11.5px;font-weight:550;color:#f5f5f7!important;padding:11px;border-radius:13px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);margin-top:12px;width:100%; }
+.cinema-menu-upload:hover { background:rgba(255,255,255,.15); }
+
+/* Apple TV Next Episode Card */
 .cinema-next-up { position:absolute;right:28px;bottom:108px;width:410px;max-width:calc(100% - 36px);padding:14px;border-radius:26px;border:1px solid #ffffff2e;background:linear-gradient(145deg,#ffffff14,#ffffff04),#141416bf;backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);box-shadow:inset 0 1px #ffffff38,0 24px 70px #0009;pointer-events:auto;z-index:6;display:grid;grid-template-columns:148px minmax(0,1fr);gap:16px;align-items:center;overflow:hidden;animation:apple-next-in .38s cubic-bezier(.22,1,.36,1) both; }
 .cinema-next-thumb { position:relative;aspect-ratio:16/9;width:100%;border-radius:16px;overflow:hidden;background:#0a0a0c;box-shadow:0 8px 24px #0007,inset 0 0 0 1px #ffffff1f;cursor:pointer; }
 .cinema-next-art { width:100%;height:100%;object-fit:cover;transition:transform .45s cubic-bezier(.22,1,.36,1); }
@@ -48,6 +131,7 @@
 .cinema-next-progress { position:absolute;left:0;right:0;bottom:0;height:3px;background:#ffffff1a;overflow:hidden; }
 .cinema-next-progress span { display:block;width:100%;height:100%;background:#fff;transform-origin:left;transition:transform .3s linear; }
 @keyframes apple-next-in { from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none} }
+
 .cinema-toast { position:absolute;top:80px;left:50%;transform:translateX(-50%);max-width:80%;padding:10px 14px;background:#242424e8;border:1px solid #ffffff20;border-radius:12px;font-size:11px;display:flex;gap:15px;align-items:center;pointer-events:auto;z-index:10; }.cinema-toast button { flex-shrink:0; }
 .cinema-player .player-status { left:50%;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;width:96px;height:96px;backdrop-filter:blur(28px) saturate(160%);-webkit-backdrop-filter:blur(28px) saturate(160%);background:linear-gradient(145deg,#ffffff14,#ffffff05),#121214a8;border:1px solid #ffffff26;border-radius:26px;box-shadow:inset 0 1px #ffffff30,0 20px 50px #0007;padding:14px;pointer-events:none;z-index:4; }
 .apple-spinner { position:relative;width:34px;height:34px;display:inline-block; }
@@ -56,10 +140,11 @@
 @keyframes apple-blade { 0%{opacity:.95} 100%{opacity:.15} }
 .cinema-player .player-slow { z-index:5;top:20px;bottom:auto;left:50%;transform:translateX(-50%);max-width:calc(100% - 180px);pointer-events:none;padding:9px 13px;background:#242424d9;border:1px solid #ffffff18;border-radius:18px;font-size:10px;line-height:1.5;box-shadow:0 8px 25px #0003; }.cinema-player .player-slow button { pointer-events:auto;text-decoration:underline;white-space:nowrap; }
 .cinema-player .player-message { z-index:12; }.cinema-player .player-hint { z-index:12;bottom:auto;top:80px;left:50%;transform:translateX(-50%);max-width:80%;display:flex;gap:12px;border:1px solid #ffffff18;background:#242424e8;backdrop-filter:blur(14px); }
-.cinema-player:fullscreen .cinema-bottom { padding:100px 45px 27px; }.cinema-player:fullscreen .cinema-topbar { padding:32px 45px 80px; }.cinema-player:fullscreen .cinema-toolbar button { width:42px;height:43px; }.cinema-player:fullscreen .cinema-toolbar-start,.cinema-player:fullscreen .cinema-toolbar-end { gap:20px; }.cinema-player:fullscreen .cinema-clock { font-size:13px; }.cinema-player:fullscreen .cinema-center-play { width:100px;height:100px; }.cinema-player:fullscreen .cinema-menu { bottom:125px;right:45px; }
+.cinema-player:fullscreen .cinema-bottom { padding:100px 45px 27px; }.cinema-player:fullscreen .cinema-topbar { padding:32px 45px 80px; }.cinema-player:fullscreen .cinema-toolbar button { width:44px;height:44px; }.cinema-player:fullscreen .cinema-toolbar-start,.cinema-player:fullscreen .cinema-toolbar-end { gap:12px; }.cinema-player:fullscreen .cinema-clock { font-size:12px; }.cinema-player:fullscreen .cinema-center-play { width:92px;height:92px; }.cinema-player:fullscreen .cinema-menu { bottom:120px;right:45px; }
 @keyframes cinema-menu-in { from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none} }
-@media(max-width:1000px){.cinema-volume input{width:45px}.cinema-toolbar-start,.cinema-toolbar-end{gap:6px}.cinema-pip{display:none!important}.cinema-clock{font-size:9px;gap:5px}.cinema-topbar{padding:18px 20px 50px}.cinema-topbar h2{font-size:15px}.cinema-bottom{padding:45px 17px 12px}.cinema-toolbar button{width:29px}.cinema-toolbar svg{width:21px}.cinema-center-play{width:65px;height:65px}.cinema-center-play svg{width:26px}.cinema-menu{right:15px;bottom:95px}}
+@media(max-width:1000px){.cinema-volume input{width:45px}.cinema-toolbar-start,.cinema-toolbar-end{gap:6px}.cinema-pip{display:none!important}.cinema-clock{font-size:10px;gap:5px}.cinema-topbar{padding:18px 20px 50px}.cinema-topbar h2{font-size:15px}.cinema-bottom{padding:45px 17px 12px}.cinema-toolbar button{width:34px;height:34px}.cinema-toolbar svg{width:19px}.cinema-center-play{width:65px;height:65px}.cinema-center-play svg{width:26px}.cinema-menu{right:15px;bottom:95px}}
 @media(max-width:767px){
- .cinema-topbar{padding:13px 15px 45px}.cinema-topbar span{font-size:6px}.cinema-topbar h2{font-size:12px;margin-top:4px;max-width:190px}.cinema-source-label{font-size:7px;padding:5px 8px;max-width:38%}.cinema-center-play{width:54px;height:54px}.cinema-center-play svg{width:22px}.cinema-bottom{padding:35px 12px 6px}.cinema-timeline{height:18px}.cinema-timeline input{height:18px}.cinema-timeline input::-webkit-slider-thumb{width:10px;height:10px;margin-top:-3.5px}.cinema-toolbar{gap:7px}.cinema-toolbar-start,.cinema-toolbar-end{gap:3px}.cinema-toolbar button{width:25px;height:31px}.cinema-toolbar svg{width:18px;height:18px}.cinema-volume input{display:none}.cinema-clock{font-size:8px;gap:3px}.cinema-clock i{margin:0}.cinema-skip small{top:12px;font-size:5px}.cinema-topbar .cinema-source-label svg{width:9px}.cinema-menu{position:fixed;bottom:20px;right:15px;left:15px;width:auto;max-width:none;max-height:70svh;padding:20px;z-index:85}.cinema-menu h3{font-size:17px}.cinema-menu-option{font-size:12px;padding:12px}.cinema-caption-list{max-height:220px}.cinema-menu-note{font-size:11px}.cinema-quality-options button,.cinema-speed-options button{padding:9px 12px}.caption-search{font-size:12px;padding:11px}.cinema-toast{font-size:9px;top:55px;padding:7px 10px;max-width:90%}.cinema-player .player-slow{top:49px;left:auto;right:10px;transform:none;max-width:60%;padding:6px 9px;font-size:8px;gap:8px}.cinema-player .player-slow>span{max-width:120px}.cinema-player .player-hint{top:50px;font-size:9px;padding:8px;max-width:85%}.cinema-player:fullscreen .cinema-topbar{padding:18px 22px 45px}.cinema-player:fullscreen .cinema-bottom{padding:50px 22px 14px}.cinema-player:fullscreen .cinema-toolbar-start,.cinema-player:fullscreen .cinema-toolbar-end{gap:7px}.cinema-player:fullscreen .cinema-toolbar button{width:30px;height:35px}.cinema-player:fullscreen .cinema-clock{font-size:10px}.cinema-player:fullscreen .cinema-menu{position:absolute;left:auto;right:20px;bottom:90px;width:300px;max-height:calc(100% - 105px)}
+ .cinema-pause-idle{padding:18px;align-items:flex-end;padding-bottom:68px}.cinema-pause-content{max-width:100%;gap:5px}.cinema-pause-logo{max-height:46px;max-width:180px}.cinema-pause-title{font-size:20px}.cinema-pause-subtitle{font-size:13px}.cinema-pause-meta{font-size:10px;gap:6px}.cinema-pause-desc{font-size:11px;-webkit-line-clamp:2}.cinema-controls.is-paused-idle .cinema-center-play{left:50%;right:auto;transform:translate(-50%,-50%)}
+ .cinema-topbar{padding:13px 15px 45px}.cinema-topbar span{font-size:7px}.cinema-topbar h2{font-size:12px;margin-top:4px;max-width:190px}.cinema-source-label{font-size:9px;padding:5px 10px;max-width:44%}.cinema-source-qbadge{height:12px}.cinema-center-play{width:54px;height:54px}.cinema-center-play svg{width:22px}.cinema-bottom{padding:35px 12px 8px}.cinema-timeline{height:18px}.cinema-timeline input{height:18px}.cinema-timeline input::-webkit-slider-thumb{width:11px;height:11px;margin-top:-3.5px}.cinema-toolbar{gap:6px}.cinema-toolbar-start,.cinema-toolbar-end{gap:4px}.cinema-toolbar button{width:32px;height:32px}.cinema-toolbar svg{width:17px;height:17px}.cinema-volume{padding-right:0}.cinema-volume input{display:none}.cinema-clock{font-size:9px;gap:4px;padding:0 8px;height:30px}.cinema-clock i{margin:0}.cinema-skip small{top:11.5px;font-size:5.5px}.cinema-topbar .cinema-source-label svg{width:10px}.cinema-menu{position:fixed;bottom:16px;right:12px;left:12px;width:auto;max-width:none;max-height:74svh;padding:18px;z-index:85}.cinema-menu h3{font-size:16px}.cinema-menu-option{font-size:12px;padding:10px 11px}.cinema-caption-list{max-height:220px}.cinema-menu-note{font-size:11px}.cinema-quality-options button,.cinema-speed-options button{padding:8px 11px}.caption-search{font-size:12px;padding:10px}.cinema-toast{font-size:9px;top:55px;padding:7px 10px;max-width:90%}.cinema-player .player-slow{top:49px;left:auto;right:10px;transform:none;max-width:60%;padding:6px 9px;font-size:8px;gap:8px}.cinema-player .player-slow>span{max-width:120px}.cinema-player .player-hint{top:50px;font-size:9px;padding:8px;max-width:85%}.cinema-player:fullscreen .cinema-topbar{padding:18px 22px 45px}.cinema-player:fullscreen .cinema-bottom{padding:50px 22px 14px}.cinema-player:fullscreen .cinema-toolbar-start,.cinema-player:fullscreen .cinema-toolbar-end{gap:7px}.cinema-player:fullscreen .cinema-toolbar button{width:34px;height:35px}.cinema-player:fullscreen .cinema-clock{font-size:10px}.cinema-player:fullscreen .cinema-menu{position:absolute;left:auto;right:20px;bottom:90px;width:320px;max-height:calc(100% - 105px)}
 }
-@media(prefers-reduced-motion:reduce){.cinema-menu{animation:none}.cinema-topbar,.cinema-bottom,.cinema-center-play{transition:none}}
+@media(prefers-reduced-motion:reduce){.cinema-menu,.cinema-pause-idle{animation:none}.cinema-topbar,.cinema-bottom,.cinema-center-play{transition:none}}

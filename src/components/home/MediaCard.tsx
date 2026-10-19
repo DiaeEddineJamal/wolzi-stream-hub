@@ -12,11 +12,12 @@ interface Props extends MediaItem {
 export default function MediaCard({ className, detailTo, playTo, progressPercent, landscape = false, rank, ...item }: Props) {
   const { has, toggle } = useWatchlist();
   const saved = has(item);
+  const expandedSrc = item.backdropUrl || (/^tt\d+$/.test(item.id) ? `https://images.metahub.space/background/medium/${encodeURIComponent(item.id)}/img` : item.posterUrl);
   return <article className={cn('max-card group', landscape && 'max-card-landscape', className)}>
     <div className="max-card-art">
       <Link to={detailTo || `/${item.mediaType}/${item.id}`} aria-label={`Details for ${item.title}`} className="block h-full">
         <img className="card-poster" src={(landscape && item.backdropUrl) || item.posterUrl} srcSet={artworkSet((landscape&&item.backdropUrl)||item.posterUrl,landscape?'backdrop':'poster')} sizes={landscape?'(max-width:767px) 78vw, 390px':'(max-width:767px) 38vw, 226px'} alt={item.title} loading="lazy" decoding="async" onError={e => { e.currentTarget.onerror = null; e.currentTarget.srcset=''; e.currentTarget.src = '/poster-placeholder.svg'; }} />
-        {canHover && !landscape && item.backdropUrl && <img className="card-expanded-image" src={item.backdropUrl} srcSet={artworkSet(item.backdropUrl)} sizes="520px" alt="" loading="lazy" decoding="async" />}
+        {canHover && !landscape && expandedSrc && <img className="card-expanded-image" src={expandedSrc} srcSet={artworkSet(expandedSrc)} sizes="520px" alt="" loading="lazy" decoding="async" onError={e => { e.currentTarget.onerror = null; e.currentTarget.srcset = ''; e.currentTarget.src = item.posterUrl || '/poster-placeholder.svg'; }} />}
         <span className="max-card-shade" />
         {rank && <span className="card-rank">{String(rank).padStart(2, '0')}</span>}
         <strong className="card-image-title">{item.title}</strong>

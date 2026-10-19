@@ -13,7 +13,7 @@ export const streamSchema = z.object({
   infoHash: z.string().optional(), fileIdx: z.number().int().min(0).optional(), sources: z.array(z.string()).optional(), name: z.string().optional(),
   title: z.string().optional(), description: z.string().optional(),
   subtitles: z.array(z.object({ id: z.string().optional(), url: z.string(), lang: z.string() })).optional(),
-  behaviorHints: z.object({ notWebReady: z.boolean().optional(), proxyHeaders: z.object({request:z.record(z.string()).optional(),response:z.record(z.string()).optional()}).optional() }).optional(),
+  behaviorHints: z.object({ notWebReady: z.boolean().optional(), isHls: z.boolean().optional(), proxyHeaders: z.object({request:z.record(z.string()).optional(),response:z.record(z.string()).optional()}).optional() }).optional(),
 }).passthrough();
 export type AddonStream = z.infer<typeof streamSchema>;
 export interface StreamChoice { id: string; name: string; description?: string; url?: string; externalUrl?: string; kind: 'video' | 'embed' | 'external' | 'unsupported'; reason?: string; service?: string; needsConversion?: boolean; availability?: 'checking'|'reachable'|'ready'|'failed'|'timeout'; provider?: string; subtitles?: { url: string; lang: string }[] }
@@ -94,10 +94,11 @@ export function serviceStreamUrl(stream: AddonStream, service: string) {
   throw new Error('This stream requires format conversion in another player.');
 }
 // Built-in same-origin relay (server/media-proxy.ts) for header-dependent sources when no Stremio Service is connected.
-export function mediaProxyUrl(url:string,headers:Record<string,string>={}){
+export function mediaProxyUrl(url:string,headers:Record<string,string>={},isHls=false){
   const query=new URLSearchParams({u:url});
   Object.entries(headers).forEach(([k,v])=>query.append('h',k+':'+v));
-  const name=new URL(url).pathname.split('/').pop()?.replace(/[^\w.-]/g,'')||'media';
+  const rawName=new URL(url).pathname.split('/').pop()?.replace(/[^\w.-]/g,'')||'media';
+  const name=isHls&&!/\.m3u8$/i.test(rawName)?rawName+'.m3u8':rawName;
   return '/api/playback/media/'+name+'?'+query;
 }
 export function hlsPlaybackUrl(mediaUrl:string,service:string,sessionId:string,origin:string){
@@ -110,9 +111,9 @@ export function classifyStream(stream: AddonStream, id: string, addonName: strin
   if (stream.externalUrl) {
     try { return { ...base, kind: 'external', externalUrl: httpsUrl(stream.externalUrl) }; } catch { return {...base,kind:'unsupported',reason:'This external link is not a secure web address.'}; }
   }
-  if ((stream.infoHash&&!stream.url) || stream.behaviorHints?.proxyHeaders) {
+  if ((stream.infoHash&&!stream.url) || stream.behaviorHints?.proxyHeaders || stream.behaviorHints?.isHls) {
+    if(stream.url&&!stream.behaviorHints?.notWebReady){try{return {...base,kind:'video',url:mediaProxyUrl(httpsUrl(stream.url),stream.behaviorHints?.proxyHeaders?.request,stream.behaviorHints?.isHls)};}catch{ /* Explain below. */ }}
     if(service){try{return {...base,kind:'video',url:serviceStreamUrl(stream,service),service:normalizeServiceUrl(service),needsConversion:!!stream.infoHash&&!stream.url};}catch(e){return {...base,kind:'unsupported',reason:e instanceof Error?e.message:'This source could not be converted.'};}}
-    if(stream.url){try{return {...base,kind:'video',url:mediaProxyUrl(httpsUrl(stream.url),stream.behaviorHints?.proxyHeaders?.request)};}catch{ /* Explain below. */ }}
     return { ...base, kind:'unsupported',reason:'Install and start Stremio Service on this computer, then retry. A&D MAX connects to it automatically.' };
   }
   if (stream.behaviorHints?.notWebReady) {
@@ -132,7 +133,7 @@ export async function addonStreams(addon: InstalledAddon, type: string, id: stri
 }
 export const metaSchema = z.object({
   id:z.string(), type:z.string(), name:z.string(), poster:z.string().optional(), background:z.string().optional(),
-  description:z.string().optional(), releaseInfo:z.string().optional(),
+  description:z.string().optional(), releaseInfo:z.string().optional(), imdbRating:z.union([z.string(),z.number()]).optional(),
   videos:z.array(z.object({id:z.string(),title:z.string().optional(),season:z.number().optional(),episode:z.number().optional(),thumbnail:z.string().optional()})).optional(),
 });
 export async function addonCatalog(addon: InstalledAddon, type: string, id: string, signal?: AbortSignal) {

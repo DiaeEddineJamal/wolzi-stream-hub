@@ -17,10 +17,16 @@ export function StremioServiceModal(){
   const installer=getServiceInstaller();
 
   useEffect(()=>{
-    const show=()=>{if(saved==='off')setSaved('');setOpen(true);void recheck();};
+    const show=(e:Event)=>{
+      const auto=(e as CustomEvent<{auto?:boolean}>).detail?.auto;
+      if(auto&&installer.platform==='mobile')return;
+      if(saved==='off')setSaved('');
+      setOpen(true);
+      void recheck();
+    };
     window.addEventListener('admax-service-setup',show);
     return()=>window.removeEventListener('admax-service-setup',show);
-  },[recheck,saved,setSaved]);
+  },[recheck,saved,setSaved,installer.platform]);
 
   useEffect(()=>{
     if(!open)return;
@@ -40,52 +46,52 @@ export function StremioServiceModal(){
   };
 
   return <Dialog open={open} onOpenChange={next=>{if(!next)dismiss();else setOpen(true);}}>
-    <DialogContent className="glass-dialog max-w-md">
-      <DialogHeader>
-        <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl border border-white/15 bg-white/5">
-          <Server size={22}/>
+    <DialogContent className="glass-dialog service-modal max-w-md">
+      <DialogHeader className="service-modal-head">
+        <div className="service-modal-icon">
+          <Server size={20}/>
         </div>
         <DialogTitle className="text-center">Enable Torrent & Add-on Playback</DialogTitle>
         <DialogDescription className="text-center">
-          {service?'Stremio Service is active and ready on this device.':'Stremio Service was not detected on your computer. Install or launch it once so torrent add-ons like Torrentio play automatically—even after rebooting.'}
+          {service?'Stremio Service is active and ready on this device.':installer.platform==='mobile'?'Built-in web servers play right in your mobile browser. Torrent add-ons use the Stremio app or a desktop service.':'Install or launch Stremio Service once so torrent add-ons like Torrentio play automatically—even after rebooting.'}
         </DialogDescription>
       </DialogHeader>
 
-      <ol className="install-steps my-2">
+      <ol className="install-steps service-modal-steps">
         <li>
-          <span><Download size={17}/></span>
-          <p><strong>1. Download the companion installer</strong><br/>Click below to download the official one-click installer for your system ({installer.platform === 'windows' ? 'Windows' : installer.platform === 'mac' ? 'macOS' : installer.platform === 'linux' ? 'Linux' : 'your device'}).</p>
+          <span><Download size={16}/></span>
+          <p><strong>1. Download companion</strong><br/>{installer.platform==='mobile'?'Install the Stremio mobile app or use built-in web servers below.':`Get the official installer for ${installer.platform === 'windows' ? 'Windows' : installer.platform === 'mac' ? 'macOS' : 'Linux'}.`}</p>
         </li>
         <li>
-          <span><Play size={17}/></span>
-          <p><strong>2. Run it once (auto-starts on boot)</strong><br/>Open the downloaded installer. It runs silently in the background and automatically starts whenever you turn on your PC.</p>
+          <span><Play size={16}/></span>
+          <p><strong>2. Run once (auto-starts on boot)</strong><br/>Opens silently in the background and starts automatically with your PC.</p>
         </li>
         <li>
-          <span>{service?<CheckCircle2 size={17}/>:<RefreshCw size={17} className={checking||downloading?'animate-spin':''}/>}</span>
-          <p><strong>3. Automatic connection</strong><br/>{service?'Connected! You are ready to stream.':'Waiting for Stremio Service on 127.0.0.1:11470… This window will connect and close automatically as soon as it starts.'}</p>
+          <span>{service?<CheckCircle2 size={16}/>:<RefreshCw size={16} className={checking||downloading?'animate-spin':''}/>}</span>
+          <p><strong>3. Auto-connects</strong><br/>{service?'Connected! Ready to stream.':'Waiting on 127.0.0.1:11470… Connects and closes automatically once started.'}</p>
         </li>
       </ol>
 
-      <div className="flex flex-col gap-2.5 pt-1">
+      <div className="service-modal-actions">
         <Button asChild className="w-full" onClick={()=>setDownloading(true)}>
           <a href={installer.url} download={installer.filename||undefined} target="_blank" rel="noopener noreferrer">
             <Download size={16}/>{installer.label}
           </a>
         </Button>
-        <div className="flex gap-2">
+        <div className="service-modal-subactions">
           <Button type="button" variant="secondary" className="flex-1" asChild>
             <a href="stremio://">
-              <ExternalLink size={15}/>Launch Stremio App
+              <ExternalLink size={14}/>Launch Stremio
             </a>
           </Button>
           <Button type="button" variant="secondary" className="flex-1" disabled={checking} onClick={()=>void recheck()}>
-            <RefreshCw size={15} className={checking?'animate-spin':''}/>{checking?'Checking…':'Retry detection'}
+            <RefreshCw size={14} className={checking?'animate-spin':''}/>{checking?'Checking…':'Retry detection'}
           </Button>
         </div>
       </div>
 
       <DialogFooter className="sm:justify-center">
-        <button type="button" className="text-xs text-muted-foreground underline" onClick={dismiss}>Continue with built-in browser sources only</button>
+        <button type="button" className="service-modal-skip" onClick={dismiss}>Continue with built-in web servers only</button>
       </DialogFooter>
     </DialogContent>
   </Dialog>;
@@ -102,5 +108,5 @@ export default function StreamingServiceSettings(){
     catch{setStatus('Could not reach the service. Start Stremio Service on this computer and check the address.');}
     finally{setBusy(false);}
   };
-  return <section id="streaming-service" className="settings-panel mb-9"><p className="eyebrow">OPTIONAL · FOR TORRENT SOURCES</p><h2 className="mb-3 text-xl">Connect your streaming service</h2><p className="mb-5 max-w-3xl text-xs leading-7 text-muted-foreground">Like Stremio Web, torrent add-ons and format conversion need Stremio Service running on your computer. A&D MAX finds it automatically at {LOCAL_SERVICE}; your browser may ask once to allow access to devices on your local network. Direct and header-based sources play without it.</p><div className="mb-4 flex flex-wrap items-center gap-3 text-xs" role="status"><span>{active?<>Connected: <code>{active}</code></>:'Not detected on this computer.'}</span>{!active&&<Button type="button" size="sm" onClick={openServiceSetup}><Download size={14}/>Install / Setup Stremio Service</Button>}</div><form className="flex flex-col gap-3 sm:flex-row" onSubmit={connect}><Input aria-label="Streaming service URL" value={url} onChange={e=>setUrl(e.target.value)} placeholder={LOCAL_SERVICE}/><Button disabled={busy||!url.trim()}>{busy?'Checking…':'Connect service'}</Button>{service!=='off'&&<Button type="button" variant="secondary" onClick={()=>{setService('off');setStatus('Service disconnected. Connect again to re-enable automatic detection.');}}>Disconnect</Button>}</form>{status&&<p className="mt-4 text-xs text-muted-foreground" role="status">{status}</p>}<p className="mt-4 text-xs text-muted-foreground"><a className="underline" href={installer.url} target="_blank" rel="noreferrer">{installer.label}</a> · Converted streams use your browser's built-in HLS player (Chrome, Edge, Safari). In Firefox, torrents in MP4/WebM play; other formats need conversion.</p></section>;
+  return <section id="streaming-service" className="settings-panel mb-9"><p className="eyebrow">OPTIONAL · FOR TORRENT SOURCES</p><h2 className="mb-3 text-xl">Connect your streaming service</h2><p className="mb-5 max-w-3xl text-xs leading-7 text-muted-foreground">Like Stremio Web, torrent add-ons and format conversion need Stremio Service running on your computer. A&D MAX finds it automatically at {LOCAL_SERVICE}; your browser may ask once to allow access to devices on your local network. Direct and header-based sources play without it.</p><div className="mb-4 flex flex-wrap items-center gap-3 text-xs" role="status"><span>{active?<>Connected: <code>{active}</code></>:'Not detected on this computer.'}</span>{!active&&<Button type="button" size="sm" onClick={()=>openServiceSetup(false)}><Download size={14}/>Install / Setup Stremio Service</Button>}</div><form className="flex flex-col gap-3 sm:flex-row" onSubmit={connect}><Input aria-label="Streaming service URL" value={url} onChange={e=>setUrl(e.target.value)} placeholder={LOCAL_SERVICE}/><Button disabled={busy||!url.trim()}>{busy?'Checking…':'Connect service'}</Button>{service!=='off'&&<Button type="button" variant="secondary" onClick={()=>{setService('off');setStatus('Service disconnected. Connect again to re-enable automatic detection.');}}>Disconnect</Button>}</form>{status&&<p className="mt-4 text-xs text-muted-foreground" role="status">{status}</p>}<p className="mt-4 text-xs text-muted-foreground"><a className="underline" href={installer.url} target="_blank" rel="noreferrer">{installer.label}</a> · Converted streams use your browser's built-in HLS player (Chrome, Edge, Safari). In Firefox, torrents in MP4/WebM play; other formats need conversion.</p></section>;
 }

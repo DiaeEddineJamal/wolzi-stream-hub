@@ -2,16 +2,16 @@ import { ChoiceSelect } from '@/components/ui/select';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Check, ExternalLink, Layers, Play, Plus, SkipForward } from 'lucide-react';
+import { Check, ChevronRight, Clock, Layers, Play, Plus, SkipForward, Sparkles, Star } from 'lucide-react';
 import MainLayout from '@/layouts/MainLayout';
 import { useArtworkTheme } from '@/hooks/useArtworkTheme';
 import StreamingPlayer from '@/components/watch/StreamingPlayer';
-import { SourcePicker, SourcePickerSheet } from '@/components/watch/SourcePicker';
+import { detectQualityTier, QUALITY_BADGES, SourcePicker, SourcePickerSheet } from '@/components/watch/SourcePicker';
+import ContentSection from '@/components/home/ContentSection';
+import DraggableRail from '@/components/home/DraggableRail';
 import LoadingState from '@/components/primitives/LoadingState';
 import { Button } from '@/components/ui/button';
-
-
-import tmdbApi, { getBackdropUrl } from '@/integrations/api/tmdb';
+import tmdbApi, { getBackdropUrl, getPosterUrl, getProfileUrl } from '@/integrations/api/tmdb';
 import { addonStreams, supportsResource } from '@/integrations/api/stremio';
 import { useSubtitles } from '@/hooks/useSubtitles';
 import { useAddons } from '@/hooks/useAddons';
@@ -20,11 +20,13 @@ import { usePlaybackSelection } from '@/hooks/usePlaybackSelection';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { openServiceSetup, useStreamingService } from '@/hooks/useStreamingService';
 import { toMediaItem, watchPath } from '@/lib/media';
+import { artworkSet } from '@/lib/artwork';
 import { useWatchlist } from '@/hooks/useWatchlist';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlaybackHistory } from '@/hooks/usePlaybackHistory';
 import { resumeSeconds } from '@/lib/watch-progress';
 import { toast } from 'sonner';
+
 export default function WatchNew(){ const {id}=useParams(),{pathname}=useLocation(); const type=pathname.includes('/movie/')?'movie':pathname.includes('/anime/')?'anime':'tv'; return <WatchSession key={`${type}-${id}`}/>; }
 function WatchSession(){
   const {id,season:seasonParam,episode:episodeParam}=useParams();
@@ -61,15 +63,17 @@ function WatchSession(){
   const addonStreamList=(addonResults.data || []).flatMap(r=>r.streams);
   useEffect(()=>{
     if(detectedOnce&&!service&&addonStreamList.some(s=>/Stremio Service/i.test(s.reason||''))){
-      try{if(!sessionStorage.getItem('admax-service-prompt-dismissed'))openServiceSetup();}catch{openServiceSetup();}
+      try{if(!sessionStorage.getItem('admax-service-prompt-dismissed'))openServiceSetup(true);}catch{openServiceSetup(true);}
     }
   },[detectedOnce,service,addonStreamList]);
   const playback=usePlaybackSelection([...resolved.sources,...addonStreamList],resolved.checking||addonResults.isFetching,episodeKey);
   const {choices,active}=playback;
   const item=details.data?toMediaItem(details.data,type):null;
   const theme=useArtworkTheme(item?.backdropUrl);
-  const currentEpisode=episodes.data?.episodes?.find(ep=>ep.episode_number===episode);
-  const next=episodes.data?.episodes?.find(ep=>ep.episode_number===episode+1);
+  const currentEpisode=episodes.data?.episodes?.find((ep:any)=>ep.episode_number===episode);
+  const next=episodes.data?.episodes?.find((ep:any)=>ep.episode_number===episode+1);
+  const logo=details.data?.images?.logos?.filter((i:any)=>i.iso_639_1==='en'&&i.width>i.height*1.6).sort((a:any,b:any)=>b.width-a.width)[0];
+  const logoUrl=logo?getPosterUrl(logo.file_path,'w500')||undefined:undefined;
   const initialPosition=resumeSeconds(watched.find(entry=>entry.content_id===id&&entry.content_type===type&&(entry.season||1)===season&&(entry.episode||1)===episode));
   const onProgress=useCallback(async(seconds:number,duration:number)=>{
     if(!details.data||!Number.isFinite(seconds)||!Number.isFinite(duration)||duration<=0)return;
@@ -77,20 +81,125 @@ function WatchSession(){
     catch{if(!warned.current){toast.error('Progress is saved on this device. Account sync could not finish.');warned.current=true;}}
   },[saveProgress,details.data,id,type,season,episode,item?.backdropUrl]);
   const pickerProps={sources:choices,activeId:active?.id,onSelect:playback.onSelect,loading:resolved.checking||addonResults.isFetching,errors:[...(resolved.error?['Source discovery']:[]),...(addonResults.data||[]).filter(r=>r.error).map(r=>r.name)],onRetry:()=>{setScan(s=>s+1);void recheck();void addonResults.refetch();}};
-  return <MainLayout theme={theme}><div className="page-shell player-page">
-      <div className="watch-player-layout"><StreamingPlayer source={active?{...active,subtitles:[...(active.subtitles||[]),...(subtitles.data?.tracks||[])]}:undefined} title={item?.title || 'A&D MAX'} storageKey={`${user?.id||"guest"}-${type}-${id}-${season}-${episode}`} initialPosition={initialPosition} poster={item?.backdropUrl} searching={pickerProps.loading} onSourceReady={playback.onReady} onSourceError={playback.onFailure} onNextSource={playback.next} onRetryService={()=>{void recheck();void addonResults.refetch();}} onProgress={onProgress} resume={resume} onOpenSources={()=>setSourcesOpen(true)} nextEpisode={next?{label:next.name,image:getBackdropUrl(next.still_path)||item?.backdropUrl,eyebrow:`Season ${season} · Episode ${next.episode_number}`,onPlay:()=>navigate(watchPath(type,id,season,next.episode_number))}:undefined} autoNext={autoNext} onAutoNextChange={setAutoNext} subtitleStatus={subtitles.isPending?'Finding subtitles…':subtitles.data?.failed.length?subtitles.data.failed.join(', ')+' is temporarily unavailable. Other tracks remain available.':undefined}/><aside className="desktop-source-picker"><SourcePicker {...pickerProps}/></aside></div>
-      <div className="selected-source-bar"><span><Layers size={15}/>{active?.name || 'Choose a source'}</span><Button size="sm" variant="secondary" onClick={()=>setSourcesOpen(true)}>Change source <span className="nav-count">{choices.length}</span></Button></div>
-      <header className="watch-titlebar"><div><p className="eyebrow">NOW WATCHING</p><h1>{item?.title || (details.isError?'Title unavailable':'Opening title…')}</h1><p>{type==='movie'?item?.year:`Season ${season} · Episode ${episode}${currentEpisode?.name?' — '+currentEpisode.name:''}`}</p></div><div className="flex gap-3">{item&&<Button variant="secondary" onClick={()=>toggle(item)} aria-pressed={has(item)}>{has(item)?<Check size={17}/>:<Plus size={17}/>}My List</Button>}{next&&<Button variant="secondary" asChild><Link to={watchPath(type,id,season,next.episode_number)}>Next episode <SkipForward size={16}/></Link></Button>}</div></header>
+  const activeTier=active?detectQualityTier(active.name+' '+(active.description||'')):'auto';
+  const activeBadge=QUALITY_BADGES[activeTier]?.icon;
+  const idleMeta={
+    title:item?.title||'A&D MAX',
+    logoUrl,
+    subtitle:type!=='movie'?currentEpisode?.name:undefined,
+    episodeCode:type!=='movie'?`S${season} E${episode}`:undefined,
+    year:item?.year,
+    rating:item?.rating,
+    contentRating:details.data?.adult?'TV-MA':type==='movie'?'PG-13':'TV-MA',
+    description:currentEpisode?.overview||item?.description,
+    backdropUrl:getBackdropUrl(currentEpisode?.still_path)||item?.backdropUrl,
+  };
+  const recommendations=(details.data?.recommendations?.results||[]).slice(0,12).map((i:any)=>toMediaItem(i,type));
+
+  return <MainLayout theme={theme}><div className="page-shell player-page apple-watch-page">
+      <div className="watch-player-layout">
+        <StreamingPlayer
+          source={active?{...active,subtitles:[...(active.subtitles||[]),...(subtitles.data?.tracks||[])]}:undefined}
+          title={item?.title || 'A&D MAX'}
+          storageKey={`${user?.id||"guest"}-${type}-${id}-${season}-${episode}`}
+          initialPosition={initialPosition}
+          poster={getBackdropUrl(currentEpisode?.still_path)||item?.backdropUrl}
+          searching={pickerProps.loading}
+          onSourceReady={playback.onReady}
+          onSourceError={playback.onFailure}
+          onNextSource={playback.next}
+          onRetryService={()=>{void recheck();void addonResults.refetch();}}
+          onProgress={onProgress}
+          resume={resume}
+          onOpenSources={()=>setSourcesOpen(true)}
+          nextEpisode={next?{label:next.name,image:getBackdropUrl(next.still_path)||item?.backdropUrl,eyebrow:`S${season} · E${next.episode_number}`,onPlay:()=>navigate(watchPath(type,id,season,next.episode_number))}:undefined}
+          autoNext={autoNext}
+          onAutoNextChange={setAutoNext}
+          subtitleStatus={subtitles.isPending?'Loading OpenSubtitles…':subtitles.data?.failed.length?subtitles.data.failed.join(', ')+' is temporarily unavailable.':undefined}
+          idleMeta={idleMeta}
+        />
+        <aside className="desktop-source-picker"><SourcePicker {...pickerProps}/></aside>
+      </div>
+
+      <div className="selected-source-bar">
+        <span><Layers size={15}/>{activeBadge&&<img src={activeBadge} alt="" className="h-4 w-auto"/>}{active?.name || 'Choose a source'}</span>
+        <Button size="sm" variant="secondary" onClick={()=>setSourcesOpen(true)}>Change source <span className="nav-count">{choices.length}</span></Button>
+      </div>
+
+      <section className="apple-watch-hero">
+        <div className="apple-watch-hero-main">
+          <div className="apple-watch-kicker">
+            <span className="eyebrow">NOW STREAMING</span>
+            {type!=='movie'&&<span className="apple-episode-pill">SEASON {season} · EPISODE {episode}</span>}
+          </div>
+          {logoUrl?<img src={logoUrl} alt={item?.title||''} className="apple-watch-logo"/>:<h1>{item?.title || (details.isError?'Title unavailable':'Opening title…')}</h1>}
+          {type!=='movie'&&currentEpisode?.name&&<h2 className="apple-watch-ep-title">“{currentEpisode.name}”</h2>}
+          <div className="apple-watch-badges">
+            {item?.rating&&item.rating>0&&<span className="apple-meta-rating"><Star size={13} fill="currentColor"/>{item.rating.toFixed(1)}</span>}
+            {item?.year&&<span>{item.year}</span>}
+            <span className="apple-cert-badge">{idleMeta.contentRating}</span>
+            <img src="/badges/4k-uhd.svg" alt="4K UHD" className="h-4 w-auto opacity-90"/>
+            <img src="/badges/1080p-fhd.svg" alt="Full HD" className="h-4 w-auto opacity-85"/>
+            {(currentEpisode?.runtime||details.data?.runtime)>0&&<span className="inline-flex items-center gap-1"><Clock size={12}/>{currentEpisode?.runtime||details.data?.runtime} min</span>}
+            {item?.genres?.slice(0,3).map(g=><span key={g} className="apple-genre-chip">{g}</span>)}
+          </div>
+          <p className="apple-watch-synopsis">{currentEpisode?.overview||item?.description}</p>
+        </div>
+        <div className="apple-watch-actions">
+          {item&&<Button variant="secondary" className="rounded-full px-5" onClick={()=>toggle(item)} aria-pressed={has(item)}>{has(item)?<Check size={16}/>:<Plus size={16}/>}{has(item)?'In Up Next':'Add to Up Next'}</Button>}
+          <Button variant="secondary" className="rounded-full px-5" onClick={()=>setSourcesOpen(true)}><Layers size={16}/>Servers ({choices.length})</Button>
+          {next&&<Button className="rounded-full px-5" asChild><Link to={watchPath(type,id,season,next.episode_number)}>Next Episode <SkipForward size={16}/></Link></Button>}
+          {item&&<Button variant="ghost" className="rounded-full" asChild><Link to={`/${type}/${id}`}>Title Details <ChevronRight size={15}/></Link></Button>}
+        </div>
+      </section>
+
       {details.isError&&<p role="alert" className="mb-6 text-sm text-muted-foreground">Metadata couldn’t load. <button className="underline" onClick={()=>details.refetch()}>Retry</button></p>}
-      <div className="watch-content"><section>
-        <p className="player-note">Make it your kind of movie night. Change audio, captions, and available quality levels in the player.</p>
-        {active?.kind==='video'&&<p className="player-note mt-2">Player shortcuts: Space / K to pause · ← / → to seek · M to mute · F for fullscreen. Use Audio & Subtitles for embedded tracks, OpenSubtitles, and your own subtitle files.</p>}
-        {item&&<div className="mt-9 border-t border-white/10 pt-7"><p className="eyebrow">ABOUT THIS STORY</p><p className="max-w-2xl text-sm leading-7 text-muted-foreground">{item.description}</p></div>}
-      </section>{type!=='movie'&&<aside><h2 className="mb-5 text-xl">Episodes</h2><ChoiceSelect label="Select season" value={String(season)} onValueChange={value=>navigate(watchPath(type,id,Number(value),1))} options={(details.data?.seasons||[]).filter(s=>s.season_number>0).map(s=>({value:String(s.season_number),label:s.name}))}/>
-        {episodes.isPending?<div className="py-5"><LoadingState label="Loading episodes"/></div>:episodes.isError?<Button className="mt-5" variant="secondary" onClick={()=>episodes.refetch()}>Retry episodes</Button>:<div className="episode-watch-list">{episodes.data.episodes?.map(ep=><Link className={ep.episode_number===episode?'active':''} key={ep.id} to={watchPath(type,id,season,ep.episode_number)}><span className="episode-number">{String(ep.episode_number).padStart(2,'0')}</span>{ep.name}</Link>)}</div>}
-      </aside>}</div>
+
+      {type!=='movie'&&<section className="apple-episodes-section">
+        <header className="apple-episodes-header">
+          <div>
+            <p className="eyebrow">EPISODES</p>
+            <h2>Season {season} <span className="text-sm font-normal text-muted-foreground">({episodes.data?.episodes?.length||0} episodes)</span></h2>
+          </div>
+          <ChoiceSelect label="Select season" value={String(season)} onValueChange={value=>navigate(watchPath(type,id,Number(value),1))} options={(details.data?.seasons||[]).filter((s:any)=>s.season_number>0).map((s:any)=>({value:String(s.season_number),label:s.name}))}/>
+        </header>
+        {episodes.isPending?<div className="py-6"><LoadingState label="Loading episodes"/></div>:episodes.isError?<Button className="mt-4" variant="secondary" onClick={()=>episodes.refetch()}>Retry episodes</Button>:<DraggableRail className="apple-episode-rail">
+          {episodes.data.episodes?.map((ep:any)=>{
+            const isCurrent=ep.episode_number===episode;
+            const epProgress=watched.find(w=>w.content_id===id&&w.content_type===type&&(w.season||1)===season&&(w.episode||1)===ep.episode_number)?.progress_percent;
+            const thumb=getBackdropUrl(ep.still_path,'w780')||item?.backdropUrl||'/poster-placeholder.svg';
+            return <Link key={ep.id} to={watchPath(type,id,season,ep.episode_number)} className={`apple-ep-card ${isCurrent?'is-active':''}`}>
+              <div className="apple-ep-art">
+                <img src={thumb} srcSet={artworkSet(thumb)} sizes="(max-width:767px) 76vw, 310px" alt="" loading="lazy" decoding="async"/>
+                <span className="apple-ep-shade"/>
+                <span className="apple-ep-play"><Play size={15} fill="currentColor"/></span>
+                {isCurrent&&<span className="apple-ep-playing-badge"><Sparkles size={11}/>NOW PLAYING</span>}
+                {ep.runtime>0&&<span className="apple-ep-duration">{ep.runtime}m</span>}
+                {epProgress!=null&&epProgress>0&&<span className="apple-ep-progress"><i style={{width:`${Math.min(100,epProgress)}%`}}/></span>}
+              </div>
+              <div className="apple-ep-body">
+                <span className="apple-ep-num">EPISODE {ep.episode_number}</span>
+                <h3>{ep.name||`Episode ${ep.episode_number}`}</h3>
+                <p>{ep.overview||'Watch this episode on A&D MAX.'}</p>
+              </div>
+            </Link>;
+          })}
+        </DraggableRail>}
+      </section>}
+
+      {details.data?.credits?.cast?.length>0&&<section className="apple-cast-section">
+        <header className="section-heading"><div><p className="eyebrow">CAST & CREW</p><h2>Starring</h2></div></header>
+        <DraggableRail className="cast-rail apple-cast-rail">
+          {details.data.credits.cast.slice(0,16).map((person:any)=><div key={person.id} className="apple-cast-card">
+            <img src={getProfileUrl(person.profile_path)||'/poster-placeholder.svg'} alt={person.name} loading="lazy"/>
+            <h3>{person.name}</h3>
+            <p>{person.character}</p>
+          </div>)}
+        </DraggableRail>
+      </section>}
+
+      {recommendations.length>0&&<div className="-mx-[var(--site-gutter)]"><ContentSection title="More Like This" eyebrow="RELATED ON A&D MAX" items={recommendations} landscape={false}/></div>}
     </div>
     <SourcePickerSheet {...pickerProps} open={sourcesOpen} onOpenChange={setSourcesOpen}/>
-
   </MainLayout>;
 }

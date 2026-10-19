@@ -1,15 +1,28 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import type Hls from 'hls.js';
-import { Check, ChevronRight, Maximize, Minimize, Pause, PictureInPicture2, Play, RotateCcw, RotateCw, Settings2, SkipForward, Subtitles, Upload, Volume2, VolumeX, X } from 'lucide-react';
-import { subtitleLanguage } from '@/lib/subtitles';
+import { Check, ChevronRight, Maximize, Minimize, Pause, PictureInPicture2, Play, RotateCcw, RotateCw, Settings2, SkipForward, Star, Subtitles, Upload, Volume2, VolumeX, X } from 'lucide-react';
+import { subtitleCodeBadge, subtitleFlagUrl, subtitleLanguage, subtitleNativeLanguage } from '@/lib/subtitles';
 import { activateCaptionTrack, captionPreferences, captionTimes, defaultCaptions, nextEpisodeDue, nextEpisodeProgress } from '@/lib/captions';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { detectQualityTier, QUALITY_BADGES } from './SourcePicker';
 import CaptionSettings from './CaptionSettings';
 export interface NextEpisode {label:string;image?:string;eyebrow?:string;onPlay:()=>void}
-interface Props {media:HTMLVideoElement|null;engine:Hls|null;container:RefObject<HTMLDivElement>;title:string;sourceName:string;loading:boolean;nextEpisode?:NextEpisode;autoNext?:boolean;onAutoNextChange?:(value:boolean)=>void;onNextSource?:()=>void;onOpenSources?:()=>void;onUpload:(file:File)=>Promise<void>;subtitleStatus?:string;converted:boolean;onCompatibility?:()=>void}
+export interface PlayerIdleMeta {
+  title:string;
+  logoUrl?:string;
+  subtitle?:string;
+  episodeCode?:string;
+  year?:string;
+  rating?:number;
+  contentRating?:string;
+  description?:string;
+  backdropUrl?:string;
+}
+interface Props {media:HTMLVideoElement|null;engine:Hls|null;container:RefObject<HTMLDivElement>;title:string;sourceName:string;loading:boolean;nextEpisode?:NextEpisode;autoNext?:boolean;onAutoNextChange?:(value:boolean)=>void;onNextSource?:()=>void;onOpenSources?:()=>void;onUpload:(file:File)=>Promise<void>;subtitleStatus?:string;converted:boolean;onCompatibility?:()=>void;idleMeta?:PlayerIdleMeta}
 type NativeAudioTrack={label:string;language:string;enabled:boolean};
 const clock=(seconds:number)=>{const value=Math.max(0,Math.floor(seconds||0));return value>=3600?`${Math.floor(value/3600)}:${String(Math.floor(value/60)%60).padStart(2,'0')}:${String(value%60).padStart(2,'0')}`:`${Math.floor(value/60)}:${String(value%60).padStart(2,'0')}`;};
-export default function PlayerControls({media,engine,container,title,sourceName,loading,nextEpisode,autoNext,onAutoNextChange,onNextSource,onOpenSources,onUpload,subtitleStatus,converted,onCompatibility}:Props){
+const qualityBadgeForHeight=(h?:number)=>!h?undefined:h>=2160?'/badges/4k-uhd.svg':h>=1080?'/badges/1080p-fhd.svg':h>=720?'/badges/720p-hd.svg':h>=480?'/badges/480p-sd.svg':'/badges/360p-sd.svg';
+export default function PlayerControls({media,engine,container,title,sourceName,loading,nextEpisode,autoNext,onAutoNextChange,onNextSource,onOpenSources,onUpload,subtitleStatus,converted,onCompatibility,idleMeta}:Props){
   const [state,setState]=useState({time:0,duration:0,buffered:0,paused:true,volume:1,muted:false,rate:1,ended:false});
   const [visible,setVisible]=useState(true),[menu,setMenu]=useState<'settings'|'subtitles'|null>(null),[fullscreen,setFullscreen]=useState(false),[hint,setHint]=useState('');
   const [tracks,setTracks]=useState<TextTrack[]>([]),[trackIndex,setTrackIndex]=useState(-1),[quality,setQuality]=useState(-1),[audio,setAudio]=useState(0),[languageQuery,setLanguageQuery]=useState('');
@@ -43,7 +56,12 @@ export default function PlayerControls({media,engine,container,title,sourceName,
       if(selectedCaption.current&&!all.includes(selectedCaption.current))selectedCaption.current=undefined;
       let selected=selectedCaption.current===null?-1:selectedCaption.current?all.indexOf(selectedCaption.current):all.findIndex(t=>t.mode==='showing');
       if(selectedCaption.current===undefined){
-        try{const preferred=localStorage.getItem('admax-subtitle-language');if(preferred==='off'){selected=-1;selectedCaption.current=null;}else if(preferred){const match=all.findIndex(t=>subtitleLanguage(t.language)===subtitleLanguage(preferred));if(match>=0)selected=match;}}catch{/* Storage is optional. */}
+        try{
+          const preferred=localStorage.getItem('admax-subtitle-language');
+          if(preferred==='off'){selected=-1;selectedCaption.current=null;}
+          else if(preferred){const match=all.findIndex(t=>subtitleLanguage(t.language)===subtitleLanguage(preferred));if(match>=0)selected=match;}
+          else if(selected<0&&all.length){const eng=all.findIndex(t=>subtitleLanguage(t.language)==='English');if(eng>=0)selected=eng;}
+        }catch{/* Storage is optional. */}
         if(selected>=0)selectedCaption.current=all[selected];
       }
       activateCaptionTrack(all,selected);setTracks(all);setTrackIndex(selected);
@@ -98,15 +116,124 @@ export default function PlayerControls({media,engine,container,title,sourceName,
   const chooseAudio=(index:number)=>{if(engine)engine.audioTrack=index;else Array.from(nativeAudio||[]).forEach((t,i)=>{t.enabled=i===index;});setAudio(index);};
   const upload=async(file?:File)=>{if(!file)return;try{await onUpload(file);setHint('Subtitle added.');}catch(e){setHint(e instanceof Error?e.message:'Subtitle could not load.');}};
   const nextProgress=nextEpisode?nextEpisodeProgress(state.duration,state.time,state.ended,countdown,!!autoNext):0;
-  return <div className={`cinema-controls ${show?'is-visible':''}`} data-menu-open={!!menu}>
+  const sourceTier=detectQualityTier(sourceName);
+  const sourceBadge=QUALITY_BADGES[sourceTier]?.icon||qualityBadgeForHeight(media?.videoHeight);
+  const showPausedIdle=Boolean(idleMeta&&state.paused&&!state.ended&&!loading&&!menu&&scrub==null);
+  return <div className={`cinema-controls ${show?'is-visible':''} ${showPausedIdle?'is-paused-idle':''}`} data-menu-open={!!menu}>
     <button className="player-click-surface" tabIndex={-1} aria-label={state.paused?'Play video':'Pause video'} onPointerDown={e=>{lastTouch.current=e.pointerType==='touch';}} onClick={onSurfaceClick} onDoubleClick={toggleFullscreen}/>
-    <header className="cinema-topbar"><div><span>NOW PLAYING</span><h2>{title}</h2></div><button className="cinema-source-label" onClick={onOpenSources||onNextSource}>{sourceName}<ChevronRight size={14}/></button></header>
+    {showPausedIdle&&idleMeta&&<div className="cinema-pause-idle" aria-hidden="true">
+      {idleMeta.backdropUrl&&<img className="cinema-pause-watermark" src={idleMeta.backdropUrl} alt=""/>}
+      <div className="cinema-pause-content">
+        {idleMeta.logoUrl?<img className="cinema-pause-logo" src={idleMeta.logoUrl} alt={idleMeta.title}/>:<h2 className="cinema-pause-title">{idleMeta.title}</h2>}
+        {idleMeta.subtitle&&<h3 className="cinema-pause-subtitle">{idleMeta.subtitle}</h3>}
+        <div className="cinema-pause-meta">
+          {idleMeta.year&&<span>{idleMeta.year}</span>}
+          {idleMeta.rating!=null&&idleMeta.rating>0&&<span className="cinema-pause-rating"><Star size={12} fill="currentColor"/>{idleMeta.rating.toFixed(1)}</span>}
+          {idleMeta.contentRating&&<span className="cinema-pause-badge">{idleMeta.contentRating}</span>}
+          {idleMeta.episodeCode&&<span>{idleMeta.episodeCode}</span>}
+          {sourceBadge&&<img src={sourceBadge} alt="" className="cinema-pause-qbadge"/>}
+        </div>
+        {idleMeta.description&&<p className="cinema-pause-desc">{idleMeta.description}</p>}
+      </div>
+    </div>}
+    <header className="cinema-topbar">
+      <div className="cinema-topbar-title">
+        <span>{idleMeta?.episodeCode?`NOW PLAYING · ${idleMeta.episodeCode}`:'NOW PLAYING'}</span>
+        <h2>{title}{idleMeta?.subtitle?` — ${idleMeta.subtitle}`:''}</h2>
+      </div>
+      <button className="cinema-source-label" onClick={onOpenSources||onNextSource}>
+        {sourceBadge&&<img src={sourceBadge} alt="" className="cinema-source-qbadge"/>}
+        <span>{sourceName}</span>
+        <ChevronRight size={14}/>
+      </button>
+    </header>
     {!state.ended&&!loading&&(state.paused||visible)&&<button className={state.paused?'cinema-center-play':'cinema-center-play is-playing'} aria-label={state.paused?'Play':'Pause'} onClick={toggle}>{state.paused?<Play fill="currentColor" size={33}/>:<Pause fill="currentColor" size={31}/>}</button>}
-    <div className="cinema-bottom"><div className="cinema-timeline"><div className="cinema-buffered" style={{width:`${state.duration?state.buffered/state.duration*100:0}%`}}/><input aria-label="Seek video" type="range" min={0} max={state.duration||100} step={1} value={scrub??state.time} aria-valuetext={`${clock(scrub??state.time)} of ${clock(state.duration)}`} style={{'--played':progress+'%'} as CSSProperties} onPointerDown={()=>{dragging.current=true;setScrub(state.time);}} onChange={e=>{const time=Number(e.target.value);if(dragging.current)setScrub(time);else seek(time);}} onPointerUp={e=>{seek(Number(e.currentTarget.value));dragging.current=false;setScrub(null);}} onPointerCancel={()=>{dragging.current=false;setScrub(null);}} onBlur={()=>{if(scrub!=null)seek(scrub);dragging.current=false;setScrub(null);}}/>{scrub!=null&&<span className="cinema-seek-time" style={{left:`${Math.max(4,Math.min(95,progress))}%`}}>{clock(scrub)}</span>}</div>
-      <div className="cinema-toolbar"><div className="cinema-toolbar-start"><button aria-label={state.paused?'Play':'Pause'} onClick={toggle}>{state.paused?<Play size={23} fill="currentColor"/>:<Pause size={23} fill="currentColor"/>}</button><button className="cinema-skip" aria-label="Rewind 10 seconds" onClick={()=>seek((media?.currentTime||0)-10)}><RotateCcw size={25}/><small>10</small></button><button className="cinema-skip" aria-label="Forward 10 seconds" onClick={()=>seek((media?.currentTime||0)+10)}><RotateCw size={25}/><small>10</small></button><div className="cinema-volume"><button aria-label={state.muted?'Unmute':'Mute'} onClick={()=>{if(media)media.muted=!media.muted;}}>{state.muted||state.volume===0?<VolumeX size={23}/>:<Volume2 size={23}/>}</button><input type="range" aria-label="Volume" min={0} max={1} step={.05} value={state.muted?0:state.volume} onChange={e=>{if(media){media.muted=false;media.volume=Number(e.target.value);}}}/></div><span className="cinema-clock">{clock(state.time)}<i>/</i>{clock(state.duration)}</span></div>
-      <div className="cinema-toolbar-end">{nextEpisode&&<button aria-label="Next episode" onClick={playNextEpisode}><SkipForward size={23}/></button>}<button aria-label="Audio and subtitles" aria-expanded={menu==='subtitles'} data-player-menu onClick={()=>{setMenu(menu==='subtitles'?null:'subtitles');setVisible(true);}}><Subtitles size={25}/>{trackIndex>=0&&<span className="control-active-dot"/>}</button><button aria-label="Playback settings" aria-expanded={menu==='settings'} data-player-menu onClick={()=>{setMenu(menu==='settings'?null:'settings');setVisible(true);}}><Settings2 size={23}/></button>{document.pictureInPictureEnabled&&<button className="cinema-pip" aria-label="Picture in picture" onClick={()=>{if(!media)return;if(document.pictureInPictureElement)void document.exitPictureInPicture();else void media.requestPictureInPicture().catch(()=>setHint('Picture in picture is unavailable for this video.'));}}><PictureInPicture2 size={23}/></button>}<button aria-label={fullscreen?'Exit fullscreen':'Enter fullscreen'} onClick={toggleFullscreen}>{fullscreen?<Minimize size={25}/>:<Maximize size={25}/>}</button></div></div>
+    <div className="cinema-bottom">
+      <div className="cinema-timeline">
+        <div className="cinema-buffered" style={{width:`${state.duration?state.buffered/state.duration*100:0}%`}}/>
+        <input aria-label="Seek video" type="range" min={0} max={state.duration||100} step={1} value={scrub??state.time} aria-valuetext={`${clock(scrub??state.time)} of ${clock(state.duration)}`} style={{'--played':progress+'%'} as CSSProperties} onPointerDown={()=>{dragging.current=true;setScrub(state.time);}} onChange={e=>{const time=Number(e.target.value);if(dragging.current)setScrub(time);else seek(time);}} onPointerUp={e=>{seek(Number(e.currentTarget.value));dragging.current=false;setScrub(null);}} onPointerCancel={()=>{dragging.current=false;setScrub(null);}} onBlur={()=>{if(scrub!=null)seek(scrub);dragging.current=false;setScrub(null);}}/>
+        {scrub!=null&&<span className="cinema-seek-time" style={{left:`${Math.max(4,Math.min(95,progress))}%`}}>{clock(scrub)}</span>}
+      </div>
+      <div className="cinema-toolbar">
+        <div className="cinema-toolbar-start">
+          <button aria-label={state.paused?'Play':'Pause'} onClick={toggle}>{state.paused?<Play size={22} fill="currentColor"/>:<Pause size={22} fill="currentColor"/>}</button>
+          <button className="cinema-skip" aria-label="Rewind 10 seconds" onClick={()=>seek((media?.currentTime||0)-10)}><RotateCcw size={24}/><small>10</small></button>
+          <button className="cinema-skip" aria-label="Forward 10 seconds" onClick={()=>seek((media?.currentTime||0)+10)}><RotateCw size={24}/><small>10</small></button>
+          <div className="cinema-volume">
+            <button aria-label={state.muted?'Unmute':'Mute'} onClick={()=>{if(media)media.muted=!media.muted;}}>{state.muted||state.volume===0?<VolumeX size={21}/>:<Volume2 size={21}/>}</button>
+            <input type="range" aria-label="Volume" min={0} max={1} step={.05} value={state.muted?0:state.volume} onChange={e=>{if(media){media.muted=false;media.volume=Number(e.target.value);}}}/>
+          </div>
+          <span className="cinema-clock">{clock(state.time)}<i>/</i>{state.duration?`-${clock(Math.max(0,state.duration-state.time))}`:'0:00'}</span>
+        </div>
+        <div className="cinema-toolbar-end">
+          {nextEpisode&&<button aria-label="Next episode" onClick={playNextEpisode}><SkipForward size={21}/></button>}
+          <button aria-label="Audio and subtitles" aria-expanded={menu==='subtitles'} data-player-menu onClick={()=>{setMenu(menu==='subtitles'?null:'subtitles');setVisible(true);}}><Subtitles size={22}/>{trackIndex>=0&&<span className="control-active-dot"/>}</button>
+          <button aria-label="Playback settings" aria-expanded={menu==='settings'} data-player-menu onClick={()=>{setMenu(menu==='settings'?null:'settings');setVisible(true);}}><Settings2 size={21}/></button>
+          {document.pictureInPictureEnabled&&<button className="cinema-pip" aria-label="Picture in picture" onClick={()=>{if(!media)return;if(document.pictureInPictureElement)void document.exitPictureInPicture();else void media.requestPictureInPicture().catch(()=>setHint('Picture in picture is unavailable for this video.'));}}><PictureInPicture2 size={21}/></button>}
+          <button aria-label={fullscreen?'Exit fullscreen':'Enter fullscreen'} onClick={toggleFullscreen}>{fullscreen?<Minimize size={22}/>:<Maximize size={22}/>}</button>
+        </div>
+      </div>
     </div>
-    {menu&&<div ref={menuRef} className="cinema-menu" role="dialog" aria-label={menu==='subtitles'?'Audio and subtitles':'Playback settings'}><header><h3>{menu==='subtitles'?'Audio & Subtitles':'Playback settings'}</h3><button aria-label="Close player menu" onClick={()=>setMenu(null)}><X size={17}/></button></header>{menu==='subtitles'?<><p className="cinema-menu-label">AUDIO</p>{audioTracks.length?audioTracks.map(track=><button className="cinema-menu-option" key={track.index} aria-pressed={audio===track.index} onClick={()=>chooseAudio(track.index)}>{track.label}{audio===track.index&&<Check size={15}/>}</button>):<p className="cinema-menu-note">Original audio</p>}<p className="cinema-menu-label">SUBTITLES</p><input className="caption-search" aria-label="Filter subtitle languages" placeholder="Find a language…" value={languageQuery} onChange={e=>setLanguageQuery(e.target.value)}/><div className="cinema-caption-list"><button className="cinema-menu-option" aria-pressed={trackIndex===-1} onClick={()=>chooseTrack(-1)}>Off{trackIndex===-1&&<Check size={15}/>}</button>{tracks.map((track,index)=>({track,index})).filter(({track})=>(track.label+' '+subtitleLanguage(track.language)).toLowerCase().includes(languageQuery.toLowerCase())).map(({track,index})=><button className="cinema-menu-option" key={index} aria-pressed={trackIndex===index} onClick={()=>chooseTrack(index)}>{track.label||subtitleLanguage(track.language)}{trackIndex===index&&<Check size={15}/>}</button>)}</div>{subtitleStatus&&<p className="cinema-menu-note">{subtitleStatus}</p>}<CaptionSettings value={captions} onChange={setCaptions}/><button className="cinema-menu-upload" onClick={()=>fileInput.current?.click()}><Upload size={15}/>Add subtitle file</button><input ref={fileInput} className="sr-only" tabIndex={-1} type="file" accept=".vtt,.srt,.ass,.ssa" onChange={e=>{void upload(e.target.files?.[0]);e.target.value='';}}/></>:<><p className="cinema-menu-label">QUALITY</p>{engine?.levels?.length?<div className="cinema-quality-options"><button aria-pressed={quality===-1} onClick={()=>{engine.currentLevel=-1;setQuality(-1);}}>Auto</button>{engine.levels.map((level,index)=><button key={index} aria-pressed={quality===index} onClick={()=>{engine.currentLevel=index;setQuality(index);}}>{level.height?level.height+'p':engine.levels.length===1?(media?.videoHeight?media.videoHeight+'p':'Source quality'):'Stream '+(index+1)}</button>)}</div>:<p className="cinema-menu-note">Original{media?.videoHeight?` · ${media.videoHeight}p`:" · source quality"}</p>}<p className="cinema-menu-label">PLAYBACK SPEED</p><div className="cinema-speed-options">{[.5,.75,1,1.25,1.5,2].map(rate=><button key={rate} aria-pressed={state.rate===rate} onClick={()=>{if(media)media.playbackRate=rate;}}>{rate}×</button>)}</div>{nextEpisode&&<button className="cinema-menu-option" role="switch" aria-checked={!!autoNext} onClick={()=>onAutoNextChange?.(!autoNext)}>Autoplay next episode<span className={`cinema-toggle ${autoNext?'on':''}`}/></button>}{onCompatibility&&<button className="cinema-menu-option" onClick={onCompatibility}>{converted?'Browser-compatible mode':'Convert for this browser'}{converted&&<Check size={15}/>}</button>}<button className="cinema-menu-option" onClick={()=>{(onOpenSources||onNextSource)?.();setMenu(null);}}>Change source<ChevronRight size={15}/></button></>}</div>}
+    {menu&&<div ref={menuRef} className="cinema-menu" role="dialog" aria-label={menu==='subtitles'?'Audio and subtitles':'Playback settings'}>
+      <header><h3>{menu==='subtitles'?'Audio & Subtitles':'Playback Settings'}</h3><button aria-label="Close player menu" onClick={()=>setMenu(null)}><X size={16}/></button></header>
+      {menu==='subtitles'?<>
+        <p className="cinema-menu-label">AUDIO TRACKS</p>
+        {audioTracks.length?audioTracks.map(track=><button className="cinema-menu-option" key={track.index} aria-pressed={audio===track.index} onClick={()=>chooseAudio(track.index)}><span>{track.label}</span>{audio===track.index&&<Check size={15}/>}</button>):<p className="cinema-menu-note">Original Master Audio</p>}
+        <div className="flex items-center justify-between"><p className="cinema-menu-label">SUBTITLES & OPENSUBTITLES</p><span className="text-[10px] text-white/50">{tracks.length} available</span></div>
+        <input className="caption-search" aria-label="Filter subtitle languages" placeholder="Search language (English, Arabic, Français, Español…)" value={languageQuery} onChange={e=>setLanguageQuery(e.target.value)}/>
+        <div className="cinema-caption-list">
+          <button className="cinema-menu-option" aria-pressed={trackIndex===-1} onClick={()=>chooseTrack(-1)}>
+            <span className="caption-lang-row"><span className="caption-lang-code">OFF</span><span>Subtitles Off</span></span>
+            {trackIndex===-1&&<Check size={15}/>}
+          </button>
+          {tracks.map((track,index)=>({track,index})).filter(({track})=>{
+            const en=subtitleLanguage(track.language);
+            const nat=subtitleNativeLanguage(track.language);
+            return (track.label+' '+en+' '+nat+' '+track.language).toLowerCase().includes(languageQuery.toLowerCase());
+          }).map(({track,index})=>{
+            const en=subtitleLanguage(track.language);
+            const nat=subtitleNativeLanguage(track.language);
+            const flag=subtitleFlagUrl(track.language);
+            const badge=subtitleCodeBadge(track.language);
+            const isOpenSub=/opensubtitles/i.test(track.label||'');
+            return <button className="cinema-menu-option" key={index} aria-pressed={trackIndex===index} onClick={()=>chooseTrack(index)}>
+              <span className="caption-lang-row">
+                {flag?<img src={flag} alt="" className="caption-flag" loading="lazy"/>:<span className="caption-lang-code">{badge}</span>}
+                <span className="caption-lang-text">
+                  <strong>{en}{nat&&nat.toLowerCase()!==en.toLowerCase()?` · ${nat}`:''}</strong>
+                  <small>{isOpenSub?'OpenSubtitles':track.label||'Embedded'} · {badge}</small>
+                </span>
+              </span>
+              {trackIndex===index&&<Check size={15}/>}
+            </button>;
+          })}
+        </div>
+        {subtitleStatus&&<p className="cinema-menu-note">{subtitleStatus}</p>}
+        <CaptionSettings value={captions} onChange={setCaptions}/>
+        <button className="cinema-menu-upload" onClick={()=>fileInput.current?.click()}><Upload size={15}/>Upload custom subtitle (.srt, .vtt, .ass)</button>
+        <input ref={fileInput} className="sr-only" tabIndex={-1} type="file" accept=".vtt,.srt,.ass,.ssa" onChange={e=>{void upload(e.target.files?.[0]);e.target.value='';}}/>
+      </>:<>
+        <p className="cinema-menu-label">VIDEO QUALITY</p>
+        {engine?.levels?.length?<div className="cinema-quality-options">
+          <button aria-pressed={quality===-1} onClick={()=>{engine.currentLevel=-1;setQuality(-1);}}>Auto</button>
+          {engine.levels.map((level,index)=>{
+            const qIcon=qualityBadgeForHeight(level.height);
+            return <button key={index} aria-pressed={quality===index} onClick={()=>{engine.currentLevel=index;setQuality(index);}}>
+              {qIcon&&<img src={qIcon} alt="" className="h-3.5 w-auto"/>}
+              <span>{level.height?level.height+'p':engine.levels.length===1?(media?.videoHeight?media.videoHeight+'p':'Source quality'):'Stream '+(index+1)}</span>
+            </button>;
+          })}
+        </div>:<div className="cinema-quality-note">
+          {sourceBadge&&<img src={sourceBadge} alt="" className="h-5 w-auto"/>}
+          <span>Original Stream{media?.videoHeight?` · ${media.videoHeight}p`:""}</span>
+        </div>}
+        <p className="cinema-menu-label">PLAYBACK SPEED</p>
+        <div className="cinema-speed-options">{[.5,.75,1,1.25,1.5,2].map(rate=><button key={rate} aria-pressed={state.rate===rate} onClick={()=>{if(media)media.playbackRate=rate;}}>{rate}×</button>)}</div>
+        {nextEpisode&&<button className="cinema-menu-option" role="switch" aria-checked={!!autoNext} onClick={()=>onAutoNextChange?.(!autoNext)}><span>Autoplay next episode</span><span className={`cinema-toggle ${autoNext?'on':''}`}/></button>}
+        {onCompatibility&&<button className="cinema-menu-option" onClick={onCompatibility}><span>{converted?'Browser-compatible mode':'Convert for this browser'}</span>{converted&&<Check size={15}/>}</button>}
+        <button className="cinema-menu-option" onClick={()=>{(onOpenSources||onNextSource)?.();setMenu(null);}}><span>Switch server / resolution</span><ChevronRight size={15}/></button>
+      </>}
+    </div>}
     {nextEpisode&&!dismissNext&&nextEpisodeDue(state.duration,state.time,state.ended)&&<aside className="cinema-next-up" aria-label="Up next">
       <button className="cinema-next-close" aria-label="Dismiss next episode" onClick={()=>setDismissNext(true)}><X size={14}/></button>
       <div className="cinema-next-thumb" onClick={playNextEpisode}>

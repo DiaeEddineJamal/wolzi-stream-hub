@@ -3,7 +3,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 export const LOCAL_SERVICE='http://127.0.0.1:11470';
 const localPreview=()=>typeof window!=='undefined'&&['127.0.0.1','localhost','[::1]'].includes(window.location.hostname);
-export const openServiceSetup=()=>typeof window!=='undefined'&&window.dispatchEvent(new Event('admax-service-setup'));
+export const openServiceSetup=(auto=false)=>typeof window!=='undefined'&&window.dispatchEvent(new CustomEvent('admax-service-setup',{detail:{auto:Boolean(auto)}}));
 
 export interface ServiceInstaller {
   platform:'windows'|'mac'|'linux'|'mobile';

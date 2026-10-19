@@ -1,7 +1,7 @@
 // Layout-matched placeholders: they reuse the real rail/card/grid classes so nothing shifts when content arrives.
 const Bar=({className=''}:{className?:string})=><span className={'sk '+className}/>;
 
-export function RailSkeleton({landscape=true,count=6}:{landscape?:boolean;count?:number}){
+export function RailSkeleton({landscape=false,count=6}:{landscape?:boolean;count?:number}){
   return <section className="content-section" aria-hidden="true">
     <header className="section-heading page-shell"><div><Bar className="sk-eyebrow"/><Bar className="sk-heading"/></div></header>
     <div className={'media-rail sk-rail'+(landscape?'':' poster-rail')}>{Array.from({length:count},(_,i)=><article key={i} className={'max-card'+(landscape?' max-card-landscape':'')}><div className="max-card-art sk"/><Bar className="sk-caption"/></article>)}</div>

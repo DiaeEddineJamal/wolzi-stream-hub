@@ -179,4 +179,18 @@ assert.match(getServiceInstaller('Mozilla/5.0 (Windows NT 10.0; Win64; x64)').ur
 assert.equal(getServiceInstaller('Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0)').platform,'mac');
 assert.equal(getServiceInstaller('Mozilla/5.0 (X11; Linux x86_64)').platform,'linux');
 assert.equal(getServiceInstaller('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)').platform,'mobile');
+assert.equal(api.mediaProxyUrl('https://moon.zenoak.top/vd/SUVjbE',{'Referer':'https://www.movy.bz/'},true),'/api/playback/media/SUVjbE.m3u8?u=https%3A%2F%2Fmoon.zenoak.top%2Fvd%2FSUVjbE&h=Referer%3Ahttps%3A%2F%2Fwww.movy.bz%2F');
+assert.equal(api.classifyStream({url:'https://moon.zenoak.top/vd/SUVjbE',behaviorHints:{isHls:true,proxyHeaders:{request:{Referer:'https://www.movy.bz/'}}}},'1','Movy','http://127.0.0.1:11470').url,'/api/playback/media/SUVjbE.m3u8?u=https%3A%2F%2Fmoon.zenoak.top%2Fvd%2FSUVjbE&h=Referer%3Ahttps%3A%2F%2Fwww.movy.bz%2F');
+assert.equal(resolver.isMediaSample(sample('0000moof000000000000000000')),true);
+const disguisedTs=new Uint8Array(600);disguisedTs[0]=0x89;disguisedTs[68]=0x47;disguisedTs[68+188]=0x47;disguisedTs[68+376]=0x47;
+assert.equal(resolver.isMediaSample({text:'PNG...',type:'image/png',bytes:disguisedTs}),true);
+assert.equal(resolver.mergeProviderHeaders('https://api.movenerds.space/api/proxy/master.m3u8',{key:'movenerds',label:'MoverNerds',cdnHeaders:[{pattern:/movenerds\.space/i,headers:{Referer:'https://movenerds.space/',Origin:'https://movenerds.space'}}]},undefined,{Referer:'https://player.vidzee.wtf/'}).Origin,'https://movenerds.space');
+assert.equal(subtitles.subtitleFlagUrl('eng'),'https://flagcdn.com/w40/us.png');
+assert.equal(subtitles.subtitleFlagUrl('ara'),'https://flagcdn.com/w40/sa.png');
+assert.equal(subtitles.subtitleCodeBadge('fre'),'FR');
+assert.equal(matchesQualityFilter('Movy · Miami','1080',true),true);
+assert.equal(matchesQualityFilter('Movy · Miami','480',true),true);
+const {STREAMING_PLATFORMS}=await load('src/pages/Index.tsx');
+assert.equal(STREAMING_PLATFORMS.some(p=>p.name==='Netflix'&&p.logo==='/providers/netflix.png'),true);
+assert.equal(STREAMING_PLATFORMS.some(p=>p.name==='HBO Max'&&p.logo==='/providers/max.png'),true);
 console.log('Stremio protocol, source verification, service conversion, trust boundaries, routing, and recovery checks passed.');

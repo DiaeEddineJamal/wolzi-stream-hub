@@ -7,10 +7,10 @@ import { cn } from '@/lib/utils';
 import type { MediaItem } from '@/lib/media';
 import { useDragScroll } from '@/hooks/useDragScroll';
 interface Props {
-  eyebrow?: string; title: string; items: (MediaItem & { overview?: string })[];
+  eyebrow?: string; title: string; items: (MediaItem & { overview?: string; detailTo?: string; playTo?: string; progressPercent?: number })[];
   viewMoreLink?: string; className?: string; showViewMore?: boolean; landscape?: boolean; ranked?: boolean; loading?: boolean;
 }
-export default function ContentSection({ title, eyebrow, items, viewMoreLink, className, showViewMore = true, landscape = true, ranked = false, loading = false }: Props) {
+export default function ContentSection({ title, eyebrow, items, viewMoreLink, className, showViewMore = true, landscape = false, ranked = false, loading = false }: Props) {
   const rail = useRef<HTMLDivElement>(null);
   const drag=useDragScroll(rail);
   if (!items.length) return loading ? <RailSkeleton landscape={landscape} /> : null;

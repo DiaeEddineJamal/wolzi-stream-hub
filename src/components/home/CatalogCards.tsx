@@ -3,7 +3,9 @@ import DraggableRail from './DraggableRail';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import type { MediaItem } from '@/lib/media';
 
-export default function CatalogCards({items}:{items:MediaItem[]}){
+export type CatalogCardItem = MediaItem & { detailTo?: string; playTo?: string; progressPercent?: number };
+
+export default function CatalogCards({items}:{items:CatalogCardItem[]}){
   const desktop=useMediaQuery('(min-width:768px)'),wide=useMediaQuery('(min-width:1101px)');
   if(!desktop)return <div className="catalog-grid">{items.map(item=><MediaCard key={item.mediaType+item.id} {...item}/>)}</div>;
   const columns=wide?6:5;

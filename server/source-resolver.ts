@@ -18,7 +18,18 @@ export async function publicMediaUrl(value: string) {
 }
 async function mediaPrefix(value:string,headers:Record<string,string>,signal:AbortSignal,redirects=0):Promise<{text:string;type:string;bytes:Uint8Array}> {
   const url=await publicMediaUrl(value);
-  const response=await fetch(url,{headers:{...headers,Range:'bytes=0-16383'},signal,redirect:'manual'});
+  const likelyPlaylist=/\.(m3u8|txt)(?:$|\?)/i.test(url.pathname+url.search)||/playlist|master|manifest/i.test(url.pathname);
+  let response=await fetch(url,{headers:likelyPlaylist?headers:{...headers,Range:'bytes=0-16383'},signal,redirect:'manual'});
+  if(!response.ok&&!likelyPlaylist&&(response.status===400||response.status===403||response.status===416)){
+    await response.body?.cancel();
+    response=await fetch(url,{headers,signal,redirect:'manual'});
+  }
+  if((response.status===403||response.status===401)&&(headers.Referer||headers.Origin)){
+    await response.body?.cancel();
+    const minimal:Record<string,string>={};
+    for(const [k,v] of Object.entries(headers))if(!/^(referer|origin)$/i.test(k))minimal[k]=v;
+    response=await fetch(url,{headers:{...minimal,Range:'bytes=0-16383'},signal,redirect:'manual'});
+  }
   if(response.status>=300&&response.status<400&&redirects<3){await response.body?.cancel();return mediaPrefix(new URL(response.headers.get('location')||'',url).href,headers,signal,redirects+1);}
   if(!response.ok)throw new Error('Media unavailable');
   const reader=response.body?.getReader();if(!reader)throw new Error('Empty media');
@@ -27,40 +38,59 @@ async function mediaPrefix(value:string,headers:Record<string,string>,signal:Abo
   const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.length;}
   return {bytes,text:new TextDecoder().decode(bytes),type:response.headers.get('content-type')||''};
 }
-export function verifyMedia(url:string,headers:Record<string,string>={}) {
+export async function detectMediaKind(url:string,headers:Record<string,string>={}):Promise<'hls'|'mp4'|null>{
   const signal=AbortSignal.timeout(9000);
-  let target=url;
-  return (async()=>{
-    for(let depth=0;depth<3;depth++){
-      const sample=await mediaPrefix(target,headers,signal);
-      if(!sample.text.trimStart().startsWith('#EXTM3U'))return isMediaSample(sample);
-      const child=sample.text.split(/\r?\n/).map(line=>line.trim()).find(line=>line&&!line.startsWith('#'));
-      if(!child)return false;
-      target=new URL(child,target).href;
+  let target=url,sawHls=false;
+  for(let depth=0;depth<3;depth++){
+    const sample=await mediaPrefix(target,headers,signal);
+    if(!sample.text.trimStart().startsWith('#EXTM3U')){
+      const valid=isMediaSample(sample)||(sawHls&&sample.bytes.length>64&&!/^\s*</.test(sample.text)&&!/html|json/i.test(sample.type));
+      return valid?(sawHls?'hls':'mp4'):null;
     }
-    return false;
-  })();
+    sawHls=true;
+    const child=sample.text.split(/\r?\n/).map(line=>line.trim()).find(line=>line&&!line.startsWith('#'))
+      || sample.text.match(/#EXT-X-(?:MAP|MEDIA):[^\r\n]*URI="([^"]+)"/i)?.[1];
+    if(!child)return isMediaSample(sample)?'hls':null;
+    target=new URL(child,target).href;
+  }
+  return sawHls?'hls':null;
+}
+export function verifyMedia(url:string,headers:Record<string,string>={}) {
+  return detectMediaKind(url,headers).then(kind=>kind!==null);
 }
 export function isMediaSample(sample:{text:string;type:string;bytes:Uint8Array}){
   if(sample.text.trimStart().startsWith('#EXTM3U'))return sample.text.includes('#EXT-X-')||sample.text.includes('#EXTINF');
   if(/^\s*</.test(sample.text)||/html|json/.test(sample.type))return false;
-  return sample.bytes.length>16&&(/^(video|audio)\//.test(sample.type)||/ftyp|styp/.test(sample.text.slice(4,12))||sample.bytes[0]===0x47||sample.bytes.slice(0,4).every((b,i)=>b===[0x1a,0x45,0xdf,0xa3][i]));
+  const tsSync=sample.bytes[0]===0x47||sample.bytes.some((b,i)=>b===0x47&&i+376<sample.bytes.length&&sample.bytes[i+188]===0x47&&sample.bytes[i+376]===0x47);
+  return sample.bytes.length>16&&(/^(video|audio)\//.test(sample.type)||/ftyp|styp|moof|sidx/.test(sample.text.slice(4,12))||tsSync||sample.bytes.slice(0,4).every((b,i)=>b===[0x1a,0x45,0xdf,0xa3][i]));
 }
-export function selectCandidates<T extends {url:string;quality?:string;label?:string}>(items:T[]){
+export function selectCandidates<T extends {url:string;quality?:string;label?:string;server?:string;name?:string}>(items:T[]){
   const seen=new Set<string>();
   const unique=items.filter(item=>item.url&&!seen.has(item.url)&&seen.add(item.url));
   const picked:T[]=[];
   for(const pattern of [/4k|2160|uhd/i,/1080|fhd/i,/720|\bhd\b/i,/480|\bsd\b/i,/360|240|\bld\b/i]){
-    const match=unique.find(item=>!picked.includes(item)&&pattern.test((item.quality||'')+' '+(item.label||'')+' '+item.url));
+    const match=unique.find(item=>!picked.includes(item)&&pattern.test((item.quality||'')+' '+(item.label||'')+' '+(item.server||'')+' '+(item.name||'')+' '+item.url));
     if(match)picked.push(match);
   }
-  for(const item of unique)if(picked.length<6&&!picked.includes(item))picked.push(item);
+  for(const item of unique)if(picked.length<8&&!picked.includes(item))picked.push(item);
   return picked;
 }
 const querySchema=z.object({type:z.enum(['movie','tv']),id:z.string().regex(/^\d{1,9}$/),season:z.coerce.number().int().min(1).max(10000).optional(),episode:z.coerce.number().int().min(1).max(10000).optional()}).refine(q=>q.type==='movie'||!!(q.season&&q.episode));
-const candidateSchema=z.object({url:z.string(),quality:z.string().optional(),label:z.string().optional(),server:z.string().optional(),headers:z.record(z.string()).optional(),type:z.string().optional()});
-const resultSchema=z.object({url:z.string().optional(),headers:z.record(z.string()).optional(),allUrls:z.array(candidateSchema).optional()}).passthrough();
-type Payload={provider:string;name:string;status:'reachable'|'unavailable'|'timeout';streams:{url:string;name:string;behaviorHints?:{proxyHeaders:{request:Record<string,string>}}}[]};
+const candidateSchema=z.object({url:z.string(),quality:z.string().optional(),label:z.string().optional(),server:z.string().optional(),name:z.string().optional(),headers:z.record(z.string()).optional(),type:z.string().optional()}).passthrough();
+const resultSchema=z.object({url:z.string().optional(),headers:z.record(z.string()).optional(),allUrls:z.array(candidateSchema).optional(),streams:z.array(candidateSchema).optional()}).passthrough();
+type Payload={provider:string;name:string;status:'reachable'|'unavailable'|'timeout';streams:{url:string;name:string;behaviorHints?:{isHls?:boolean;proxyHeaders?:{request:Record<string,string>}}}[]};
+type ProviderRule={pattern:RegExp;headers:Record<string,string>};
+type ProviderMeta={key:string;label:string;verifyHeaders?:Record<string,string>;cdnHeaders?:ProviderRule[]};
+
+const PRIORITY_PROVIDERS=['movy','vidrock','vidzee','cinemaarmy','vixsrc','vidfast','vidup','pstream','movienight','movenerds','flaxmovies','vidapi','vidlink','lookmovie','111477','3eyedraven','bcine','fsonline','vidy','xdownloader','streamaggregator','dulo','peestream','thugtv'];
+
+export function mergeProviderHeaders(url:string,provider:ProviderMeta,rawHeaders?:Record<string,string>,candidateHeaders?:Record<string,string>){
+  const merged:Record<string,string>={...(provider.verifyHeaders||{}),...(rawHeaders||{}),...(candidateHeaders||{})};
+  for(const rule of provider.cdnHeaders||[]){
+    try{if(rule.pattern.test(url))Object.assign(merged,rule.headers);}catch{/* Ignore invalid rule */}
+  }
+  return merged;
+}
 
 export function createSourceResolver(tmdbApiKey?:string){
   let sdkPromise:Promise<VylaSDK>|undefined;
@@ -75,10 +105,14 @@ export function createSourceResolver(tmdbApiKey?:string){
     let closed=false;res.on('close',()=>{closed=true;});
     const send=(data:unknown)=>{if(!closed)res.write(`data: ${JSON.stringify(data)}\n\n`);};
     try{
-      const sdk=await getSdk(),providers=sdk.getSources(true),query=parsed.data;
+      const sdk=await getSdk(),rawProviders=sdk.getSources(true) as ProviderMeta[],query=parsed.data;
+      const providers=[...rawProviders].sort((a,b)=>{
+        const ia=PRIORITY_PROVIDERS.indexOf(a.key),ib=PRIORITY_PROVIDERS.indexOf(b.key);
+        return (ia===-1?999:ia)-(ib===-1?999:ib);
+      });
       send({type:'providers',providers:providers.map(p=>({id:p.key,name:p.label}))});
       const deadline=Date.now()+28000;let index=0,completed=0;
-      await Promise.all(Array.from({length:8},async()=>{
+      await Promise.all(Array.from({length:14},async()=>{
         while(!closed&&index<providers.length){
           const provider=providers[index++];
           if(Date.now()>=deadline){send({type:'result',provider:provider.key,name:provider.label,status:'timeout',streams:[]});continue;}
@@ -90,11 +124,17 @@ export function createSourceResolver(tmdbApiKey?:string){
               const empty={provider:provider.key,name:provider.label,status:'unavailable' as const,streams:[]};
               try{
                 const raw=resultSchema.parse(await sdk.getStream(provider.key,query.id,query.type==='tv'?query.season:null,query.type==='tv'?query.episode:null));
-                const candidates=selectCandidates(raw.allUrls?.length?raw.allUrls:raw.url?[candidateSchema.parse(raw)]:[]);
+                const list=raw.allUrls?.length?raw.allUrls:raw.streams?.length?raw.streams:raw.url?[candidateSchema.parse(raw)]:[];
+                const candidates=selectCandidates(list);
                 const checked=await Promise.all(candidates.map(async candidate=>{
-                  const headers=candidate.headers||raw.headers||{};
-                  const q=candidate.quality||candidate.label||candidate.url.match(/\b(2160p|4k|1080p|720p|480p|360p)\b/i)?.[1];
-                  return await verifyMedia(candidate.url,headers).catch(()=>false)?{url:candidate.url,name:provider.label+(q?' · '+q:''),...(Object.keys(headers).length?{behaviorHints:{proxyHeaders:{request:headers}}}:{})}:null;
+                  const headers=mergeProviderHeaders(candidate.url,provider,raw.headers,candidate.headers);
+                  const kind=await detectMediaKind(candidate.url,headers).catch(()=>null);
+                  if(!kind)return null;
+                  const subName=candidate.label||candidate.server||candidate.name;
+                  const q=candidate.quality&&!/^auto$/i.test(candidate.quality)?candidate.quality:candidate.url.match(/\b(2160p|4k|1080p|720p|480p|360p)\b/i)?.[1];
+                  const suffix=[subName&&subName.toLowerCase()!==provider.label.toLowerCase()?subName.replace(new RegExp('^'+provider.label+'\\s*[-·:(]*\\s*','i'),'').replace(/\)$/,'').trim():'',q&&(!subName||!subName.toLowerCase().includes(q.toLowerCase()))?q:''].filter(Boolean).join(' · ');
+                  const proxyHeaders=Object.keys(headers).length?headers:kind==='hls'?{'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'}:undefined;
+                  return {url:candidate.url,name:provider.label+(suffix?' · '+suffix:''),...(proxyHeaders||kind==='hls'?{behaviorHints:{...(kind==='hls'?{isHls:true}:{}),...(proxyHeaders?{proxyHeaders:{request:proxyHeaders}}:{})}}:{})};
                 }));
                 const streams=checked.filter((s):s is NonNullable<typeof s>=>!!s);
                 return {...empty,status:streams.length?'reachable':'unavailable',streams};
@@ -106,7 +146,7 @@ export function createSourceResolver(tmdbApiKey?:string){
           }
           let timer:ReturnType<typeof setTimeout>;
           const timeout:Payload={provider:provider.key,name:provider.label,status:'timeout',streams:[]};
-          const value=await Promise.race([task,new Promise<Payload>(resolve=>{timer=setTimeout(()=>resolve(timeout),Math.min(12000,Math.max(1,deadline-Date.now())));})]);clearTimeout(timer!);
+          const value=await Promise.race([task,new Promise<Payload>(resolve=>{timer=setTimeout(()=>resolve(timeout),Math.min(14000,Math.max(1,deadline-Date.now())));})]);clearTimeout(timer!);
           completed++;send({type:'result',...value,completed,total:providers.length});
         }
       }));

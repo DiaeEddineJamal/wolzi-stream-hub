@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 40" fill="none">
+  <rect x="1.5" y="1.5" width="85" height="37" rx="7.5" fill="#fff" fill-opacity="0.1" stroke="#fff" stroke-width="2.5"/>
+  <text x="44" y="17" fill="#fff" font-family="-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif" font-size="10.5" font-weight="800" letter-spacing="1.6" text-anchor="middle">FULL HD</text>
+  <text x="44" y="32" fill="#fff" font-family="-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif" font-size="15.5" font-weight="800" letter-spacing="0.2" text-anchor="middle">1080p</text>
+</svg>
