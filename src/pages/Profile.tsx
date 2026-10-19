@@ -99,7 +99,7 @@ export default function Profile(){
         <div className="apple-profile-copy">
           <span className="apple-account-pill"><Sparkles size={11}/>A&D MAX ACCOUNT</span>
           <div className="profile-title-row"><h1>{name}</h1><button type="button" className="profile-edit-trigger" aria-label="Edit username" onClick={()=>{nameInput.current?.focus();nameInput.current?.select();}}><Pencil size={14}/></button></div>
-          <p className="apple-profile-email">{user.email} · Member since {since}</p>
+          <p className="apple-profile-email">{user.email}</p><p className="apple-profile-member">Member since {since}</p>
         </div>
       </div>
       <dl className="apple-profile-metrics">
@@ -129,7 +129,7 @@ export default function Profile(){
       <section className="profile-group">
         <div className="profile-group-head"><h2>Account & Identity</h2></div>
         <div className="profile-list">
-          <div className="profile-item">
+          <div className="profile-item profile-photo-row">
             <span className="profile-thumb">{avatar}</span>
             <span className="profile-item-text"><strong>Profile Photo</strong><small>Circular crop · PNG, JPEG, WebP or GIF</small></span>
             <span className="profile-item-actions">{avatarUrl&&<Button variant="ghost" size="sm" disabled={uploading} onClick={()=>void removePhoto()} aria-label="Remove photo"><Trash2 size={15}/></Button>}<Button variant="secondary" size="sm" className="rounded-full" disabled={uploading} onClick={()=>file.current?.click()}>{uploading?'Saving…':avatarUrl?'Change':'Add photo'}</Button></span>
@@ -138,9 +138,9 @@ export default function Profile(){
             <label htmlFor="display-name" className="profile-item-text"><strong>Username</strong><small>Displayed across your profile & menus</small></label>
             <span className="profile-item-actions profile-name"><Input ref={nameInput} id="display-name" value={username} maxLength={80} required placeholder="Enter username" onChange={e=>{edited.current=true;setUsername(e.target.value);}}/><Button size="sm" type="submit" className="rounded-full" variant={changed?'default':'secondary'} disabled={saving||!trimmed}>{saving?'Saving…':changed?'Save':'Saved'}</Button></span>
           </form>
-          <div className="profile-item">
+          <div className="profile-item profile-email-row">
             <ShieldCheck size={18}/>
-            <span className="profile-item-text"><strong>Apple ID / Email</strong><small>Verified account</small></span>
+            <span className="profile-item-text"><strong>Email address</strong><small>Verified account</small></span>
             <span className="profile-item-value">{user.email}</span>
           </div>
         </div>
@@ -152,7 +152,7 @@ export default function Profile(){
           <Link className="profile-item" to="/library"><Bookmark size={18}/><span className="profile-item-text"><strong>My List</strong><small>Saved movies, series, and anime</small></span><span className="profile-item-value">{saved.length}</span><ChevronRight size={16}/></Link>
           <Link className="profile-item" to="/watch-history"><History size={18}/><span className="profile-item-text"><strong>Watch History</strong><small>Resume where you left off</small></span><span className="profile-item-value">{history.length}</span><ChevronRight size={16}/></Link>
           <Link className="profile-item" to="/addons"><Puzzle size={18}/><span className="profile-item-text"><strong>Stremio Add-ons</strong><small>{addons.filter(a=>a.enabled).length} active add-ons</small></span><div className="flex items-center gap-1.5"><img src="/badges/4k-uhd.svg" alt="4K" className="h-3.5 w-auto opacity-80"/><ChevronRight size={16}/></div></Link>
-          <div className="profile-item">
+          <div className="profile-item profile-service-row">
             <Server size={18}/>
             <span className="profile-item-text"><strong>Stremio Service</strong><small>Companion for torrent & 4K transcode</small></span>
             <span className={'profile-status'+(service?' is-on':'')}>{service?'Connected':'Not running'}</span>

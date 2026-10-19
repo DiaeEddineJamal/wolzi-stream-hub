@@ -26,6 +26,7 @@ const qualityBadgeForHeight=(h?:number)=>!h?undefined:h>=2160?'/badges/4k.png':h
 export default function PlayerControls({captionKey='video',media,engine,container,title,sourceName,loading,nextEpisode,autoNext,onAutoNextChange,onNextSource,onOpenSources,onUpload,subtitleStatus,converted,onCompatibility,idleMeta}:Props){
   const [compact,setCompact]=useState(()=>typeof window!=='undefined'&&window.matchMedia('(max-width:767px)').matches);
   useEffect(()=>{const query=window.matchMedia('(max-width:767px)');const update=()=>setCompact(query.matches);query.addEventListener('change',update);return()=>query.removeEventListener('change',update);},[]);
+  const touchControls=compact||(typeof window!=='undefined'&&window.matchMedia('(pointer: coarse)').matches);
   const [state,setState]=useState({time:0,duration:0,buffered:0,paused:true,volume:1,muted:false,rate:1,ended:false});
   const [visible,setVisible]=useState(true),[menu,setMenu]=useState<'settings'|'subtitles'|null>(null),[fullscreen,setFullscreen]=useState(false),[hint,setHint]=useState('');
   const [tracks,setTracks]=useState<TextTrack[]>([]),[trackIndex,setTrackIndex]=useState(-1),[quality,setQuality]=useState(-1),[audio,setAudio]=useState(0),[languageQuery,setLanguageQuery]=useState('');
@@ -40,15 +41,20 @@ export default function PlayerControls({captionKey='video',media,engine,containe
   const setCaptions=(value:typeof defaultCaptions)=>{saveCaptionStyle({...value,delay:0});saveOffsets(previous=>({...previous,[syncKey]:value.delay}));};
   const cueTimes=useRef(new WeakMap<TextTrackCue,{start:number;end:number}>());
   const cueLines=useRef(new WeakMap<VTTCue,{line:VTTCue['line'];snap:boolean}>());
-  const wake=useCallback(()=>{setVisible(true);clearTimeout(timer.current);timer.current=setTimeout(()=>setVisible(false),3500);},[]);
+  const wake=useCallback(()=>{setVisible(true);clearTimeout(timer.current);timer.current=setTimeout(()=>{if(!dragging.current)setVisible(false);},touchControls?1800:3500);},[touchControls]);
+  useEffect(()=>{if(!state.paused&&!loading)wake();},[state.paused,loading,wake]);
   const toggle=useCallback(()=>{if(!media)return;if(media.paused)void media.play().catch(()=>setHint('Press play again when the source is ready.'));else media.pause();wake();},[media,wake]);
   const lastTouch=useRef(false);
   const onSurfaceClick=useCallback(()=>{
-    const coarse=lastTouch.current||(typeof window!=='undefined'&&window.matchMedia?.('(pointer: coarse)').matches);
+    const touch=touchControls||lastTouch.current;
     lastTouch.current=false;
-    if(coarse&&!visible&&!state.paused){wake();return;}
+    if(touch){
+      if(visible){clearTimeout(timer.current);setVisible(false);setMenu(null);}
+      else wake();
+      return;
+    }
     toggle();
-  },[visible,state.paused,wake,toggle]);
+  },[touchControls,visible,wake,toggle]);
   const playNextEpisode=useCallback(()=>{if(!nextEpisode)return;if(media&&!media.paused)void media.play().catch(()=>{});nextEpisode.onPlay();},[nextEpisode,media]);
   const seek=useCallback((time:number)=>{if(media&&Number.isFinite(media.duration)){const position=Math.min(media.duration,Math.max(0,time));media.currentTime=position;setState(previous=>({...previous,time:position,ended:false}));}},[media]);
   const toggleFullscreen=useCallback(()=>{const stage=container.current;if(!stage)return;if(document.fullscreenElement)void document.exitFullscreen().catch(()=>setHint('Fullscreen could not close.'));else if(stage.requestFullscreen)void stage.requestFullscreen().catch(()=>setHint('Fullscreen is unavailable in this browser.'));else if('webkitEnterFullscreen' in (media||{}))(media as HTMLVideoElement&{webkitEnterFullscreen:()=>void}).webkitEnterFullscreen();},[container,media]);
@@ -91,7 +97,7 @@ export default function PlayerControls({captionKey='video',media,engine,containe
   useEffect(()=>{if(!state.ended){advanced.current=false;setCountdown(5);}},[state.ended]);
   useEffect(()=>{if(!state.ended||!hasNextEpisode||!autoNext||dismissNext)return;const interval=setInterval(()=>setCountdown(value=>Math.max(0,value-1)),1000);return()=>clearInterval(interval);},[state.ended,hasNextEpisode,autoNext,dismissNext]);
   useEffect(()=>{if(countdown===0&&state.ended&&autoNext&&!dismissNext&&!advanced.current){advanced.current=true;playNextEpisode();}},[countdown,state.ended,autoNext,dismissNext,playNextEpisode]);
-  const show=visible||state.paused||loading||!!menu;
+  const show=visible||!!menu||(!touchControls&&(state.paused||loading));
   useEffect(()=>{
     const stage=container.current;if(!media||!stage)return;
     stage.style.setProperty('--caption-scale',String(captions.size/100));stage.style.setProperty('--caption-color',captions.color);
@@ -124,11 +130,11 @@ export default function PlayerControls({captionKey='video',media,engine,containe
   const nextProgress=nextEpisode?nextEpisodeProgress(state.duration,state.time,state.ended,countdown,!!autoNext):0;
   const sourceTier=detectQualityTier(sourceName);
   const sourceBadge=QUALITY_BADGES[sourceTier]?.icon||qualityBadgeForHeight(media?.videoHeight);
-  const showPausedIdle=Boolean(idleMeta&&state.paused&&!state.ended&&!loading&&!menu&&scrub==null);
+  const showPausedIdle=Boolean(show&&idleMeta&&state.paused&&!state.ended&&!loading&&!menu&&scrub==null);
   // Fixed mobile menus must escape the player's clipped backdrop and stacking context.
   const renderMenu=(content:ReactNode)=>compact&&!fullscreen?createPortal(content,document.body):content;
-  return <div className={`cinema-controls ${show?'is-visible':''} ${showPausedIdle?'is-paused-idle':''}`} data-menu-open={!!menu}>
-    <button className="player-click-surface" tabIndex={-1} aria-label={state.paused?'Play video':'Pause video'} onPointerDown={e=>{lastTouch.current=e.pointerType==='touch';}} onClick={onSurfaceClick} onDoubleClick={toggleFullscreen}/>
+  return <div className={`cinema-controls ${show?'is-visible':''} ${showPausedIdle?'is-paused-idle':''}`} data-menu-open={!!menu} data-touch-controls={touchControls}>
+    <button className="player-click-surface" tabIndex={-1} aria-label={touchControls?(show?'Hide playback controls':'Show playback controls'):(state.paused?'Play video':'Pause video')} onPointerDown={e=>{lastTouch.current=e.pointerType==='touch';}} onClick={onSurfaceClick} onDoubleClick={touchControls?undefined:toggleFullscreen}/>
     {showPausedIdle&&idleMeta&&<div className="cinema-pause-idle" aria-hidden="true">
       {idleMeta.backdropUrl&&<img className="cinema-pause-watermark" src={idleMeta.backdropUrl} alt=""/>}
       <div className="cinema-pause-content">
@@ -156,9 +162,9 @@ export default function PlayerControls({captionKey='video',media,engine,containe
       </button>
     </header>
     {!state.ended&&!loading&&(state.paused||visible)&&<button className={state.paused?'cinema-center-play':'cinema-center-play is-playing'} aria-label={state.paused?'Play':'Pause'} onClick={toggle}>{state.paused?<Play fill="currentColor" size={33}/>:<Pause fill="currentColor" size={31}/>}</button>}
-    {!state.ended&&!loading&&(state.paused||visible)&&<div className="cinema-mobile-transport">
+    {!state.ended&&!loading&&show&&<div className="cinema-mobile-transport">
       <button className="cinema-skip" aria-label="Rewind 10 seconds" onClick={()=>{seek((media?.currentTime||0)-10);wake();}}><RotateCcw size={28}/><small>10</small></button>
-      <button className="cinema-mobile-play" aria-label={state.paused?'Play':'Pause'} onClick={toggle}>{state.paused?<Play fill="currentColor" size={30}/>:<Pause fill="currentColor" size={28}/>}</button>
+      <button className="cinema-mobile-play" onPointerDown={event=>event.stopPropagation()} aria-label={state.paused?'Play':'Pause'} onClick={event=>{event.stopPropagation();toggle();}}>{state.paused?<Play fill="currentColor" size={30}/>:<Pause fill="currentColor" size={28}/>}</button>
       <button className="cinema-skip" aria-label="Forward 10 seconds" onClick={()=>{seek((media?.currentTime||0)+10);wake();}}><RotateCw size={28}/><small>10</small></button>
     </div>}
     <div className="cinema-bottom">
