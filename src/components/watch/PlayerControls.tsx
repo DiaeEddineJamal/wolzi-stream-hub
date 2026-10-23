@@ -4,10 +4,11 @@ import type { BufferAppendedData } from 'hls.js';
 import { createPortal } from 'react-dom';
 import { Check, ChevronRight, Maximize, Minimize, Pause, PictureInPicture2, Play, RotateCcw, RotateCw, Settings2, SkipForward, Star, Subtitles, Upload, Volume2, VolumeX, X } from 'lucide-react';
 import { preferredSubtitleIndex, subtitleCodeBadge, subtitleFlagUrl, subtitleLanguage, subtitleNativeLanguage } from '@/lib/subtitles';
-import { activateCaptionTrack, applyCaptionTiming, captionPreferences, defaultCaptions, nextEpisodeDue, nextEpisodeProgress, type CaptionTiming } from '@/lib/captions';
+import { activateCaptionTrack, applyCaptionTiming, captionPreferences, defaultCaptions, hlsSubtitleOffset, nextEpisodeDue, nextEpisodeProgress, type CaptionTiming } from '@/lib/captions';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { detectQualityTier, QUALITY_BADGES } from './SourcePicker';
 import CaptionSettings from './CaptionSettings';
+import { useAudioTracks } from '@/hooks/useAudioTracks';
 export interface NextEpisode {label:string;image?:string;eyebrow?:string;onPlay:()=>void}
 export interface PlayerIdleMeta {
   title:string;
@@ -20,17 +21,17 @@ export interface PlayerIdleMeta {
   description?:string;
   backdropUrl?:string;
 }
-interface Props {captionKey?:string;media:HTMLVideoElement|null;engine:Hls|null;container:RefObject<HTMLDivElement>;title:string;sourceName:string;loading:boolean;nextEpisode?:NextEpisode;autoNext?:boolean;onAutoNextChange?:(value:boolean)=>void;onNextSource?:()=>void;onOpenSources?:()=>void;onUpload:(file:File)=>Promise<void>;subtitleStatus?:string;converted:boolean;onCompatibility?:()=>void;idleMeta?:PlayerIdleMeta}
-type NativeAudioTrack={label:string;language:string;enabled:boolean};
+interface Props {originalAudioLanguage?:string;captionKey?:string;media:HTMLVideoElement|null;engine:Hls|null;container:RefObject<HTMLDivElement>;title:string;sourceName:string;loading:boolean;nextEpisode?:NextEpisode;autoNext?:boolean;onAutoNextChange?:(value:boolean)=>void;onNextSource?:()=>void;onOpenSources?:()=>void;onUpload:(file:File)=>Promise<void>;subtitleStatus?:string;converted:boolean;onCompatibility?:()=>void;idleMeta?:PlayerIdleMeta}
 const clock=(seconds:number)=>{const value=Math.max(0,Math.floor(seconds||0));return value>=3600?`${Math.floor(value/3600)}:${String(Math.floor(value/60)%60).padStart(2,'0')}:${String(value%60).padStart(2,'0')}`:`${Math.floor(value/60)}:${String(value%60).padStart(2,'0')}`;};
 const qualityBadgeForHeight=(h?:number)=>!h?undefined:h>=2160?'/badges/4k.png':h>=1080?'/badges/1080p.png':h>=720?'/badges/720p.png':h>=480?'/badges/480p.png':'/badges/360p.png';
-export default function PlayerControls({captionKey='video',media,engine,container,title,sourceName,loading,nextEpisode,autoNext,onAutoNextChange,onNextSource,onOpenSources,onUpload,subtitleStatus,converted,onCompatibility,idleMeta}:Props){
+export default function PlayerControls({originalAudioLanguage,captionKey='video',media,engine,container,title,sourceName,loading,nextEpisode,autoNext,onAutoNextChange,onNextSource,onOpenSources,onUpload,subtitleStatus,converted,onCompatibility,idleMeta}:Props){
   const [compact,setCompact]=useState(()=>typeof window!=='undefined'&&window.matchMedia('(max-width:767px)').matches);
   useEffect(()=>{const query=window.matchMedia('(max-width:767px)');const update=()=>setCompact(query.matches);query.addEventListener('change',update);return()=>query.removeEventListener('change',update);},[]);
   const touchControls=compact||(typeof window!=='undefined'&&window.matchMedia('(pointer: coarse)').matches);
   const [state,setState]=useState({time:0,duration:0,buffered:0,paused:true,volume:1,muted:false,rate:1,ended:false});
   const [visible,setVisible]=useState(true),[menu,setMenu]=useState<'settings'|'subtitles'|null>(null),[fullscreen,setFullscreen]=useState(false),[hint,setHint]=useState('');
-  const [tracks,setTracks]=useState<TextTrack[]>([]),[trackIndex,setTrackIndex]=useState(-1),[quality,setQuality]=useState(-1),[audio,setAudio]=useState(0),[languageQuery,setLanguageQuery]=useState('');
+  const [tracks,setTracks]=useState<TextTrack[]>([]),[trackIndex,setTrackIndex]=useState(-1),[quality,setQuality]=useState(-1),[languageQuery,setLanguageQuery]=useState('');
+  const audio=useAudioTracks(media,engine,originalAudioLanguage);
   const [scrub,setScrub]=useState<number|null>(null),[countdown,setCountdown]=useState(5),[dismissNext,setDismissNext]=useState(false);
   const dragging=useRef(false),timer=useRef<ReturnType<typeof setTimeout>>(),menuRef=useRef<HTMLDivElement>(null),fileInput=useRef<HTMLInputElement>(null);
   const advanced=useRef(false);
@@ -66,7 +67,12 @@ export default function PlayerControls({captionKey='video',media,engine,containe
     if(!media)return;
     const update=()=>setState({time:media.currentTime,duration:Number.isFinite(media.duration)?media.duration:0,buffered:media.buffered.length?media.buffered.end(media.buffered.length-1):0,paused:media.paused,volume:media.volume,muted:media.muted,rate:media.playbackRate,ended:media.ended});
     const updateTracks=()=>{
-      const all=Array.from(media.textTracks).filter(track=>track.kind==='subtitles'||track.kind==='captions');
+      const elements=Array.from(media.querySelectorAll('track'));
+      elements.filter(element=>element.readyState===3).forEach(element=>{element.track.mode='disabled';});
+      const external=new Set(elements.map(element=>element.track));
+      // DOM order reflects release ranking even when a slower provider inserts tracks.
+      // Embedded tracks belong to the playing file and are preferred ahead of downloads.
+      const all=[...Array.from(media.textTracks).filter(track=>!external.has(track)),...elements.filter(element=>element.readyState!==3).map(element=>element.track)].filter(track=>track.kind==='subtitles'||track.kind==='captions');
       if(selectedCaption.current&&!all.includes(selectedCaption.current))selectedCaption.current=undefined;
       let selected=selectedCaption.current===null?-1:selectedCaption.current?all.indexOf(selectedCaption.current):all.findIndex(t=>t.mode==='showing');
       if(selectedCaption.current===undefined){
@@ -79,23 +85,29 @@ export default function PlayerControls({captionKey='video',media,engine,containe
       activateCaptionTrack(all,selected);setTracks(all);setTrackIndex(selected);
     };
     const events=['timeupdate','loadedmetadata','durationchange','progress','volumechange','play','pause','ratechange','ended'];events.forEach(event=>media.addEventListener(event,update));
-    media.textTracks.addEventListener('addtrack',updateTracks);media.textTracks.addEventListener('removetrack',updateTracks);media.textTracks.addEventListener('change',updateTracks);update();updateTracks();
-    return()=>{events.forEach(event=>media.removeEventListener(event,update));media.textTracks.removeEventListener('addtrack',updateTracks);media.textTracks.removeEventListener('removetrack',updateTracks);media.textTracks.removeEventListener('change',updateTracks);};
+    let errorTimer:ReturnType<typeof setTimeout>;
+    // Some browsers dispatch the track error before exposing readyState=ERROR.
+    const trackError=(event:Event)=>{if(event.target instanceof HTMLTrackElement){clearTimeout(errorTimer);errorTimer=setTimeout(updateTracks,0);}};
+    media.addEventListener('error',trackError,true);
+    media.textTracks.addEventListener('addtrack',updateTracks);media.textTracks.addEventListener('removetrack',updateTracks);media.textTracks.addEventListener('change',updateTracks);media.addEventListener('admax:subtitleerror',updateTracks);update();updateTracks();
+    const orderObserver=new MutationObserver(updateTracks);orderObserver.observe(media,{childList:true});
+    return()=>{clearTimeout(errorTimer);media.removeEventListener('error',trackError,true);orderObserver.disconnect();events.forEach(event=>media.removeEventListener(event,update));media.textTracks.removeEventListener('addtrack',updateTracks);media.textTracks.removeEventListener('removetrack',updateTracks);media.textTracks.removeEventListener('change',updateTracks);media.removeEventListener('admax:subtitleerror',updateTracks);};
   },[media,captionKey]);
-  useEffect(()=>{if(!engine)return;const events=(engine.constructor as typeof Hls).Events;const update=()=>{setQuality(engine.autoLevelEnabled?-1:engine.currentLevel);setAudio(engine.audioTrack);};engine.on(events.LEVEL_SWITCHED,update);engine.on(events.AUDIO_TRACK_SWITCHED,update);return()=>{engine.off(events.LEVEL_SWITCHED,update);engine.off(events.AUDIO_TRACK_SWITCHED,update);};},[engine]);
+  useEffect(()=>{if(!engine)return;const events=(engine.constructor as typeof Hls).Events;const update=()=>setQuality(engine.autoLevelEnabled?-1:engine.currentLevel);engine.on(events.LEVEL_SWITCHED,update);update();return()=>{engine.off(events.LEVEL_SWITCHED,update);};},[engine]);
   useEffect(()=>{
     setTimelineOffset(0);
     if(!engine)return;
-    const event=(engine.constructor as typeof Hls).Events.BUFFER_APPENDED;
-    const align=(_:unknown,{frag}:BufferAppendedData)=>{
-      const video=frag.elementaryStreams.video;
-      if(frag.type!=='main'||frag.sn==='initSegment'||!video)return;
-      const offset=video.startPTS-frag.start;
-      if(!Number.isFinite(offset))return;
-      setTimelineOffset(offset);engine.off(event,align);
+    const events=(engine.constructor as typeof Hls).Events;
+    let aligned=false,playingFragment='';
+    const align=(_:unknown,{frag}:Pick<BufferAppendedData,'frag'>)=>{
+      const offset=hlsSubtitleOffset(frag);
+      if(offset===undefined)return;
+      // Buffered future segments must not change the timing of the current scene.
+      if(!aligned||playingFragment===`${frag.cc}:${frag.sn}`){aligned=true;setTimelineOffset(offset);}
     };
-    engine.on(event,align);
-    return()=>{engine.off(event,align);};
+    const changed=(_:unknown,data:Pick<BufferAppendedData,'frag'>)=>{playingFragment=`${data.frag.cc}:${data.frag.sn}`;aligned=false;align(_,data);};
+    engine.on(events.BUFFER_APPENDED,align);engine.on(events.FRAG_CHANGED,changed);
+    return()=>{engine.off(events.BUFFER_APPENDED,align);engine.off(events.FRAG_CHANGED,changed);};
   },[engine,media]);
   useEffect(()=>{
     const stage=container.current;if(!stage)return;
@@ -136,10 +148,7 @@ export default function PlayerControls({captionKey='video',media,engine,containe
     return()=>{clearInterval(interval);tracks.forEach(track=>track.removeEventListener('cuechange',position));media.removeEventListener('load',position,true);media.removeEventListener('loadeddata',position);media.removeEventListener('seeked',position);};
   },[tracks,show,captions,media,container,timelineOffset]);
   const progress=state.duration?((scrub??state.time)/state.duration)*100:0;
-  const nativeAudio=(media as HTMLVideoElement&{audioTracks?:ArrayLike<NativeAudioTrack>})?.audioTracks;
-  const audioTracks=engine?.audioTracks?.length?engine.audioTracks.map((t,index)=>({index,label:t.name&&!/^\d+$/.test(t.name)?t.name:t.lang&&t.lang!=='und'?subtitleLanguage(t.lang):`Audio track ${index+1}`})):Array.from(nativeAudio||[]).map((t,index)=>({index,label:t.label||(t.language&&t.language!=='und'?subtitleLanguage(t.language):`Audio track ${index+1}`)}));
   const chooseTrack=(index:number)=>{selectedCaption.current=index>=0?tracks[index]:null;activateCaptionTrack(tracks,index);setTrackIndex(index);try{localStorage.setItem('admax-subtitle-language',index<0?'off':tracks[index].language);}catch{/* Playback works without storage. */}};
-  const chooseAudio=(index:number)=>{if(engine)engine.audioTrack=index;else Array.from(nativeAudio||[]).forEach((t,i)=>{t.enabled=i===index;});setAudio(index);};
   const upload=async(file?:File)=>{if(!file)return;try{await onUpload(file);setHint('Subtitle added.');}catch(e){setHint(e instanceof Error?e.message:'Subtitle could not load.');}};
   const nextProgress=nextEpisode?nextEpisodeProgress(state.duration,state.time,state.ended,countdown,!!autoNext):0;
   const sourceTier=detectQualityTier(sourceName);
@@ -211,7 +220,9 @@ export default function PlayerControls({captionKey='video',media,engine,containe
       <header><h3>{menu==='subtitles'?'Audio & Subtitles':'Playback Settings'}</h3><button aria-label="Close player menu" onClick={()=>setMenu(null)}><X size={16}/></button></header>
       {menu==='subtitles'?<>
         <p className="cinema-menu-label">AUDIO TRACKS</p>
-        {audioTracks.length?audioTracks.map(track=><button className="cinema-menu-option" key={track.index} aria-pressed={audio===track.index} onClick={()=>chooseAudio(track.index)}><span>{track.label}</span>{audio===track.index&&<Check size={15}/>}</button>):<p className="cinema-menu-note">Original Master Audio</p>}
+        {audio.tracks.length?audio.tracks.map(track=><button className="cinema-menu-option" key={track.index} aria-pressed={audio.selected===track.index} onClick={()=>audio.choose(track.index)}><span>{track.label}</span>{audio.selected===track.index&&<Check size={15}/>}</button>):<p className="cinema-menu-note">Playing source audio. Additional languages are not exposed by this source or browser.</p>}
+        {audio.tracks.length>1&&<p className="cinema-menu-note">Choose original audio or an available dub. Subtitles can be selected separately below.</p>}
+        {audio.error&&<p className="cinema-menu-note" role="status">{audio.error}</p>}
         <div className="flex items-center justify-between"><p className="cinema-menu-label">SUBTITLE TRACKS</p><span className="text-[10px] text-white/50">{tracks.length} available</span></div>
         <input className="caption-search" aria-label="Filter subtitle languages" placeholder="Search language (English, Arabic, Français, Español…)" value={languageQuery} onChange={e=>setLanguageQuery(e.target.value)}/>
         <div className="cinema-caption-list">

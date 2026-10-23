@@ -17,6 +17,10 @@ export function createSubtitleSearch(apiKey = process.env.WYZIE_API_KEY) {
       if(language)url.searchParams.set('language',language);
       if(match[2]){url.searchParams.set('season',match[2]);url.searchParams.set('episode',match[3]);}
       const response=await fetch(url,{signal:AbortSignal.timeout(12000)});
+      if(response.status===400){
+        const error=await response.json().catch(()=>null);
+        if(['No subtitles found','No matching release found'].includes(error?.message)){send(200,{subtitles:[],configured:true});return;}
+      }
       if(!response.ok)throw new Error('Subtitle provider unavailable');
       const data:unknown=await response.json();
       if(!Array.isArray(data))throw new Error('Invalid response');
@@ -26,9 +30,9 @@ export function createSubtitleSearch(apiKey = process.env.WYZIE_API_KEY) {
           const download=new URL(track.url);
           if(download.origin!=='https://sub.wyzie.io'||!download.pathname.startsWith('/c/'))return [];
           download.searchParams.set('to','vtt');
-          const releases=[...new Set([track.release,...(Array.isArray(track.releases)?track.releases:[]),track.fileName].filter(value=>typeof value==='string'&&value.trim()))];
+          const releases=[...new Set([track.matchedRelease,track.release,...(Array.isArray(track.releases)?track.releases:[]),track.fileName].filter(value=>typeof value==='string'&&value.trim()))];
           const release=releases.join(' · ').slice(0,600),labelRelease=String(releases[0]||'').slice(0,160);
-          return [{id:typeof track.id==='string'||typeof track.id==='number'?`${track.source||'wyzie'}:${track.id}`:undefined,url:download.href,lang:track.language,release,label:`Wyzie · ${track.source||'Community'}${labelRelease?' · '+labelRelease:''}`}];
+          return [{id:typeof track.id==='string'||typeof track.id==='number'?`${track.source||'wyzie'}:${track.id}`:undefined,url:download.href,lang:track.language,release,source:String(track.source||'Wyzie'),hearingImpaired:track.isHearingImpaired===true,downloads:typeof track.downloadCount==='number'?track.downloadCount:undefined,label:`Wyzie · ${track.source||'Community'}${labelRelease?' · '+labelRelease:''}`}];
         }catch{return [];}
       });
       send(200,{subtitles,configured:true});

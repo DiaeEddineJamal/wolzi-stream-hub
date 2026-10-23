@@ -24,6 +24,12 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <link rel="preconnect" href="https://image.tmdb.org" />
+    <link rel="preload" as="image" href="/brand/admax-logo.png" />
+    <style>
+      html, body { margin: 0; background: #000; }
+      #launch-boot { position: fixed; inset: 0; display: grid; place-items: center; background: #000; }
+      #launch-boot img { width: min(46vw, 496px); height: auto; }
+    </style>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -32,5 +38,5 @@
       }
     </script>
   </head>
-  <body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body>
+  <body><div id="root"><div id="launch-boot" role="status" aria-label="Opening A&D MAX"><img src="/brand/admax-logo.png" alt="A&D MAX" width="2172" height="724" /></div></div><script type="module" src="/src/main.tsx"></script></body>
 </html>

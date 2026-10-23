@@ -8,6 +8,12 @@ export function captionPreferences(value:unknown):CaptionPreferences{
 export function captionTimes(start:number,end:number,delay:number){
   return {start:Math.max(0,start+delay),end:Math.max(.001,end+delay)};
 }
+export function hlsSubtitleOffset(frag:{type:string;sn:number|string;start:number;elementaryStreams:{video?:{startPTS:number};audio?:{startPTS:number}}}){
+  if(frag.type!=='main'||frag.sn==='initSegment')return undefined;
+  const stream=frag.elementaryStreams.video||frag.elementaryStreams.audio;
+  const offset=stream?stream.startPTS-frag.start:NaN;
+  return Number.isFinite(offset)?offset:undefined;
+}
 export interface CaptionTiming {start:number;end:number;appliedStart:number;appliedEnd:number}
 export function applyCaptionTiming(cue:Pick<TextTrackCue,'startTime'|'endTime'>,delay:number,times:WeakMap<object,CaptionTiming>){
   let original=times.get(cue);

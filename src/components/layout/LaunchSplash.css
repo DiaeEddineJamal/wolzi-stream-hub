@@ -1,0 +1,45 @@
+.launch-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: #000;
+  opacity: 1;
+  transition: opacity 360ms cubic-bezier(.2, 0, 0, 1);
+}
+.launch-splash--leaving { opacity: 0; }
+.launch-splash__art {
+  position: relative;
+  width: min(100vw, 1080px);
+  height: min(100svh, 760px);
+}
+.launch-splash__still {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 46%;
+  height: auto;
+}
+.launch-splash__art > .liquid-glass-logo { min-height: 0; }
+.launch-splash__skip {
+  position: absolute;
+  right: max(24px, env(safe-area-inset-right));
+  bottom: max(24px, env(safe-area-inset-bottom));
+  min-width: 92px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #999;
+  font: 500 12px/1.4 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  cursor: pointer;
+}
+.launch-splash__skip:hover { color: #fff; }
+.launch-splash__skip:focus-visible { outline: 1px solid #888; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .launch-splash { transition-duration: 100ms; }
+}

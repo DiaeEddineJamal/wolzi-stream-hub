@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { SubtitleTrack } from '@/lib/subtitles';
+import type { SubtitleTrack, SubtitleVideo } from '@/lib/subtitles';
 const resourceSchema = z.union([z.string(), z.object({ name: z.string(), types: z.array(z.string()).optional(), idPrefixes: z.array(z.string()).optional() })]);
 export const manifestSchema = z.object({
   id: z.string().min(1).max(160), name: z.string().min(1).max(160), version: z.string().min(1),
@@ -13,11 +13,11 @@ export const streamSchema = z.object({
   url: z.string().optional(), externalUrl: z.string().optional(), ytId: z.string().optional(),
   infoHash: z.string().optional(), fileIdx: z.number().int().min(0).optional(), sources: z.array(z.string()).optional(), name: z.string().optional(),
   title: z.string().optional(), description: z.string().optional(),
-  subtitles: z.array(z.object({ id: z.string().optional(), url: z.string(), lang: z.string() })).optional(),
-  behaviorHints: z.object({ notWebReady: z.boolean().optional(), isHls: z.boolean().optional(), proxyHeaders: z.object({request:z.record(z.string()).optional(),response:z.record(z.string()).optional()}).optional() }).optional(),
+  subtitles: z.array(z.object({ id: z.string().optional(), url: z.string(), lang: z.string(), label:z.string().optional(),release:z.string().optional() })).optional(),
+  behaviorHints: z.object({ filename:z.string().max(500).optional(),videoHash:z.string().regex(/^[a-f\d]{16}$/i).optional(),videoSize:z.number().int().positive().safe().optional(),notWebReady: z.boolean().optional(), isHls: z.boolean().optional(), proxyHeaders: z.object({request:z.record(z.string()).optional(),response:z.record(z.string()).optional()}).optional() }).optional(),
 }).passthrough();
 export type AddonStream = z.infer<typeof streamSchema>;
-export interface StreamChoice { id: string; name: string; description?: string; url?: string; externalUrl?: string; kind: 'video' | 'embed' | 'external' | 'unsupported'; reason?: string; service?: string; needsConversion?: boolean; availability?: 'checking'|'reachable'|'ready'|'failed'|'timeout'; provider?: string; subtitles?: SubtitleTrack[] }
+export interface StreamChoice extends SubtitleVideo { id: string; name: string; description?: string; url?: string; externalUrl?: string; kind: 'video' | 'embed' | 'external' | 'unsupported'; reason?: string; service?: string; needsConversion?: boolean; availability?: 'checking'|'reachable'|'ready'|'failed'|'timeout'; provider?: string; subtitles?: SubtitleTrack[] }
 export function httpsUrl(value: string): string {
   const url = new URL(value);
   if (url.protocol !== 'https:' || url.username || url.password) throw new Error('Use an HTTPS URL without embedded credentials.');
@@ -108,7 +108,7 @@ export function hlsPlaybackUrl(mediaUrl:string,service:string,sessionId:string,o
   return (base==='/streaming-service'?'':base)+'/hlsv2/'+encodeURIComponent(sessionId)+'/master.m3u8?'+params;
 }
 export function classifyStream(stream: AddonStream, id: string, addonName: string, service?: string): StreamChoice {
-  const base = { id, name: stream.name || addonName, description: stream.description || stream.title, subtitles: stream.subtitles?.filter(s => { try { return typeof s.lang === 'string' && !!httpsUrl(s.url); } catch { return false; } }).map(s => ({id:s.id,url:s.url,lang:s.lang})) };
+  const base = { id, name: stream.name || addonName, description: stream.description || stream.title, filename:stream.behaviorHints?.filename,videoHash:stream.behaviorHints?.videoHash,videoSize:stream.behaviorHints?.videoSize, subtitles: stream.subtitles?.filter(s => { try { return typeof s.lang === 'string' && !!httpsUrl(s.url); } catch { return false; } }).map(s => ({id:s.id,url:s.url,lang:s.lang,release:s.release,label:s.label||addonName})) };
   if (stream.externalUrl) {
     try { return { ...base, kind: 'external', externalUrl: httpsUrl(stream.externalUrl) }; } catch { return {...base,kind:'unsupported',reason:'This external link is not a secure web address.'}; }
   }

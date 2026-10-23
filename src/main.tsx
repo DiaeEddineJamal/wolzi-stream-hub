@@ -1,6 +1,7 @@
 import './lib/install'; // capture the install prompt before React mounts
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
+import LaunchSplash from './components/layout/LaunchSplash'
 import './index.css'
 import { initPerformanceOptimizer } from './utils/performance-optimizer'
 import { initAnalytics } from './utils/analytics'
@@ -45,4 +46,4 @@ if (needsCacheClear) {
 initPerformanceOptimizer()
 initAnalytics()
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(<LaunchSplash><App /></LaunchSplash>);

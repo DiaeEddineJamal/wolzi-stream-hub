@@ -22,6 +22,20 @@ const resolver=await load('server/source-resolver.ts');
 const subtitles=await load('src/lib/subtitles.ts');
 const artwork=await load('src/lib/artwork.ts');
 const captions=await load('src/lib/captions.ts');
+const audioTracks=await load('src/lib/audio-tracks.ts');
+assert.equal(audioTracks.audioOption(0,'jpn','Japanese','ja').label,'Japanese · Original');
+assert.equal(audioTracks.audioOption(1,'eng','stream_5','ja','','2').label,'English · Stereo · Dub');
+assert.equal(audioTracks.audioOption(2,'en','Commentary','ja').label,'English · Commentary');
+assert.equal(audioTracks.audioOption(3,'und','','ja').label,'Audio track 4');
+assert.equal(audioTracks.audioOption(0,'en','English','','','6').label,'English · 5.1 surround');
+const nativeDubTracks=[{enabled:true},{enabled:false}];
+audioTracks.enableNativeAudio(nativeDubTracks,1);
+assert.deepEqual(nativeDubTracks.map(track=>track.enabled),[false,true]);
+assert.throws(()=>audioTracks.enableNativeAudio(nativeDubTracks,5),/no longer available/);
+assert.deepEqual(nativeDubTracks.map(track=>track.enabled),[false,true]);
+const unsupportedDub=[{enabled:true},{get enabled(){return false;},set enabled(value){}}];
+assert.throws(()=>audioTracks.enableNativeAudio(unsupportedDub,1),/could not switch/);
+assert.equal(unsupportedDub[0].enabled,true);
 const progress=await load('src/lib/watch-progress.ts');
 const watched={content_id:'123',content_type:'tv',title:'A story',poster_path:null,progress:120,duration:1000,progress_percent:12,season:1,episode:1,watched_at:'2026-10-18T12:00:00Z'};
 assert.equal(progress.resumeSeconds(watched),120);
@@ -124,6 +138,29 @@ const ranked=subtitles.rankSubtitleTracks(releaseTracks,'Movie.2025.1080p.WEB-DL
 assert.equal(ranked.length,7); // Keep alternatives beyond the former three-track limit.
 assert.equal(ranked[0],releaseTracks[6]);
 assert.deepEqual(subtitles.rankSubtitleTracks(releaseTracks),releaseTracks);
+const videoHints={filename:'Example.S02E03.1080p.WEB-DL-GROUP.mkv',videoHash:'1234567890abcdef',videoSize:123456789};
+const hintedStream=api.classifyStream(api.streamSchema.parse({url:'https://example.com/movie.mp4',behaviorHints:videoHints}),'hinted','Test');
+assert.equal(hintedStream.filename,videoHints.filename);
+assert.deepEqual(subtitles.subtitleVideoExtras(hintedStream),{filename:videoHints.filename,videoHash:videoHints.videoHash,videoSize:'123456789'});
+assert.deepEqual(subtitles.subtitleVideoExtras({videoHash:'not-a-hash',videoSize:-1}),{});
+assert.match(api.resourceUrl('https://example.com/manifest.json','subtitles','series','tt123:2:3',subtitles.subtitleVideoExtras(hintedStream)),/filename=Example.S02E03.1080p.WEB-DL-GROUP.mkv&videoHash=1234567890abcdef&videoSize=123456789/);
+const versions=[
+  {url:'wrong-cut',lang:'en',release:'Example.S02E03.1080p.BluRay-OTHER.mkv'},
+  {url:'right-release',lang:'en',release:'Example.S02E03.720p.WEB-DL-GROUP.srt'},
+  {url:'wrong-episode',lang:'en',release:'Example.S02E04.1080p.WEB-DL-GROUP.srt'},
+];
+assert.equal(subtitles.rankSubtitleTracks(versions,videoHints.filename)[0].url,'right-release');
+assert.equal(subtitles.rankSubtitleTracks(versions,videoHints.filename).at(-1).url,'wrong-episode');
+assert.equal(subtitles.subtitleMatchesEpisode(versions[1],'tt123:2:3'),true);
+assert.equal(subtitles.subtitleMatchesEpisode(versions[2],'tt123:2:3'),false);
+assert.equal(subtitles.subtitleMatchesEpisode({url:'unknown',lang:'en'},'tt123:2:3'),true);
+assert.equal(subtitles.subtitleMatchesEpisode(versions[2],'tt123'),true);
+assert.equal(captions.hlsSubtitleOffset({type:'main',sn:4,start:6,elementaryStreams:{video:{startPTS:10}}}),4);
+assert.equal(captions.hlsSubtitleOffset({type:'main',sn:5,start:12,elementaryStreams:{video:{startPTS:13.5}}}),1.5);
+assert.equal(captions.hlsSubtitleOffset({type:'main',sn:6,start:18,elementaryStreams:{audio:{startPTS:20}}}),2);
+assert.equal(captions.hlsSubtitleOffset({type:'subtitle',sn:4,start:6,elementaryStreams:{video:{startPTS:10}}}),undefined);
+assert.equal(captions.hlsSubtitleOffset({type:'main',sn:'initSegment',start:0,elementaryStreams:{}}),undefined);
+assert.equal(captions.hlsSubtitleOffset({type:'main',sn:4,start:0,elementaryStreams:{video:{startPTS:NaN}}}),undefined);
 const arrivingTracks=[{language:'eng',mode:'showing'}];
 assert.equal(subtitles.preferredSubtitleIndex(arrivingTracks,'ar'),0);
 arrivingTracks.push({language:'ara',mode:'disabled'});
@@ -266,6 +303,13 @@ try {
   assert.equal(arabicTrack.id,'lima:arabic');
   assert.match(arabicTrack.release,/Movie.GROUP/);
   assert.doesNotMatch(arabic.body,/server-only-secret/);
+  assert.equal(arabicTrack.source,'lima');
+  globalThis.fetch=async()=>({ok:false,status:400,json:async()=>({message:'No subtitles found'})});
+  const empty=subtitleResponse();await createSubtitleSearch('secret')({method:'GET',url:'/?id=tt123'},empty);
+  assert.equal(empty.status,200);assert.deepEqual(JSON.parse(empty.body),{subtitles:[],configured:true});
+  globalThis.fetch=async()=>({ok:false,status:429});
+  const limited=subtitleResponse();await createSubtitleSearch('secret')({method:'GET',url:'/?id=tt123'},limited);
+  assert.equal(limited.status,502);assert.doesNotMatch(limited.body,/secret/);
 }finally{globalThis.fetch=realFetch;}
 
 const {matchesTrendingFilters}=await load('src/lib/catalog-filters.ts');

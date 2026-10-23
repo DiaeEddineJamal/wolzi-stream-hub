@@ -1,4 +1,20 @@
-export interface SubtitleTrack {id?:string;url:string;lang:string;label?:string;release?:string}
+export interface SubtitleTrack {id?:string;url:string;lang:string;label?:string;release?:string;source?:string;hearingImpaired?:boolean;downloads?:number}
+export interface SubtitleVideo {filename?:string;videoHash?:string;videoSize?:number}
+
+export function subtitleVideoExtras(video:SubtitleVideo={}) {
+  const extra:Record<string,string>={};
+  if(video.filename?.trim())extra.filename=video.filename.trim().slice(0,500);
+  if(video.videoHash&&/^[a-f\d]{16}$/i.test(video.videoHash))extra.videoHash=video.videoHash;
+  if(Number.isSafeInteger(video.videoSize)&&video.videoSize>0)extra.videoSize=String(video.videoSize);
+  return extra;
+}
+
+export function subtitleMatchesEpisode(track:SubtitleTrack,id=''){
+  const target=/:(\d+):(\d+)$/.exec(id);
+  if(!target)return true;
+  const episodes=[...(track.release||track.label||'').matchAll(/s(\d{1,2})[ ._-]*e(\d{1,3})/gi)];
+  return !episodes.length||episodes.some(match=>Number(match[1])===Number(target[1])&&Number(match[2])===Number(target[2]));
+}
 
 export function preferredSubtitleIndex(tracks:Pick<TextTrack,'language'|'mode'>[],preferred:string|null){
   if(preferred==='off')return -1;
@@ -10,7 +26,21 @@ export function preferredSubtitleIndex(tracks:Pick<TextTrack,'language'|'mode'>[
 export function rankSubtitleTracks<T extends SubtitleTrack>(tracks:T[],release=''){
   const tokens=(value:string)=>value.toLowerCase().replace(/web[ ._-]?(dl|rip)/g,'web$1').match(/[a-z0-9]{3,}/g)||[];
   const wanted=new Set(tokens(release));
-  const score=(track:T)=>[...new Set(tokens(track.release||track.label||''))].filter(token=>wanted.has(token)).length;
+  const origin=(value:string)=>/bluray|blu-ray|bdrip|brrip/i.test(value)?'bluray':/web[ ._-]?(dl|rip)|webrip/i.test(value)?'web':/hdtv/i.test(value)?'hdtv':/dvd/i.test(value)?'dvd':undefined;
+  const wantedOrigin=origin(release);
+  const episode=(value:string)=>/s(\d{1,2})[ ._-]*e(\d{1,3})/i.exec(value)?.slice(1).map(Number).join(':');
+  const wantedEpisode=episode(release);
+  const group=(value:string)=>/-([a-z\d]+)(?:\.(?:mkv|mp4|srt|vtt|ass))?$/i.exec(value.trim())?.[1].toLowerCase();
+  const wantedGroup=group(release);
+  const score=(track:T)=>{
+    const candidate=track.release||track.label||'';
+    const candidateOrigin=origin(candidate),candidateEpisode=episode(candidate);
+    // A shared title is weaker evidence than a matching cut/source or release group.
+    return [...new Set(tokens(candidate))].filter(token=>wanted.has(token)).length
+      +(wantedOrigin&&candidateOrigin?(wantedOrigin===candidateOrigin?12:-20):0)
+      +(wantedEpisode&&candidateEpisode?(wantedEpisode===candidateEpisode?20:-100):0)
+      +(wantedGroup&&candidate.split(' · ').some(value=>group(value)===wantedGroup)?25:0);
+  };
   return [...tracks].sort((a,b)=>score(b)-score(a));
 }
 

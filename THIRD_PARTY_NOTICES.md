@@ -544,3 +544,12 @@ SOFTWARE.
 Lazy-loaded adaptive playback engine, version 1.7.3. Copyright (c) 2017 Dailymotion. Apache License 2.0: https://www.apache.org/licenses/LICENSE-2.0. The installed package retains its license and notices.
 
 React Bits adaptation: GlassSurface's artwork union is explicitly narrowed for TypeScript compatibility; layout and parameters are customized for A&D MAX.
+
+## ReactDrops — Liquid Glass Logo
+
+Source: https://reactdrops.dev/components/text-reveal/liquid-glass-logo
+Registry: https://reactdrops.dev/r/liquid-glass-logo.json
+Copyright (c) 2026 ReactDrops. ReactDrops Component License 1.0.
+The complete license is retained at the top of each file in
+src/components/vendor/reactdrops/. Used as an integrated part of A&D MAX.
+Local adaptation: added a renderer-ready callback for launch timing.

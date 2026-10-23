@@ -67,7 +67,7 @@ function WatchSession(){
   },[detectedOnce,service,addonStreamList]);
   const playback=usePlaybackSelection([...resolved.sources,...addonStreamList],resolved.checking||addonResults.isFetching,episodeKey);
   const {choices,active}=playback;
-  const subtitles=useSubtitles(type==='movie'?'movie':'series',imdb?streamId:undefined,[details.data?.title||details.data?.name,active?.name,active?.description].filter(Boolean).join(' '),imdb?streamId:type==='movie'?id:`${id}:${season}:${episode}`);
+  const subtitles=useSubtitles(type==='movie'?'movie':'series',imdb?streamId:undefined,active?.filename||[details.data?.title||details.data?.name,active?.name,active?.description].filter(Boolean).join(' '),imdb?streamId:type==='movie'?id:`${id}:${season}:${episode}`,active);
   const item=details.data?toMediaItem(details.data,type):null;
   const theme=useArtworkTheme(item?.backdropUrl);
   const currentEpisode=episodes.data?.episodes?.find((ep:any)=>ep.episode_number===episode);
@@ -99,6 +99,7 @@ function WatchSession(){
   return <MainLayout theme={theme}><div className="page-shell player-page apple-watch-page">
       <div className="watch-player-layout">
         <StreamingPlayer
+          originalAudioLanguage={details.data?.original_language}
           source={active?{...active,subtitles:[...(active.subtitles||[]),...(subtitles.data?.tracks||[])]}:undefined}
           title={item?.title || 'A&D MAX'}
           storageKey={`${user?.id||"guest"}-${type}-${id}-${season}-${episode}`}
