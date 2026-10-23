@@ -6,6 +6,7 @@ import LoadingState from '@/components/primitives/LoadingState';
 import { hlsPlaybackUrl, isNativeVideoUrl, type StreamChoice } from '@/integrations/api/stremio';
 import { openServiceSetup } from '@/hooks/useStreamingService';
 import { decodeSubtitle, normalizeLangCode, subtitleLanguage, subtitleUrl, toWebVTT, type SubtitleTrack } from '@/lib/subtitles';
+import { playbackBufferConfig, touchPlayerQuery } from '@/lib/mobile-player';
 import PlayerControls, { type NextEpisode, type PlayerIdleMeta } from './PlayerControls';
 interface Props {originalAudioLanguage?:string;source?:StreamChoice;title:string;storageKey:string;poster?:string;onEnded?:()=>void;onProgress?:(seconds:number,duration:number)=>void;onNextSource?:()=>void;onOpenSources?:()=>void;onSourceError?:()=>void;onSourceReady?:()=>void;onRetryService?:()=>void;searching?:boolean;resume?:boolean;initialPosition?:number;nextEpisode?:NextEpisode;autoNext?:boolean;onAutoNextChange?:(value:boolean)=>void;subtitleStatus?:string;idleMeta?:PlayerIdleMeta}
 export default function StreamingPlayer({originalAudioLanguage,source,title,storageKey,poster,onEnded,onProgress,onNextSource,onOpenSources,onSourceError,onSourceReady,onRetryService,searching=false,resume=true,initialPosition,nextEpisode,autoNext,onAutoNextChange,subtitleStatus,idleMeta}:Props){
@@ -47,7 +48,7 @@ export default function StreamingPlayer({originalAudioLanguage,source,title,stor
       const corsBlocked=!!source?.service&&/^https?:/.test(source.service)&&new URL(source.service).origin!==window.location.origin;
       if(corsBlocked&&media.canPlayType('application/vnd.apple.mpegurl')){media.src=playbackUrl;media.load();}
       else if(HlsEngine.isSupported()){
-        hls=new HlsEngine({maxBufferLength:60,backBufferLength:30,enableWorker:true,fragLoadPolicy:{default:{maxTimeToFirstByteMs:25000,maxLoadTimeMs:60000,timeoutRetry:{maxNumRetry:4,retryDelayMs:1000,maxRetryDelayMs:8000},errorRetry:{maxNumRetry:4,retryDelayMs:1000,maxRetryDelayMs:8000}}},manifestLoadPolicy:{default:{maxTimeToFirstByteMs:20000,maxLoadTimeMs:30000,timeoutRetry:{maxNumRetry:3,retryDelayMs:1000,maxRetryDelayMs:4000},errorRetry:{maxNumRetry:3,retryDelayMs:1000,maxRetryDelayMs:4000}}}});setEngine(hls);hls.attachMedia(media);hls.loadSource(playbackUrl);
+        hls=new HlsEngine({...playbackBufferConfig(window.matchMedia(touchPlayerQuery).matches),enableWorker:true,fragLoadPolicy:{default:{maxTimeToFirstByteMs:25000,maxLoadTimeMs:60000,timeoutRetry:{maxNumRetry:4,retryDelayMs:1000,maxRetryDelayMs:8000},errorRetry:{maxNumRetry:4,retryDelayMs:1000,maxRetryDelayMs:8000}}},manifestLoadPolicy:{default:{maxTimeToFirstByteMs:20000,maxLoadTimeMs:30000,timeoutRetry:{maxNumRetry:3,retryDelayMs:1000,maxRetryDelayMs:4000},errorRetry:{maxNumRetry:3,retryDelayMs:1000,maxRetryDelayMs:4000}}}});setEngine(hls);hls.attachMedia(media);hls.loadSource(playbackUrl);
         hls.on(HlsEngine.Events.ERROR,(_,data)=>{if(!data.fatal||cancelled)return;if(data.type===HlsEngine.ErrorTypes.NETWORK_ERROR)hls.startLoad();else if(data.type===HlsEngine.ErrorTypes.MEDIA_ERROR)hls.recoverMediaError();else playbackError();});
       }else if(media.canPlayType('application/vnd.apple.mpegurl')){media.src=playbackUrl;media.load();}else playbackError();
     }).catch(()=>{if(!cancelled)playbackError();});}

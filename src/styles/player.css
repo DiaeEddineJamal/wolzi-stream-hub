@@ -157,7 +157,7 @@
 .cinema-source-label { box-shadow:none;background:#1c1c2080;border-color:#ffffff1f; }
 .cinema-source-label>span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:0;text-transform:none;font-weight:500; }
 .apple-status-label { text-shadow:0 1px 8px #000; }
-@media(max-width:767px) {
+@media(max-width:767px), (pointer:coarse) {
   .cinema-topbar,.cinema-player:fullscreen .cinema-topbar { padding:8px 12px 22px;align-items:center;gap:12px; }
   .cinema-topbar-title>span { display:none; }
   .cinema-topbar h2 { font-size:12px;max-width:none;margin:0; }
@@ -185,6 +185,7 @@
   .cinema-menu>header button { width:44px;height:44px; }
   .cinema-menu-option,.cinema-quality-options button,.cinema-speed-options button,.cinema-menu-upload { min-height:44px; }
   .caption-search { min-height:44px;font-size:16px; }
+  .cinema-menu { overscroll-behavior:contain;scroll-padding-block:16px; }
   .cinema-player .player-slow { top:54px;right:12px;left:12px;max-width:none;justify-content:center;font-size:10px; }
   .cinema-player .player-slow>span { max-width:none; }
   .cinema-controls[data-menu-open=true] .cinema-mobile-transport { visibility:hidden; }

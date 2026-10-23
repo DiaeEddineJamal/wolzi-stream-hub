@@ -170,6 +170,20 @@ h1,h2,h3,h4,h5,h6 { font-family:var(--font-display);font-weight:600; }
 .cinema-controls[data-touch-controls=true]:not(.is-visible) .cinema-bottom { opacity:0;pointer-events:none;visibility:hidden; }
 .cinema-controls[data-touch-controls=true].is-visible .cinema-topbar,
 .cinema-controls[data-touch-controls=true].is-visible .cinema-bottom { visibility:visible;transition-duration:.18s; }
+
+/* Keep the player sheet usable on touch devices after rotating past 767px. */
+@media(max-width:767px), (pointer:coarse) {
+  .caption-offset input { min-height:44px;font-size:16px;width:80px; }
+  .caption-offset button { min-width:44px;min-height:44px; }
+}
+@media(pointer:coarse) {
+  [role=dialog].cinema-menu.glass-popup,.cinema-player:fullscreen [role=dialog].cinema-menu.glass-popup {
+    width:auto;max-width:none;max-height:80dvh;
+    inset:auto max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));
+    padding:16px;
+  }
+  .cinema-player:fullscreen [role=dialog].cinema-menu.glass-popup { max-height:calc(100% - 16px); }
+}
 .cinema-controls[data-touch-controls=true]:not(.is-visible) .cinema-bottom * { pointer-events:none; }
 @media(min-width:768px) and (pointer:coarse) {
   .cinema-controls[data-touch-controls=true] .cinema-center-play { display:none; }

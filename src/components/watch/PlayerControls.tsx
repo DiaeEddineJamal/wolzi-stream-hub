@@ -9,6 +9,7 @@ import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { detectQualityTier, QUALITY_BADGES } from './SourcePicker';
 import CaptionSettings from './CaptionSettings';
 import { useAudioTracks } from '@/hooks/useAudioTracks';
+import { isPlayerFullscreen, togglePlayerFullscreen, touchPlayerQuery } from '@/lib/mobile-player';
 export interface NextEpisode {label:string;image?:string;eyebrow?:string;onPlay:()=>void}
 export interface PlayerIdleMeta {
   title:string;
@@ -25,9 +26,9 @@ interface Props {originalAudioLanguage?:string;captionKey?:string;media:HTMLVide
 const clock=(seconds:number)=>{const value=Math.max(0,Math.floor(seconds||0));return value>=3600?`${Math.floor(value/3600)}:${String(Math.floor(value/60)%60).padStart(2,'0')}:${String(value%60).padStart(2,'0')}`:`${Math.floor(value/60)}:${String(value%60).padStart(2,'0')}`;};
 const qualityBadgeForHeight=(h?:number)=>!h?undefined:h>=2160?'/badges/4k.png':h>=1080?'/badges/1080p.png':h>=720?'/badges/720p.png':h>=480?'/badges/480p.png':'/badges/360p.png';
 export default function PlayerControls({originalAudioLanguage,captionKey='video',media,engine,container,title,sourceName,loading,nextEpisode,autoNext,onAutoNextChange,onNextSource,onOpenSources,onUpload,subtitleStatus,converted,onCompatibility,idleMeta}:Props){
-  const [compact,setCompact]=useState(()=>typeof window!=='undefined'&&window.matchMedia('(max-width:767px)').matches);
-  useEffect(()=>{const query=window.matchMedia('(max-width:767px)');const update=()=>setCompact(query.matches);query.addEventListener('change',update);return()=>query.removeEventListener('change',update);},[]);
-  const touchControls=compact||(typeof window!=='undefined'&&window.matchMedia('(pointer: coarse)').matches);
+  const [compact,setCompact]=useState(()=>typeof window!=='undefined'&&window.matchMedia(touchPlayerQuery).matches);
+  useEffect(()=>{const query=window.matchMedia(touchPlayerQuery);const update=()=>setCompact(query.matches);query.addEventListener('change',update);return()=>query.removeEventListener('change',update);},[]);
+  const touchControls=compact;
   const [state,setState]=useState({time:0,duration:0,buffered:0,paused:true,volume:1,muted:false,rate:1,ended:false});
   const [visible,setVisible]=useState(true),[menu,setMenu]=useState<'settings'|'subtitles'|null>(null),[fullscreen,setFullscreen]=useState(false),[hint,setHint]=useState('');
   const [tracks,setTracks]=useState<TextTrack[]>([]),[trackIndex,setTrackIndex]=useState(-1),[quality,setQuality]=useState(-1),[languageQuery,setLanguageQuery]=useState('');
@@ -60,7 +61,13 @@ export default function PlayerControls({originalAudioLanguage,captionKey='video'
   },[touchControls,visible,wake,toggle]);
   const playNextEpisode=useCallback(()=>{if(!nextEpisode)return;if(media&&!media.paused)void media.play().catch(()=>{});nextEpisode.onPlay();},[nextEpisode,media]);
   const seek=useCallback((time:number)=>{if(media&&Number.isFinite(media.duration)){const position=Math.min(media.duration,Math.max(0,time));media.currentTime=position;setState(previous=>({...previous,time:position,ended:false}));}},[media]);
-  const toggleFullscreen=useCallback(()=>{const stage=container.current;if(!stage)return;if(document.fullscreenElement)void document.exitFullscreen().catch(()=>setHint('Fullscreen could not close.'));else if(stage.requestFullscreen)void stage.requestFullscreen().catch(()=>setHint('Fullscreen is unavailable in this browser.'));else if('webkitEnterFullscreen' in (media||{}))(media as HTMLVideoElement&{webkitEnterFullscreen:()=>void}).webkitEnterFullscreen();},[container,media]);
+  const toggleFullscreen=useCallback(()=>{const stage=container.current;if(!stage)return;setMenu(null);void togglePlayerFullscreen(stage,media).catch(()=>setHint('Fullscreen is unavailable in this browser.'));},[container,media]);
+  useEffect(()=>{
+    if(!compact||fullscreen||!menu)return;
+    const overflow=document.body.style.overflow;
+    document.body.style.overflow='hidden';
+    return()=>{document.body.style.overflow=overflow;};
+  },[compact,fullscreen,menu]);
   useEffect(()=>{
     setMenu(null);setDismissNext(false);setCountdown(5);
     selectedCaption.current=undefined;
@@ -111,12 +118,12 @@ export default function PlayerControls({originalAudioLanguage,captionKey='video'
   },[engine,media]);
   useEffect(()=>{
     const stage=container.current;if(!stage)return;
-    const change=()=>{const full=document.fullscreenElement===stage;setFullscreen(full);if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches)stage.animate?.([{opacity:.72,transform:`scale(${full ? .985 : 1.015})`},{opacity:1,transform:'scale(1)'}],{duration:300,easing:'cubic-bezier(.2,.7,.3,1)'});};
+    const change=()=>{const full=isPlayerFullscreen(stage,media);setFullscreen(full);if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches)stage.animate?.([{opacity:.72,transform:`scale(${full ? .985 : 1.015})`},{opacity:1,transform:'scale(1)'}],{duration:300,easing:'cubic-bezier(.2,.7,.3,1)'});};
     const key=(e:KeyboardEvent)=>{if(!stage.contains(document.activeElement)&&document.fullscreenElement!==stage)return;if(e.target instanceof HTMLInputElement||e.target instanceof HTMLSelectElement||e.target instanceof HTMLTextAreaElement)return;if(e.key==='Escape'){setMenu(null);return;}if((e.code==='Space'&&!(e.target instanceof HTMLButtonElement))||e.key.toLowerCase()==='k'){e.preventDefault();toggle();}else if(e.key==='ArrowRight'||e.key.toLowerCase()==='l'){e.preventDefault();seek((media?.currentTime||0)+10);wake();}else if(e.key==='ArrowLeft'||e.key.toLowerCase()==='j'){e.preventDefault();seek((media?.currentTime||0)-10);wake();}else if(e.key.toLowerCase()==='m'&&media){media.muted=!media.muted;}else if(e.key.toLowerCase()==='f'){e.preventDefault();toggleFullscreen();}};
     const outside=(e:PointerEvent)=>{if(menuRef.current&&!menuRef.current.contains(e.target as Node)&&!(e.target as HTMLElement).closest('[data-player-menu]'))setMenu(null);};
     const onPointerMove=(e:PointerEvent)=>{if(e.pointerType!=='touch')wake();};
-    document.addEventListener('fullscreenchange',change);window.addEventListener('keydown',key);document.addEventListener('pointerdown',outside);stage.addEventListener('pointermove',onPointerMove);stage.addEventListener('focusin',wake);
-    return()=>{document.removeEventListener('fullscreenchange',change);window.removeEventListener('keydown',key);document.removeEventListener('pointerdown',outside);stage.removeEventListener('pointermove',onPointerMove);stage.removeEventListener('focusin',wake);clearTimeout(timer.current);};
+    document.addEventListener('fullscreenchange',change);media?.addEventListener('webkitbeginfullscreen',change);media?.addEventListener('webkitendfullscreen',change);window.addEventListener('keydown',key);document.addEventListener('pointerdown',outside);stage.addEventListener('pointermove',onPointerMove);stage.addEventListener('focusin',wake);
+    return()=>{document.removeEventListener('fullscreenchange',change);media?.removeEventListener('webkitbeginfullscreen',change);media?.removeEventListener('webkitendfullscreen',change);window.removeEventListener('keydown',key);document.removeEventListener('pointerdown',outside);stage.removeEventListener('pointermove',onPointerMove);stage.removeEventListener('focusin',wake);clearTimeout(timer.current);};
   },[media,container,wake,toggle,seek,toggleFullscreen]);
   const hasNextEpisode=!!nextEpisode;
   useEffect(()=>{setDismissNext(false);setCountdown(5);advanced.current=false;},[nextEpisode?.label,nextEpisode?.eyebrow,title]);
