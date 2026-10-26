@@ -25,7 +25,7 @@ function AddonSession(){
   const video=chosenVideo || (type==='series' ? meta.data?.videos?.[0]?.id : undefined) || id;
   const currentVideoIndex=meta.data?.videos?.findIndex(v=>v.id===video)??-1;
   const nextVideo=type==='series'&&currentVideoIndex>=0?meta.data?.videos?.[currentVideoIndex+1]:undefined;
-  const streams=useQuery({queryKey:['addon-title-streams',addon?.transportUrl,type,video,service],enabled:!!addon&&(type!=='series'||!!meta.data),queryFn:({signal})=>addonStreams(addon,type,video,signal,service)});
+  const streams=useQuery({queryKey:['addon-title-streams',addon?.transportUrl,type,video,service],enabled:!!addon&&(type!=='series'||!!meta.data||meta.isError),queryFn:({signal})=>addonStreams(addon,type,video,signal,service)});
   const playback=usePlaybackSelection(streams.data||[],streams.isFetching,video);
   const {choices,active}=playback;
   let poster:string;try{poster=httpsUrl(meta.data?.background||meta.data?.poster);}catch{poster=undefined;}

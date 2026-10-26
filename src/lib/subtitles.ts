@@ -64,6 +64,12 @@ export function toWebVTT(value:string){
   }
   throw new Error('Choose a WebVTT, SRT, or ASS subtitle file.');
 }
+// Providers inject promotional cues that are not dialogue; they also mislead dialogue alignment.
+const SUBTITLE_AD=/opensubtitles|osdb\.link|subtitles for any video|advertise your product|support us and become vip|subscene|yts\.|yify|addic7ed\.com|www\.[a-z0-9-]+\.(com|net|org)/i;
+export function stripSubtitleAds(vtt:string){
+  const [header,...blocks]=vtt.split(/\n{2,}/);
+  return [header,...blocks.filter(block=>!(block.includes('-->')&&SUBTITLE_AD.test(block)))].join('\n\n').trimEnd()+'\n';
+}
 export function subtitleUrl(url:string){
   return url.startsWith('blob:')?url:'/api/playback/subtitles?'+new URLSearchParams({url});
 }

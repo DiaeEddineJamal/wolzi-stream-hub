@@ -3,13 +3,15 @@ import type Hls from 'hls.js';
 import type { BufferAppendedData } from 'hls.js';
 import { createPortal } from 'react-dom';
 import { Check, ChevronRight, Maximize, Minimize, Pause, PictureInPicture2, Play, RotateCcw, RotateCw, Settings2, SkipForward, Star, Subtitles, Upload, Volume2, VolumeX, X } from 'lucide-react';
-import { preferredSubtitleIndex, subtitleCodeBadge, subtitleFlagUrl, subtitleLanguage, subtitleNativeLanguage } from '@/lib/subtitles';
+import { normalizeLangCode, preferredSubtitleIndex, subtitleCodeBadge, subtitleFlagUrl, subtitleLanguage, subtitleNativeLanguage } from '@/lib/subtitles';
 import { activateCaptionTrack, applyCaptionTiming, captionPreferences, defaultCaptions, hlsSubtitleOffset, nextEpisodeDue, nextEpisodeProgress, type CaptionTiming } from '@/lib/captions';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { detectQualityTier, QUALITY_BADGES } from './SourcePicker';
 import CaptionSettings from './CaptionSettings';
 import { useAudioTracks } from '@/hooks/useAudioTracks';
 import { isPlayerFullscreen, togglePlayerFullscreen, touchPlayerQuery } from '@/lib/mobile-player';
+import { useSubtitleAutoSync, type AutoSyncStatus } from '@/hooks/useSubtitleAutoSync';
+import type { SubtitleAlignment } from '@/lib/subtitle-sync';
 export interface NextEpisode {label:string;image?:string;eyebrow?:string;onPlay:()=>void}
 export interface PlayerIdleMeta {
   title:string;
@@ -24,6 +26,15 @@ export interface PlayerIdleMeta {
 }
 interface Props {originalAudioLanguage?:string;captionKey?:string;media:HTMLVideoElement|null;engine:Hls|null;container:RefObject<HTMLDivElement>;title:string;sourceName:string;loading:boolean;nextEpisode?:NextEpisode;autoNext?:boolean;onAutoNextChange?:(value:boolean)=>void;onNextSource?:()=>void;onOpenSources?:()=>void;onUpload:(file:File)=>Promise<void>;subtitleStatus?:string;converted:boolean;onCompatibility?:()=>void;idleMeta?:PlayerIdleMeta}
 const clock=(seconds:number)=>{const value=Math.max(0,Math.floor(seconds||0));return value>=3600?`${Math.floor(value/3600)}:${String(Math.floor(value/60)%60).padStart(2,'0')}:${String(value%60).padStart(2,'0')}`:`${Math.floor(value/60)}:${String(value%60).padStart(2,'0')}`;};
+const signed=(seconds:number)=>`${seconds>0?'+':seconds<0?'−':''}${Math.abs(seconds).toFixed(2).replace(/\.?0+$/,'')} s`;
+function autoSyncText(status:AutoSyncStatus,alignment:SubtitleAlignment|undefined,observed:number){
+  if(status==='off')return 'Off · subtitles use their original timing.';
+  if(status==='embedded')return 'Embedded subtitles are already timed to this video.';
+  if(status==='unsupported')return alignment?`Using the saved sync (${signed(alignment.offset)}). This browser can’t analyse audio; use Sync by ear or the G / H keys.`:'This browser can’t analyse audio. Use Sync by ear or the G / H keys.';
+  if(status==='no-match')return 'This release doesn’t match the dialogue. Pick another track for this language.';
+  if(alignment)return `Matched to the dialogue · ${signed(alignment.offset)}${alignment.scale!==1?' · frame rate corrected':''}`;
+  return `Listening to the dialogue… ${Math.round(observed)} s heard`;
+}
 const qualityBadgeForHeight=(h?:number)=>!h?undefined:h>=2160?'/badges/4k.png':h>=1080?'/badges/1080p.png':h>=720?'/badges/720p.png':h>=480?'/badges/480p.png':'/badges/360p.png';
 export default function PlayerControls({originalAudioLanguage,captionKey='video',media,engine,container,title,sourceName,loading,nextEpisode,autoNext,onAutoNextChange,onNextSource,onOpenSources,onUpload,subtitleStatus,converted,onCompatibility,idleMeta}:Props){
   const [compact,setCompact]=useState(()=>typeof window!=='undefined'&&window.matchMedia(touchPlayerQuery).matches);
@@ -38,13 +49,50 @@ export default function PlayerControls({originalAudioLanguage,captionKey='video'
   const advanced=useRef(false);
   const selectedCaption=useRef<TextTrack|null>();
   const [storedCaptions,saveCaptionStyle]=useLocalStorage<unknown>('admax-captions',defaultCaptions);
-  const [offsets,saveOffsets]=useLocalStorage<Record<string,number>>('admax-caption-offsets',{});
+  // v2: manual offsets are now fine-tuning on top of automatic dialogue alignment.
+  const [offsets,saveOffsets]=useLocalStorage<Record<string,number>>('admax-caption-offsets-v2',{});
+  const [autoAlignments,saveAutoAlignments]=useLocalStorage<Record<string,SubtitleAlignment>>('admax-caption-auto',{});
   const syncKey=captionKey+'|'+(tracks[trackIndex]?.id||tracks[trackIndex]?.label||'default');
   const captions=useMemo(()=>({...captionPreferences(storedCaptions),delay:captionPreferences({delay:offsets[syncKey]}).delay}),[storedCaptions,offsets,syncKey]);
   const setCaptions=(value:typeof defaultCaptions)=>{saveCaptionStyle({...value,delay:0});saveOffsets(previous=>({...previous,[syncKey]:value.delay}));};
   const cueTimes=useRef(new WeakMap<object,CaptionTiming>());
+  const selectedTrack=tracks[trackIndex];
+  const externalTracks=media?new Set(Array.from(media.querySelectorAll('track')).map(element=>element.track)):new Set<TextTrack>();
+  const autoSync=useSubtitleAutoSync({media,enabled:captions.autoSync&&!!selectedTrack,track:selectedTrack,
+    candidates:selectedTrack?tracks.filter(track=>externalTracks.has(track)&&normalizeLangCode(track.language)===normalizeLangCode(selectedTrack.language)):[],
+    allowSwitch:selectedCaption.current===undefined,initial:autoAlignments[syncKey]});
+  const alignment=captions.autoSync?autoSync.alignment:undefined;
+  useEffect(()=>{
+    if(!autoSync.alignment)return;
+    const {offset,scale,confidence,score,observed}=autoSync.alignment;
+    saveAutoAlignments(previous=>{
+      const saved=previous[syncKey];
+      if(saved&&saved.offset===offset&&saved.scale===scale)return previous;
+      // Bounded: one entry per video and track, most recent kept.
+      return Object.fromEntries([...Object.entries(previous).filter(([key])=>key!==syncKey).slice(-149),[syncKey,{offset,scale,confidence,score,observed}]]);
+    });
+  },[autoSync.alignment,syncKey,saveAutoAlignments]);
+  useEffect(()=>{
+    const better=autoSync.better,index=better?tracks.indexOf(better):-1;
+    if(index<0||selectedCaption.current!==undefined)return;
+    selectedCaption.current=better;activateCaptionTrack(tracks,index);setTrackIndex(index);
+    setHint('Switched to a subtitle release that matches the dialogue.');
+  },[autoSync.better,tracks]);
+  const [earCue,setEarCue]=useState<{start:number;text:string}|null>(null);
+  useEffect(()=>setEarCue(null),[syncKey]);
+  const nextCue=(after:number)=>{
+    const cues=Array.from(selectedTrack?.cues||[]).filter(cue=>cue.startTime>after).sort((a,b)=>a.startTime-b.startTime);
+    const cue=cues[0] as VTTCue|undefined;
+    return cue?{start:cue.startTime,text:(cue.text||'').replace(/<[^>]*>/g,'').trim()||'…'}:null;
+  };
+  const nudge=useRef((_delta:number)=>{});
+  nudge.current=(delta:number)=>{
+    const delay=Math.max(-30,Math.min(30,Math.round((captions.delay+delta)*100)/100));
+    setCaptions({...captions,delay});setHint(`Subtitle sync ${signed(delay)}${alignment?' on top of auto-sync':''}`);
+  };
   const [timelineOffset,setTimelineOffset]=useState(0);
   const cueLines=useRef(new WeakMap<VTTCue,{line:VTTCue['line'];snap:boolean}>());
+  useEffect(()=>{if(!hint)return;const timeout=setTimeout(()=>setHint(''),5000);return()=>clearTimeout(timeout);},[hint]);
   const wake=useCallback(()=>{setVisible(true);clearTimeout(timer.current);timer.current=setTimeout(()=>{if(!dragging.current)setVisible(false);},touchControls?1800:3500);},[touchControls]);
   useEffect(()=>{if(!state.paused&&!loading)wake();},[state.paused,loading,wake]);
   const toggle=useCallback(()=>{if(!media)return;if(media.paused)void media.play().catch(()=>setHint('Press play again when the source is ready.'));else media.pause();wake();},[media,wake]);
@@ -119,7 +167,7 @@ export default function PlayerControls({originalAudioLanguage,captionKey='video'
   useEffect(()=>{
     const stage=container.current;if(!stage)return;
     const change=()=>{const full=isPlayerFullscreen(stage,media);setFullscreen(full);if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches)stage.animate?.([{opacity:.72,transform:`scale(${full ? .985 : 1.015})`},{opacity:1,transform:'scale(1)'}],{duration:300,easing:'cubic-bezier(.2,.7,.3,1)'});};
-    const key=(e:KeyboardEvent)=>{if(!stage.contains(document.activeElement)&&document.fullscreenElement!==stage)return;if(e.target instanceof HTMLInputElement||e.target instanceof HTMLSelectElement||e.target instanceof HTMLTextAreaElement)return;if(e.key==='Escape'){setMenu(null);return;}if((e.code==='Space'&&!(e.target instanceof HTMLButtonElement))||e.key.toLowerCase()==='k'){e.preventDefault();toggle();}else if(e.key==='ArrowRight'||e.key.toLowerCase()==='l'){e.preventDefault();seek((media?.currentTime||0)+10);wake();}else if(e.key==='ArrowLeft'||e.key.toLowerCase()==='j'){e.preventDefault();seek((media?.currentTime||0)-10);wake();}else if(e.key.toLowerCase()==='m'&&media){media.muted=!media.muted;}else if(e.key.toLowerCase()==='f'){e.preventDefault();toggleFullscreen();}};
+    const key=(e:KeyboardEvent)=>{if(!stage.contains(document.activeElement)&&document.fullscreenElement!==stage)return;if(e.target instanceof HTMLInputElement||e.target instanceof HTMLSelectElement||e.target instanceof HTMLTextAreaElement)return;if(e.key==='Escape'){setMenu(null);return;}if((e.code==='Space'&&!(e.target instanceof HTMLButtonElement))||e.key.toLowerCase()==='k'){e.preventDefault();toggle();}else if(e.key==='ArrowRight'||e.key.toLowerCase()==='l'){e.preventDefault();seek((media?.currentTime||0)+10);wake();}else if(e.key==='ArrowLeft'||e.key.toLowerCase()==='j'){e.preventDefault();seek((media?.currentTime||0)-10);wake();}else if(e.key.toLowerCase()==='m'&&media){media.muted=!media.muted;}else if(e.key.toLowerCase()==='g'){nudge.current(-.1);}else if(e.key.toLowerCase()==='h'){nudge.current(.1);}else if(e.key.toLowerCase()==='f'){e.preventDefault();toggleFullscreen();}};
     const outside=(e:PointerEvent)=>{if(menuRef.current&&!menuRef.current.contains(e.target as Node)&&!(e.target as HTMLElement).closest('[data-player-menu]'))setMenu(null);};
     const onPointerMove=(e:PointerEvent)=>{if(e.pointerType!=='touch')wake();};
     document.addEventListener('fullscreenchange',change);media?.addEventListener('webkitbeginfullscreen',change);media?.addEventListener('webkitendfullscreen',change);window.addEventListener('keydown',key);document.addEventListener('pointerdown',outside);stage.addEventListener('pointermove',onPointerMove);stage.addEventListener('focusin',wake);
@@ -140,7 +188,8 @@ export default function PlayerControls({originalAudioLanguage,captionKey='video'
       // HLS already maps its own tracks; only standalone files need the stream offset.
       const external=new Set(Array.from(media.querySelectorAll('track')).map(element=>element.track));
       tracks.filter(track=>track.mode!=='disabled').forEach(track=>Array.from(track.cues||[]).forEach(cue=>{
-      applyCaptionTiming(cue,captions.delay+(external.has(track)?timelineOffset:0),cueTimes.current);
+      // Dialogue alignment measures the real playback clock, so it replaces the HLS estimate.
+      applyCaptionTiming(cue,captions.delay+(external.has(track)?(alignment?alignment.offset:timelineOffset):0),cueTimes.current,external.has(track)&&alignment?alignment.scale:1);
       if(!(cue instanceof VTTCue))return;
       if(!cueLines.current.has(cue))cueLines.current.set(cue,{line:cue.line,snap:cue.snapToLines});
       const line=cueLines.current.get(cue)!;
@@ -153,7 +202,7 @@ export default function PlayerControls({originalAudioLanguage,captionKey='video'
     tracks.forEach(track=>track.addEventListener('cuechange',position));media.addEventListener('load',position,true);media.addEventListener('loadeddata',position);media.addEventListener('seeked',position);position();
     const interval=setInterval(position,1000);
     return()=>{clearInterval(interval);tracks.forEach(track=>track.removeEventListener('cuechange',position));media.removeEventListener('load',position,true);media.removeEventListener('loadeddata',position);media.removeEventListener('seeked',position);};
-  },[tracks,show,captions,media,container,timelineOffset]);
+  },[tracks,show,captions,media,container,timelineOffset,alignment]);
   const progress=state.duration?((scrub??state.time)/state.duration)*100:0;
   const chooseTrack=(index:number)=>{selectedCaption.current=index>=0?tracks[index]:null;activateCaptionTrack(tracks,index);setTrackIndex(index);try{localStorage.setItem('admax-subtitle-language',index<0?'off':tracks[index].language);}catch{/* Playback works without storage. */}};
   const upload=async(file?:File)=>{if(!file)return;try{await onUpload(file);setHint('Subtitle added.');}catch(e){setHint(e instanceof Error?e.message:'Subtitle could not load.');}};
@@ -259,6 +308,23 @@ export default function PlayerControls({originalAudioLanguage,captionKey='video'
           })}
         </div>
         {subtitleStatus&&<p className="cinema-menu-note">{subtitleStatus}</p>}
+        {selectedTrack&&<div className="caption-sync">
+          <button className="cinema-menu-option" role="switch" aria-checked={captions.autoSync} onClick={()=>setCaptions({...captions,autoSync:!captions.autoSync})}>
+            <span className="caption-lang-text"><strong>Auto-sync to dialogue</strong><small aria-live="polite">{autoSyncText(captions.autoSync?autoSync.status:'off',alignment??(autoSync.status==='unsupported'?autoSync.alignment:undefined),autoSync.observed)}</small></span>
+            <span className={`cinema-toggle ${captions.autoSync?'on':''}`}/>
+          </button>
+          {earCue?<div className="caption-ear" role="group" aria-label="Sync by ear">
+            <p>Press <b>Heard it</b> the moment this line is spoken:</p>
+            <blockquote>“{earCue.text}”</blockquote>
+            <div>
+              <button onClick={()=>{if(media){const delta=media.currentTime-.25-earCue.start;nudge.current(delta);}setEarCue(null);}}>Heard it</button>
+              <button onClick={()=>setEarCue(nextCue(earCue.start))}>Next line</button>
+              <button onClick={()=>setEarCue(null)}>Cancel</button>
+            </div>
+          </div>:<button className="cinema-menu-option" onClick={()=>{const cue=nextCue(media?.currentTime??0);if(cue){setEarCue(cue);if(media?.paused)void media.play().catch(()=>{});}else setHint('No upcoming subtitle line to sync with.');}}>
+            <span className="caption-lang-text"><strong>Sync by ear</strong><small>Tap when you hear the next line · keyboard G / H nudge ±0.1 s</small></span><ChevronRight size={15}/>
+          </button>}
+        </div>}
         <CaptionSettings value={captions} onChange={setCaptions}/>
         <button className="cinema-menu-upload" onClick={()=>fileInput.current?.click()}><Upload size={15}/>Upload custom subtitle (.srt, .vtt, .ass)</button>
         <input ref={fileInput} className="sr-only" tabIndex={-1} type="file" accept=".vtt,.srt,.ass,.ssa" onChange={e=>{void upload(e.target.files?.[0]);e.target.value='';}}/>

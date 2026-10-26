@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 // Hook for accessing localStorage data with validation
 export function useLocalStorage<T>(
@@ -28,29 +28,24 @@ export function useLocalStorage<T>(
 
   // Return a wrapped version of useState's setter function that
   // persists the new value to localStorage.
-  const setValue = (value: T | ((val: T) => T)) => {
-    try {
-      // Allow value to be a function so we have the same API as useState
-      const valueToStore =
-        value instanceof Function ? value(storedValue) : value;
-      
-      // Save to state
-      setStoredValue(valueToStore);
-      
-      // Save to local storage
-      if (typeof window !== 'undefined') {
+  // Stable setter; functional updates see the latest value even when called twice in one tick.
+  const setValue = useCallback((value: T | ((val: T) => T)) => {
+    setStoredValue(previous => {
+      const valueToStore = value instanceof Function ? value(previous) : value;
+      try {
         window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      } catch (error) {
+        console.warn(`Error setting localStorage key "${key}":`, error);
       }
-    } catch (error) {
-      console.warn(`Error setting localStorage key "${key}":`, error);
-    }
-  };
+      return valueToStore;
+    });
+  }, [key]);
 
   // Listen for changes to this localStorage key in other windows/tabs
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === key && e.newValue) {
-        setStoredValue(JSON.parse(e.newValue));
+        try { setStoredValue(JSON.parse(e.newValue)); } catch { /* Ignore malformed values from other tabs. */ }
       }
     };
 

@@ -195,7 +195,9 @@ assert.equal(artwork.artworkSet('https://example.com/poster.jpg'),undefined);
 assert.equal(artwork.paletteFromPixels([180,30,20,255])['--scene-color'],'#161616');
 assert.equal(artwork.paletteFromPixels([180,30,20,255])['--scene-glow'],'rgb(108 18 12)');
 assert.deepEqual(captions.captionPreferences(null),captions.defaultCaptions);
-assert.deepEqual(captions.captionPreferences({size:999,color:'url(javascript:test)',delay:-100,position:0}),{size:200,color:'#ffffff',delay:-30,position:10});
+assert.deepEqual(captions.captionPreferences({size:999,color:'url(javascript:test)',delay:-100,position:0,autoSync:'yes'}),{size:200,color:'#ffffff',delay:-30,position:10,autoSync:true});
+assert.equal(captions.captionPreferences({autoSync:false}).autoSync,false);
+assert.deepEqual(captions.captionTimes(10,12,1,1.5),{start:16,end:19});
 assert.equal(captions.captionPreferences({size:NaN,delay:Infinity}).size,100);
 assert.deepEqual(captions.captionTimes(1,3,-2),{start:0,end:1});
 assert.deepEqual(captions.captionTimes(1,3,1.5),{start:2.5,end:4.5});
@@ -287,13 +289,44 @@ assert.equal(matchesQualityFilter('Movy · Miami','480',true),true);
 const {STREAMING_PLATFORMS}=await load('src/pages/Index.tsx');
 assert.equal(STREAMING_PLATFORMS.some(p=>p.name==='Netflix'&&p.logo==='/providers/netflix.png'),true);
 assert.equal(STREAMING_PLATFORMS.some(p=>p.name==='HBO Max'&&p.logo==='/providers/max.png'),true);
+const sync=await load('src/lib/subtitle-sync.ts');
+assert.deepEqual(sync.parseVttCues('WEBVTT\n\n1\n00:00:01.000 --> 00:00:02.500\nHi\n\n2\n00:01:00.000 --> 00:01:02.000\n[door slams]\n\n00:02.000 --> 00:03.000\n<i>Yes</i>').map(c=>[c.start,c.end]),[[1,2.5],[2,3]]);
+{
+  let seed=7;const rand=()=>(seed=(seed*16807)%2147483647)/2147483647,gauss=()=>Math.sqrt(-2*Math.log(rand()+1e-12))*Math.cos(2*Math.PI*rand());
+  const script=()=>{const cues=[];let t=5;while(t<4000){const len=1+rand()*3;cues.push({start:t,end:t+len});t+=len+.3+rand()*(rand()<.15?20:3);}return cues;};
+  const hear=(cues,offset,scale,from,to)=>{const timeline=new sync.SpeechTimeline(),shown=cues.map(c=>({start:c.start*scale+offset,end:c.end*scale+offset}));for(let t=from;t<to;t+=.05){const speaking=shown.some(c=>t>=c.start+.2*gauss()&&t<c.end-.3+.2*gauss())&&rand()<.85;timeline.record(t,speaking?-38+5*gauss():-62+4*gauss());}return timeline;};
+  const cues=script();
+  const late=sync.estimateAlignment(cues,hear(cues,2.3,1,0,180));
+  assert.ok(late&&Math.abs(late.offset-2.3)<=.2&&late.scale===1,'detects a constant subtitle delay');
+  const early=sync.estimateAlignment(cues,hear(cues,-7.8,1,600,780));
+  assert.ok(early&&Math.abs(early.offset+7.8)<=.2,'detects subtitles that appear before the audio');
+  const pal=sync.estimateAlignment(cues,hear(cues,1,25/23.976,0,1800));
+  assert.ok(pal&&Math.abs(pal.scale-25/23.976)<1e-9&&Math.abs(pal.offset-1)<=.3,'corrects PAL frame-rate drift');
+  assert.equal(sync.estimateAlignment(script(),hear(cues,0,1,0,300)),undefined,'never aligns an unrelated release');
+  assert.equal(sync.estimateAlignment(cues,hear(cues,0,1,0,40)),undefined,'waits for enough dialogue');
+}
+assert.equal(subtitles.stripSubtitleAds('WEBVTT\n\n1\n00:00:00.130 --> 00:00:05.320\nDo you want subtitles for any video?\n\n2\n00:00:07.000 --> 00:00:09.000\nHello\n'),'WEBVTT\n\n2\n00:00:07.000 --> 00:00:09.000\nHello\n');
 console.log('Stremio protocol, source verification, service conversion, trust boundaries, routing, and recovery checks passed.');
 
 const {createSubtitleSearch}=await load('server/subtitle-search.ts');
 const subtitleResponse=()=>({status:0,body:'',writeHead(status){this.status=status;return this;},end(body){this.body=body;}});
-const noKey=subtitleResponse();
-await createSubtitleSearch('')({method:'GET',url:'/?id=tt0944947:1:1'},noKey);
-assert.deepEqual(JSON.parse(noKey.body),{subtitles:[],configured:false});
+{
+  // Without a Wyzie key, the keyless OpenSubtitles.org search still answers.
+  const realFetch=globalThis.fetch;let calledUrl;
+  globalThis.fetch=async url=>{calledUrl=String(url);return {ok:true,json:async()=>[
+    {IDSubtitleFile:'7',SubFormat:'srt',SubEncoding:'CP1256',ISO639:'ar',SubHearingImpaired:'0',SubDownloadsCnt:'12',MovieReleaseName:'Show.S01E01.WEB-DL-GRP',SubFileName:'Show.S01E01.ar.srt',SubDownloadLink:'https://dl.opensubtitles.org/en/download/src-api/vrf-1/filead/7.gz'},
+    {IDSubtitleFile:'8',SubFormat:'srt',ISO639:'en',SubDownloadLink:'https://evil.example/8.gz'},
+  ]};};
+  try{
+    const noKey=subtitleResponse();
+    await createSubtitleSearch('')({method:'GET',url:'/?id=tt0944947:1:1&language=ar'},noKey);
+    assert.equal(calledUrl,'https://rest.opensubtitles.org/search/episode-1/imdbid-0944947/season-1/sublanguageid-ara');
+    const body=JSON.parse(noKey.body);
+    assert.equal(body.configured,true);
+    assert.deepEqual(body.subtitles.map(track=>[track.id,track.lang,track.url]),[['osorg:7','ar','https://dl.opensubtitles.org/en/download/src-api/vrf-1/file/7.gz#charset=CP1256']]);
+    assert.match(body.subtitles[0].release,/WEB-DL-GRP/);
+  }finally{globalThis.fetch=realFetch;}
+}
 const badId=subtitleResponse();
 await createSubtitleSearch('test')({method:'GET',url:'/?id=https://private.example'},badId);
 assert.equal(badId.status,400);

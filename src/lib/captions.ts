@@ -1,12 +1,12 @@
-export const defaultCaptions={size:100,color:'#ffffff',position:90,delay:0};
+export const defaultCaptions={size:100,color:'#ffffff',position:90,delay:0,autoSync:true};
 export type CaptionPreferences=typeof defaultCaptions;
 export function captionPreferences(value:unknown):CaptionPreferences{
   const input=value&&typeof value==='object'?value as Record<string,unknown>:{};
-  const number=(key:keyof CaptionPreferences,min:number,max:number)=>typeof input[key]==='number'&&Number.isFinite(input[key])?Math.max(min,Math.min(max,input[key] as number)):defaultCaptions[key] as number;
-  return {size:number('size',75,200),position:number('position',10,90),delay:number('delay',-30,30),color:typeof input.color==='string'&&/^#[\da-f]{6}$/i.test(input.color)?input.color:defaultCaptions.color};
+  const number=(key:'size'|'position'|'delay',min:number,max:number)=>typeof input[key]==='number'&&Number.isFinite(input[key])?Math.max(min,Math.min(max,input[key] as number)):defaultCaptions[key];
+  return {size:number('size',75,200),position:number('position',10,90),delay:number('delay',-30,30),color:typeof input.color==='string'&&/^#[\da-f]{6}$/i.test(input.color)?input.color:defaultCaptions.color,autoSync:typeof input.autoSync==='boolean'?input.autoSync:defaultCaptions.autoSync};
 }
-export function captionTimes(start:number,end:number,delay:number){
-  return {start:Math.max(0,start+delay),end:Math.max(.001,end+delay)};
+export function captionTimes(start:number,end:number,delay:number,scale=1){
+  return {start:Math.max(0,start*scale+delay),end:Math.max(.001,end*scale+delay)};
 }
 export function hlsSubtitleOffset(frag:{type:string;sn:number|string;start:number;elementaryStreams:{video?:{startPTS:number};audio?:{startPTS:number}}}){
   if(frag.type!=='main'||frag.sn==='initSegment')return undefined;
@@ -15,15 +15,15 @@ export function hlsSubtitleOffset(frag:{type:string;sn:number|string;start:numbe
   return Number.isFinite(offset)?offset:undefined;
 }
 export interface CaptionTiming {start:number;end:number;appliedStart:number;appliedEnd:number}
-export function applyCaptionTiming(cue:Pick<TextTrackCue,'startTime'|'endTime'>,delay:number,times:WeakMap<object,CaptionTiming>){
+export function applyCaptionTiming(cue:Pick<TextTrackCue,'startTime'|'endTime'>,delay:number,times:WeakMap<object,CaptionTiming>,scale=1){
   let original=times.get(cue);
-  if(!original&&delay===0)return;
+  if(!original&&delay===0&&scale===1)return;
   // HLS can correct cue timestamps after a seek or discontinuity; retain its new baseline.
   if(!original||cue.startTime!==original.appliedStart||cue.endTime!==original.appliedEnd){
     original={start:cue.startTime,end:cue.endTime,appliedStart:cue.startTime,appliedEnd:cue.endTime};
     times.set(cue,original);
   }
-  const time=captionTimes(original.start,original.end,delay);
+  const time=captionTimes(original.start,original.end,delay,scale);
   original.appliedStart=time.start;original.appliedEnd=time.end;
   if(time.end>cue.endTime&&cue.endTime!==time.end)cue.endTime=time.end;
   if(cue.startTime!==time.start)cue.startTime=time.start;

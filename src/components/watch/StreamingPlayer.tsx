@@ -8,8 +8,8 @@ import { openServiceSetup } from '@/hooks/useStreamingService';
 import { decodeSubtitle, normalizeLangCode, subtitleLanguage, subtitleUrl, toWebVTT, type SubtitleTrack } from '@/lib/subtitles';
 import { playbackBufferConfig, touchPlayerQuery } from '@/lib/mobile-player';
 import PlayerControls, { type NextEpisode, type PlayerIdleMeta } from './PlayerControls';
-interface Props {originalAudioLanguage?:string;source?:StreamChoice;title:string;storageKey:string;poster?:string;onEnded?:()=>void;onProgress?:(seconds:number,duration:number)=>void;onNextSource?:()=>void;onOpenSources?:()=>void;onSourceError?:()=>void;onSourceReady?:()=>void;onRetryService?:()=>void;searching?:boolean;resume?:boolean;initialPosition?:number;nextEpisode?:NextEpisode;autoNext?:boolean;onAutoNextChange?:(value:boolean)=>void;subtitleStatus?:string;idleMeta?:PlayerIdleMeta}
-export default function StreamingPlayer({originalAudioLanguage,source,title,storageKey,poster,onEnded,onProgress,onNextSource,onOpenSources,onSourceError,onSourceReady,onRetryService,searching=false,resume=true,initialPosition,nextEpisode,autoNext,onAutoNextChange,subtitleStatus,idleMeta}:Props){
+interface Props {originalAudioLanguage?:string;source?:StreamChoice;title:string;storageKey:string;poster?:string;onEnded?:()=>void;onProgress?:(seconds:number,duration:number)=>void;onNextSource?:()=>void;onOpenSources?:()=>void;onSourceError?:()=>void;onSourceReady?:()=>void;onRetryService?:()=>void;searching?:boolean;resume?:boolean;initialPosition?:number;nextEpisode?:NextEpisode;autoNext?:boolean;onAutoNextChange?:(value:boolean)=>void;subtitleStatus?:string;idleMeta?:PlayerIdleMeta;autoStart?:boolean}
+export default function StreamingPlayer({originalAudioLanguage,source,title,storageKey,poster,onEnded,onProgress,onNextSource,onOpenSources,onSourceError,onSourceReady,onRetryService,searching=false,resume=true,initialPosition,nextEpisode,autoNext,onAutoNextChange,subtitleStatus,idleMeta,autoStart=false}:Props){
   const container=useRef<HTMLDivElement>(null),video=useRef<HTMLVideoElement|null>(null);
   const [media,setMedia]=useState<HTMLVideoElement|null>(null),[engine,setEngine]=useState<Hls|null>(null);
   const sourceError=useRef(onSourceError);
@@ -28,7 +28,10 @@ export default function StreamingPlayer({originalAudioLanguage,source,title,stor
     if(!Number.isFinite(duration)||duration<=0||(!force&&Date.now()-lastSaved.current<15000))return;
     lastSaved.current=Date.now();try{localStorage.setItem('admax-resume-'+storageKey,String(seconds>duration-20?0:seconds));}catch{/* Playback survives full storage. */}onProgress?.(seconds,duration);
   },[storageKey,onProgress]);
-  const latestReport=useRef(report);latestReport.current=report;
+  // Updated in an effect, not during render: when the episode changes, the old video's final
+  // save must still use the old episode's storage key and progress callback.
+  const latestReport=useRef(report);
+  useEffect(()=>{latestReport.current=report;},[report]);
   useEffect(()=>{if(!media)return;return()=>latestReport.current(media.currentTime,media.duration,true);},[media]);
   useEffect(()=>{if(media&&resume&&initialPosition>0&&media.readyState>=1&&media.currentTime<1&&!everPlayed.current&&initialPosition<media.duration-20)media.currentTime=initialPosition;},[media,resume,initialPosition]);
   const playbackError=useCallback(()=>{
@@ -37,7 +40,7 @@ export default function StreamingPlayer({originalAudioLanguage,source,title,stor
     if(source?.service&&transcoding&&!everPlayed.current){if(conversionRetries.current.id!==source.id)conversionRetries.current={id:source.id,count:0};if(conversionRetries.current.count++<1){setRetry(value=>value+1);setLoading(true);setFailed(false);return;}}
     setFailed(true);setLoading(false);sourceError.current?.();
   },[source?.id,source?.service,transcoding,retry]);
-  useEffect(()=>{setLoading(true);setFailed(false);setSlow(false);lastSaved.current=0;handledError.current='';everPlayed.current=false;if(nextEpisode)playIntent.current=true;const timeout=setTimeout(()=>setSlow(true),15000);return()=>clearTimeout(timeout);},[playbackUrl,source?.id,retry,storageKey]);
+  useEffect(()=>{setLoading(true);setFailed(false);setSlow(false);lastSaved.current=0;handledError.current='';everPlayed.current=false;if(autoStart)playIntent.current=true;const timeout=setTimeout(()=>setSlow(true),15000);return()=>clearTimeout(timeout);},[playbackUrl,source?.id,retry,storageKey,autoStart]);
   useEffect(()=>{
     if(!media||!safe||!playbackUrl)return;
     let cancelled=false,hls:Hls;
@@ -58,7 +61,7 @@ export default function StreamingPlayer({originalAudioLanguage,source,title,stor
   useEffect(()=>()=>uploadUrls.current.forEach(url=>URL.revokeObjectURL(url)),[]);
   const upload=async(file:File)=>{if(file.size>2_000_000)throw new Error('Choose a subtitle smaller than 2 MB.');const contents=toWebVTT(decodeSubtitle(new Uint8Array(await file.arrayBuffer()))),url=URL.createObjectURL(new Blob([contents],{type:'text/vtt'}));uploadUrls.current.push(url);setUploaded(previous=>[...previous,{url,lang:'und',label:file.name}]);};
   const needsService=!safe&&/Stremio Service/i.test(source?.reason||'');
-  useEffect(()=>{if(needsService)openServiceSetup(true);},[needsService,source?.id]);
+  useEffect(()=>{if(!needsService)return;try{if(!sessionStorage.getItem('admax-service-prompt-dismissed'))openServiceSetup(true);}catch{openServiceSetup(true);}},[needsService,source?.id]);
   if(!source)return <div className="player-stage player-empty">{searching?<LoadingState label="Finding a working source"/>:<div><h2>No playable source yet.</h2><p>Install a stream add-on or retry source discovery.</p></div>}</div>;
   const tracks=[...(source.subtitles||[]),...uploaded].filter((track,index,list)=>list.findIndex(item=>item.url===track.url)===index);
   return <div ref={container} className="player-stage cinema-player" aria-busy={loading&&!failed} tabIndex={0} aria-label={`Video player: ${title}`}>

@@ -55,7 +55,7 @@ export default function HeroBanner({featuredItems,onThemeChange}:{featuredItems:
       {[...(previous?[previous]:[]),current].map(frame=>{
         const isCurrent=frame===current;
         // CSS fade: resting opacity is 1, so finishing can never flash the previous frame (framer reset to its initial 0 for a frame).
-        return <img key={frame.mediaType+'-'+frame.id} className={'max-hero-image'+(isCurrent&&previous?' hero-fade-in':'')} src={artworkSize(frame.imageUrl,'w1280')} srcSet={artworkSet(frame.imageUrl)} sizes="(max-width:767px) 140vh, 100vw" alt="" fetchPriority="high" decoding="async" width={1920} height={1080} onLoad={()=>setReady(true)} onError={()=>setReady(true)} onAnimationEnd={isCurrent?()=>setPrevious(undefined):undefined}/>;
+        return <img key={frame.mediaType+'-'+frame.id} className={'max-hero-image'+(isCurrent&&previous?' hero-fade-in':'')} src={artworkSize(frame.imageUrl,'w1280')} srcSet={artworkSet(frame.imageUrl)} sizes="(max-width:767px) 140vh, 100vw" alt="" {...{fetchpriority:"high"}} decoding="async" width={1920} height={1080} onLoad={()=>setReady(true)} onError={()=>setReady(true)} onAnimationEnd={isCurrent?()=>setPrevious(undefined):undefined}/>;
       })}
     </motion.div>
     <div className="max-hero-gradient"/>

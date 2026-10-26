@@ -27,11 +27,12 @@ export async function serviceReachable(base:string){
 }
 
 // Saved choice first ('off' disables); otherwise the service on this computer, like web.stremio.com.
+// Phones can't run the service, so they never probe localhost.
 export function useStreamingService(){
   const [saved,setSaved]=useLocalStorage<string>('admax-streaming-service','');
   const queryClient=useQueryClient();
   const usable=typeof saved==='string'&&saved&&saved!=='off'&&!(saved.startsWith('/')&&!localPreview())?saved:'';
-  const detected=useQuery({queryKey:['streaming-service'],enabled:!usable&&saved!=='off',staleTime:30000,retry:1,refetchInterval:q=>q.state.data?false:10000,refetchOnWindowFocus:true,queryFn:async()=>{
+  const detected=useQuery({queryKey:['streaming-service'],enabled:!usable&&saved!=='off'&&getServiceInstaller().platform!=='mobile',staleTime:30000,retry:1,refetchInterval:q=>q.state.data?false:30000,refetchOnWindowFocus:true,queryFn:async()=>{
     for(const base of localPreview()?['/streaming-service',LOCAL_SERVICE]:[LOCAL_SERVICE])if(await serviceReachable(base))return base;
     return null;
   }});

@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Analytics } from "@vercel/analytics/react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
@@ -277,6 +277,15 @@ const fetchSearchResultsPage = async (page: number, query: string, type: string)
   }
 };
 
+// Reads the query on every navigation (not once at startup) and keys the page so results don't mix.
+function SearchViewAll() {
+  const [params] = useSearchParams();
+  const query = params.get('query') || '';
+  const type = params.get('type') || 'all';
+  const typeLabel = type === 'movie' ? 'Movies' : type === 'tv' ? 'TV Series' : type === 'anime' ? 'Anime' : 'Results';
+  return <ViewAllPage key={type + ':' + query} title={`Search ${typeLabel}: "${query}"`} fetchDataFunction={(page) => fetchSearchResultsPage(page, query, type)} />;
+}
+
 const App = () => {
   return (
   <QueryClientProvider client={queryClient}>
@@ -316,11 +325,8 @@ const App = () => {
             <Route path="/watch/anime/:id/:episode" element={<WatchNew />} />
             
             {/* Protected routes */}
-            <Route path="/watch-history" element={
-              <ProtectedRoute>
-                <WatchHistory />
-              </ProtectedRoute>
-            } />
+            {/* Guests keep history on this device, so the page is open to them too. */}
+            <Route path="/watch-history" element={<WatchHistory />} />
             
             {/* Search */}
             <Route path="/search" element={<SearchResults />} />
@@ -374,29 +380,8 @@ const App = () => {
             />
             
             {/* View All Search Results */}
-            <Route 
-              path="/view-all"
-              element={
-                <ViewAllPage 
-                  title={(() => {
-                    const searchParams = new URLSearchParams(window.location.search);
-                    const query = searchParams.get('query') || '';
-                    const type = searchParams.get('type') || 'all';
-                    const typeLabel = type === 'movie' ? 'Movies' : 
-                                      type === 'tv' ? 'TV Series' : 
-                                      type === 'anime' ? 'Anime' : 'Results';
-                    return `Search ${typeLabel}: "${query}"`;
-                  })()}
-                  fetchDataFunction={(page) => {
-                    const searchParams = new URLSearchParams(window.location.search);
-                    const query = searchParams.get('query') || '';
-                    const type = searchParams.get('type') || 'all';
-                    console.log(`ViewAllPage fetching data: page=${page}, type=${type}, query=${query}`);
-                    return fetchSearchResultsPage(page, query, type);
-                  }}
-                />
-              }
-            />
+            <Route path="/view-all" element={<SearchViewAll />} />
+            <Route path="/tv" element={<Navigate to="/tv-series" replace />} />
             
             {/* 404 */}
             <Route path="*" element={<NotFound />} />

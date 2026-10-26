@@ -38,7 +38,7 @@ function Results({title,fetchDataFunction}:Props){
         return fetchDataFunction(page);
       }
       const targetType=mediaFilter==='all'?'movie':mediaFilter;
-      const sortParam=sortBy==='rating'?'vote_average.desc':sortBy==='newest'?(targetType==='movie'?'primary_release_date.desc':'first_air_date.desc'):sortBy==='title'?'original_title.asc':'popularity.desc';
+      const sortParam=sortBy==='rating'?'vote_average.desc':sortBy==='newest'?(targetType==='movie'?'primary_release_date.desc':'first_air_date.desc'):sortBy==='title'?(targetType==='movie'?'original_title.asc':'original_name.asc'):'popularity.desc';
       const params:Record<string,string|number>={
         page,
         sort_by:sortParam,

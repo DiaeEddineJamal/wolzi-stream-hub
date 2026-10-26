@@ -21,3 +21,22 @@ Protocol references:
 - https://stremio.github.io/stremio-addon-sdk/api/responses/stream.html
 - https://blog.stremio.com/stremio-add-on-competition-update-guides-subtitles-add-ons/
 - https://docs.wyzie.io/subs/usage/direct
+
+## Automatic dialogue sync (October 26, 2026)
+
+When an external subtitle is showing, the player listens to the playing audio through `HTMLMediaElement.captureStream()` (Chrome, Edge, Android Chrome; the sound is never rerouted, and analysis works while muted). It records speech energy (300–3400 Hz) against the media clock and correlates it with the track's dialogue cues (sound descriptions and music lines are ignored). It searches offsets of ±60 s and the common frame-rate ratios (PAL 25↔23.976, 24↔25, NTSC 1.001). A result is applied only when it clearly beats every other alignment. Unrelated releases, silence and noise produce no change (`src/lib/subtitle-sync.ts`, `src/hooks/useSubtitleAutoSync.ts`).
+
+- The first lock needs about 60 s of dialogue. The estimate is then refined every 15–60 s with hysteresis, and saved per video, source and track.
+- If several minutes of dialogue match nothing and the viewer has not picked a track, it checks the other releases in the same language and switches to one that matches.
+- Manual offsets (`admax-caption-offsets-v2`) are fine-tuning on top of auto-sync. Earlier manual offsets from the old key are not reused.
+- **Sync by ear**: shows the next line; press "Heard it" when it's spoken (0.25 s reaction time is subtracted). G / H nudge by ±0.1 s.
+- Safari/iOS and cross-origin native playback can't expose audio. They use the saved alignment, Sync by ear and the keys.
+
+## Keyless providers
+
+- **OpenSubtitles.org REST** (`rest.opensubtitles.org/search/...`, server-side in `server/subtitle-search.ts`): release names, hearing-impaired flags, gzip downloads. The legacy file encoding is passed as a URL fragment hint (`#charset=CP1256`) that is never sent upstream.
+- **SubSense** Stremio add-on (built in, `src/hooks/useSubtitles.ts`): aggregates OpenSubtitles, SubDL, Addic7ed, Gestdown, BetaSeries and YIFY for the viewer's languages.
+- **Wyzie**: still used when `WYZIE_API_KEY` is set.
+- The conversion endpoint gunzips files and strips injected advert cues.
+
+Both keyless providers are third-party community services without an uptime guarantee; each fails independently.

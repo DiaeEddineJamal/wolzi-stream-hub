@@ -197,3 +197,10 @@
 @media(max-height:500px) and (orientation:landscape) {
   .cinema-player:fullscreen .cinema-menu { position:absolute;inset:8px 8px 8px auto;width:min(360px,90%);max-height:none; }
 }
+.caption-sync { border-top:1px solid #ffffff16;margin-top:12px;padding-top:8px;display:grid;gap:4px; }
+.caption-sync .caption-lang-text small { white-space:normal;line-height:1.45; }
+.caption-ear { border-radius:13px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);padding:12px;font-size:11px;color:#ffffffb0; }
+.caption-ear blockquote { margin:8px 0 10px;color:#fff;font-size:13px;font-weight:550;line-height:1.4;overflow-wrap:anywhere; }
+.caption-ear div { display:flex;gap:8px;flex-wrap:wrap; }
+.caption-ear button { flex:1;min-height:40px;border-radius:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);font-size:11.5px;font-weight:600;color:#f5f5f7; }
+.caption-ear button:first-child { background:#f5f5f7;color:#111; }

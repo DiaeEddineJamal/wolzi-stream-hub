@@ -184,3 +184,5 @@
 }
 @media(max-width:380px) { .catalog-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }.footer-top { flex-direction:column; }.footer-links { justify-content:space-between; }.hero-editorial h1 { font-size:36px; }.hero-actions [data-slot=button] { padding-inline:12px; } }
 @media(prefers-reduced-motion:reduce) { *,*:before,*:after { animation:none!important;transition:none!important;scroll-behavior:auto!important; } }
+/* Touch: grow the tap area of card actions toward 44px without enlarging the visible button. */
+@media (pointer:coarse) { .card-actions { gap:10px; } .card-actions .icon-button { position:relative; } .card-actions .icon-button::after { content:'';position:absolute;inset:-7px; } }

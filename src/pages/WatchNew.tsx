@@ -1,5 +1,5 @@
 import { ChoiceSelect } from '@/components/ui/select';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Check, ChevronRight, Clock, Layers, Play, Plus, SkipForward, Sparkles, Star } from 'lucide-react';
@@ -59,19 +59,24 @@ function WatchSession(){
       catch{return {name:addon.manifest.name,streams:[],error:true};}
     }));
   }});
-  const addonStreamList=(addonResults.data || []).flatMap(r=>r.streams);
+  const addonStreamList=useMemo(()=>(addonResults.data || []).flatMap(r=>r.streams),[addonResults.data]);
+  const servicePrompted=useRef('');
   useEffect(()=>{
-    if(detectedOnce&&!service&&addonStreamList.some(s=>/Stremio Service/i.test(s.reason||''))){
-      try{if(!sessionStorage.getItem('admax-service-prompt-dismissed'))openServiceSetup(true);}catch{openServiceSetup(true);}
-    }
-  },[detectedOnce,service,addonStreamList]);
+    // Once per episode: opening the prompt re-checks the service, which must not re-trigger it.
+    if(servicePrompted.current===episodeKey||!detectedOnce||service||!addonStreamList.some(s=>/Stremio Service/i.test(s.reason||'')))return;
+    servicePrompted.current=episodeKey;
+    try{if(!sessionStorage.getItem('admax-service-prompt-dismissed'))openServiceSetup(true);}catch{openServiceSetup(true);}
+  },[detectedOnce,service,addonStreamList,episodeKey]);
   const playback=usePlaybackSelection([...resolved.sources,...addonStreamList],resolved.checking||addonResults.isFetching,episodeKey);
   const {choices,active}=playback;
   const subtitles=useSubtitles(type==='movie'?'movie':'series',imdb?streamId:undefined,active?.filename||[details.data?.title||details.data?.name,active?.name,active?.description].filter(Boolean).join(' '),imdb?streamId:type==='movie'?id:`${id}:${season}:${episode}`,active);
   const item=details.data?toMediaItem(details.data,type):null;
   const theme=useArtworkTheme(item?.backdropUrl);
   const currentEpisode=episodes.data?.episodes?.find((ep:any)=>ep.episode_number===episode);
-  const next=episodes.data?.episodes?.find((ep:any)=>ep.episode_number===episode+1);
+  const nextInSeason=episodes.data?.episodes?.find((ep:any)=>ep.episode_number===episode+1);
+  // The last episode of a season continues with the first episode of the next one.
+  const nextSeason=useQuery({queryKey:['episodes',id,season+1],enabled:type!=='movie'&&!!episodes.data&&!nextInSeason&&season<(details.data?.number_of_seasons||0),queryFn:async()=>(await tmdbApi.getTVSeasonDetails(Number(id),season+1)).data});
+  const next=nextInSeason?{...nextInSeason,season}:nextSeason.data?.episodes?.[0]?{...nextSeason.data.episodes[0],season:season+1}:undefined;
   const logo=details.data?.images?.logos?.filter((i:any)=>i.iso_639_1==='en'&&i.width>i.height*1.6).sort((a:any,b:any)=>b.width-a.width)[0];
   const logoUrl=logo?getPosterUrl(logo.file_path,'w500')||undefined:undefined;
   const initialPosition=resumeSeconds(watched.find(entry=>entry.content_id===id&&entry.content_type===type&&(entry.season||1)===season&&(entry.episode||1)===episode));
@@ -113,11 +118,12 @@ function WatchSession(){
           onProgress={onProgress}
           resume={resume}
           onOpenSources={()=>setSourcesOpen(true)}
-          nextEpisode={next?{label:next.name,image:getBackdropUrl(next.still_path)||item?.backdropUrl,eyebrow:`S${season} · E${next.episode_number}`,onPlay:()=>navigate(watchPath(type,id,season,next.episode_number))}:undefined}
+          nextEpisode={next?{label:next.name,image:getBackdropUrl(next.still_path)||item?.backdropUrl,eyebrow:`S${next.season} · E${next.episode_number}`,onPlay:()=>navigate(watchPath(type,id,next.season,next.episode_number),{state:{autoplay:true}})}:undefined}
           autoNext={autoNext}
           onAutoNextChange={setAutoNext}
           subtitleStatus={subtitles.isPending?'Finding subtitle tracks…':subtitles.data?.failed.length?subtitles.data.failed.join(', ')+' is temporarily unavailable.':undefined}
           idleMeta={idleMeta}
+          autoStart={!!(location.state as {autoplay?:boolean}|null)?.autoplay}
         />
         <aside className="desktop-source-picker"><SourcePicker {...pickerProps}/></aside>
       </div>
@@ -136,7 +142,7 @@ function WatchSession(){
           {logoUrl?<img src={logoUrl} alt={item?.title||''} className="apple-watch-logo"/>:<h1>{item?.title || (details.isError?'Title unavailable':'Opening title…')}</h1>}
           {type!=='movie'&&currentEpisode?.name&&<h2 className="apple-watch-ep-title">“{currentEpisode.name}”</h2>}
           <div className="apple-watch-badges">
-            {item?.rating&&item.rating>0&&<span className="apple-meta-rating"><Star size={13} fill="currentColor"/>{item.rating.toFixed(1)}</span>}
+            {(item?.rating??0)>0&&item&&<span className="apple-meta-rating"><Star size={13} fill="currentColor"/>{item.rating.toFixed(1)}</span>}
             {item?.year&&<span>{item.year}</span>}
             <span className="apple-cert-badge">{idleMeta.contentRating}</span>
             <img src="/badges/4k.png" alt="4K UHD" className="h-4 w-auto opacity-90"/>

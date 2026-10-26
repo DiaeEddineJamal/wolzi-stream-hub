@@ -23,7 +23,8 @@ export default function SearchResults(){
   const [yearFilter,setYearFilter]=useState('all');
   const [sortBy,setSortBy]=useState('relevance');
 
-  useEffect(()=>setInput(q),[q]);
+  // Keep what the user is typing (e.g. a trailing space) when the debounced query catches up.
+  useEffect(()=>setInput(previous=>previous.trim()===q?previous:q),[q]);
   // Live elastic search: update query parameter as the user types
   useEffect(()=>{
     const trimmed=input.trim();
@@ -88,7 +89,7 @@ export default function SearchResults(){
       </div>
     </div>
     {!q?<div className="empty-state"><Search size={32} className="text-muted-foreground"/><h2>So many stories. Start with a name.</h2><p>Results appear automatically as you type.</p></div>:results.isPending?<GridPageSkeleton/>:results.isError?<div className="empty-state"><h2>Search is taking a break.</h2><Button onClick={()=>results.refetch()}>Try again</Button></div>:<>
-      <p className="mb-7 text-sm text-muted-foreground">{hasExtraFilters?`${filteredItems.length} filtered`:results.data.total_results.toLocaleString()} results for “{q}”</p>
+      <p className="mb-7 text-sm text-muted-foreground">{hasExtraFilters||filter==='anime'?`${filteredItems.length} matching`:results.data.total_results.toLocaleString()} results for “{q}”</p>
       {filteredItems.length?<CatalogCards items={filteredItems}/>:<div className="empty-state"><h2>No matches this time.</h2><p>Try another title or relax your filters.</p></div>}
       <div className="flex justify-center gap-4 py-8"><Button variant="secondary" disabled={page===1} onClick={()=>setParams({q,page:String(page-1)})}>Previous</Button><Button variant="secondary" disabled={page>=Math.min(results.data.total_pages,500)} onClick={()=>setParams({q,page:String(page+1)})}>Next</Button></div>
     </>}
