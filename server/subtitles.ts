@@ -21,6 +21,6 @@ export async function subtitleRoute(req:IncomingMessage,res:ServerResponse){
     if(bytes[0]===0x1f&&bytes[1]===0x8b)bytes=new Uint8Array(gunzipSync(bytes,{maxOutputLength:8_000_000}));
     const type=response.headers.get('content-type')||'',hint=/^#charset=([\w-]+)$/.exec(new URL(value).hash)?.[1];
     const text=decodeSubtitle(bytes,/charset=/i.test(type)||!hint?type:'text/plain; charset='+hint);
-    res.writeHead(200,{'Content-Type':'text/vtt; charset=utf-8','Cache-Control':'private, max-age=300','X-Content-Type-Options':'nosniff'});res.end(stripSubtitleAds(toWebVTT(text)));
+    res.writeHead(200,{'Content-Type':'text/vtt; charset=utf-8','Cache-Control':'public, max-age=86400, s-maxage=604800','X-Content-Type-Options':'nosniff'});res.end(stripSubtitleAds(toWebVTT(text)));
   }catch{if(!res.headersSent)res.writeHead(422,{'Content-Type':'text/plain'});res.end('This subtitle could not be loaded or converted.');}
 }

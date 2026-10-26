@@ -61,7 +61,8 @@ async function openSubtitlesOrg(id:string,season:string|undefined,episode:string
 // Provider credentials stay on the server. Download URLs contain scoped tokens, never API keys.
 export function createSubtitleSearch(apiKey = process.env.WYZIE_API_KEY) {
   return async (req: IncomingMessage, res: ServerResponse) => {
-    const send=(status:number,data:unknown)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'private, max-age=300'});res.end(JSON.stringify(data));};
+    // Successful searches are shared through the CDN for an hour; download links stay valid that long.
+    const send=(status:number,data:unknown)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':status===200?'public, max-age=300, s-maxage=3600':'no-store'});res.end(JSON.stringify(data));};
     if(req.method!=='GET'){send(405,{subtitles:[]});return;}
     const params=new URL(req.url||'','http://localhost').searchParams;
     const id=params.get('id')||'',language=params.get('language');

@@ -55,7 +55,7 @@ export default function NavBar(){
   const suggestions=debounced?liveSearch.data||[]:trendingSuggestions.data||[];
   return <>
     <header ref={header} className={'max-nav floating-nav unified-nav'+(collapsed?' is-collapsed':'')} data-collapsed={collapsed} onFocusCapture={()=>setCollapsed(false)}>
-      <GlassSurface preBlur={2} saturation={1.15} className="nav-glass" width="100%" height={64} borderRadius={34} backgroundOpacity={.12} blur={9} distortionScale={-65} displace={.8} redOffset={0} greenOffset={2} blueOffset={4} renderer="svg">
+      <GlassSurface preBlur={1.5} saturation={1.2} className="nav-glass" width="100%" height={64} borderRadius={34} borderWidth={.28} backgroundOpacity={.1} blur={8} distortionScale={-80} displace={.6} redOffset={0} greenOffset={5} blueOffset={10} renderer="svg">
         <div className="nav-inner"><Brand/>
           <nav className="desktop-links" aria-label="Main navigation">{links.map(({to,title,Icon})=><NavLink key={to} to={to} end={to==='/'} aria-label={title}><Icon size={18}/><span className="nav-item-label">{title}</span></NavLink>)}</nav>
           <div className="nav-actions"><button className="icon-button nav-search" onClick={()=>setSearch(true)} aria-label="Search titles"><Search size={20}/></button>{isLoggedIn?<UserMenu/>:<Link to="/auth" className="nav-signin"><User size={17}/><span>Sign in</span></Link>}<button className="icon-button mobile-menu-trigger" aria-label="Browse categories" aria-expanded={menu} onClick={()=>setMenu(!menu)}><Menu size={20}/></button></div>

@@ -81,6 +81,18 @@ export interface GlassSurfaceProps {
 const FAR = 1e20;
 
 // SVG displacement map -> cached bitmap (blob URL). Same pixels, but a plain texture the GPU can sample directly.
+// Chromium applies SVG filters to the backdrop (real refraction); WebKit and Gecko can't.
+// Checked synchronously so supporting browsers never paint a frosted first frame.
+const supportsSVGFilters = (filterId: string) => {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return false;
+  const isWebkit = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+  const isFirefox = /Firefox/.test(navigator.userAgent);
+  if (isWebkit || isFirefox) return false;
+  const div = document.createElement('div');
+  div.style.backdropFilter = `url(#${filterId})`;
+  return div.style.backdropFilter !== '';
+};
+
 const rasterMaps = new Map<string, string>();
 const rasterizeMap = async (svgUrl: string) => {
   try {
@@ -414,8 +426,7 @@ const GlassSurface = ({
   const blueGradId = `blue-grad-${uniqueId}`;
   const softId = `soft-${uniqueId}`;
 
-  const [svgSupported, setSvgSupported] = useState<boolean>(false);
-  const [checked, setChecked] = useState(false);
+  const [svgSupported] = useState(() => supportsSVGFilters(filterId));
   const [webglFailed, setWebglFailed] = useState(false);
   const [boxSize, setBoxSize] = useState<string>('');
   const [loaded, setLoaded] = useState<{ src: string; image: HTMLImageElement | null }>({ src: '', image: null });
@@ -578,13 +589,7 @@ const GlassSurface = ({
     else if (shape && loaded.src === shape) setArt({ src: shape, failed: true });
   }, [shape, loaded, boxSize, borderWidth, blur, opacity, brightness]);
 
-  useEffect(() => {
-    setSvgSupported(supportsSVGFilters());
-    setChecked(true);
-  }, []);
-
   const webgl =
-    checked &&
     refraction &&
     Boolean(backdrop) &&
     !webglFailed &&
@@ -816,23 +821,6 @@ const GlassSurface = ({
     };
   }, [webgl]);
 
-  const supportsSVGFilters = () => {
-    if (typeof window === 'undefined' || typeof document === 'undefined') {
-      return false;
-    }
-
-    const isWebkit = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-    const isFirefox = /Firefox/.test(navigator.userAgent);
-
-    if (isWebkit || isFirefox) {
-      return false;
-    }
-
-    const div = document.createElement('div');
-    div.style.backdropFilter = `url(#${filterId})`;
-
-    return div.style.backdropFilter !== '';
-  };
 
   const outline = shape && art?.src === shape && 'box' in art ? art : null;
   const maskUrl = outline ? `url("${outline.src.replace(/"/g, '%22').replace(/[\n\r]+/g, ' ')}")` : '';

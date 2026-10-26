@@ -255,6 +255,26 @@ const rewritten=mediaProxy.rewritePlaylist('#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,U
 assert.match(rewritten,/URI="\/api\/playback\/media\/key\.bin\?u=https%3A%2F%2Fcdn\.example%2Fhls%2Fkey\.bin&h=Referer%3Ahttps/);
 assert.match(rewritten,/\n\/api\/playback\/media\/1\.ts\?u=https%3A%2F%2Fcdn\.example%2Fhls%2Fseg%2F1\.ts&h=/);
 assert.equal(api.isNativeVideoUrl(rewritten.split('\n').at(-2)),true);
+{
+  // Segments on a host the browser can reach go direct; keys and variant playlists stay relayed.
+  const media='#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI="key.bin"\n#EXT-X-MAP:URI="init.mp4"\n#EXTINF:6,\nseg/1.ts\n#EXTINF:6,\nhttps://other.example/2.ts\n';
+  const direct=mediaProxy.rewritePlaylist(media,'https://cdn.example/hls/index.m3u8',{Referer:'https://site.example/'},{directHost:'cdn.example'});
+  assert.match(direct,/\nhttps:\/\/cdn\.example\/hls\/seg\/1\.ts\n/);
+  assert.match(direct,/#EXT-X-MAP:URI="https:\/\/cdn\.example\/hls\/init\.mp4"/);
+  assert.match(direct,/URI="\/api\/playback\/media\/key\.bin\?/);
+  assert.match(direct,/\n\/api\/playback\/media\/2\.ts\?u=https%3A%2F%2Fother\.example/);
+  const master=mediaProxy.rewritePlaylist('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nlow/index.m3u8\n','https://cdn.example/master.m3u8',{},{full:true});
+  assert.match(master,/\n\/api\/playback\/media\/index\.m3u8\?u=https%3A%2F%2Fcdn\.example%2Flow%2Findex\.m3u8&full=1/);
+  const realFetch=globalThis.fetch;let calls=0;
+  globalThis.fetch=async(_url,init)=>{calls++;return {status:206,headers:new Headers({'access-control-allow-origin':init.headers.Origin||''}),body:null};};
+  try{
+    assert.equal(await mediaProxy.directlyReachable(new URL('https://cors.example/a.ts'),'https://a-d-max.vercel.app',true),true);
+    assert.equal(await mediaProxy.directlyReachable(new URL('https://cors.example/b.ts'),'https://a-d-max.vercel.app',true),true);
+    assert.equal(calls,1,'host results are cached');
+    globalThis.fetch=async()=>({status:403,headers:new Headers(),body:null});
+    assert.equal(await mediaProxy.directlyReachable(new URL('https://blocked.example/a.ts'),'https://a-d-max.vercel.app',false),false);
+  }finally{globalThis.fetch=realFetch;}
+}
 assert.equal(api.classifyStream({url:'https://cdn.example/a.m3u8',behaviorHints:{proxyHeaders:{request:{Referer:'https://site.example/'}}}},'x','Add-on').url,'/api/playback/media/a.m3u8?u=https%3A%2F%2Fcdn.example%2Fa.m3u8&h=Referer%3Ahttps%3A%2F%2Fsite.example%2F');
 const {matchesQualityFilter}=await load('src/components/watch/SourcePicker.tsx');
 assert.equal(matchesQualityFilter('Torrentio 4K UHD 2160p','4k'),true);
