@@ -4,4 +4,4 @@ compatibility_date = "2025-10-01"
 
 [vars]
 # Comma-separated site origins allowed to use the relay.
-ALLOWED_ORIGINS = "https://a-d-max.vercel.app,http://127.0.0.1:8080"
+ALLOWED_ORIGINS = "https://a-d-max.vercel.app,https://wolziflix.vercel.app,https://wolzi-stream-hub.vercel.app,http://127.0.0.1:8080"
