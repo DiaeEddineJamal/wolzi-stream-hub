@@ -1,0 +1,7 @@
+name = "a-d-max-relay"
+main = "worker.js"
+compatibility_date = "2025-10-01"
+
+[vars]
+# Comma-separated site origins allowed to use the relay.
+ALLOWED_ORIGINS = "https://a-d-max.vercel.app,http://127.0.0.1:8080"

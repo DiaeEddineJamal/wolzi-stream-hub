@@ -275,6 +275,49 @@ assert.equal(api.isNativeVideoUrl(rewritten.split('\n').at(-2)),true);
     assert.equal(await mediaProxy.directlyReachable(new URL('https://blocked.example/a.ts'),'https://a-d-max.vercel.app',false),false);
   }finally{globalThis.fetch=realFetch;}
 }
+{
+  // On Vercel, the relay never returns video bytes: playlists and small keys only.
+  const dns=require('node:dns/promises'),realLookup=dns.lookup,realFetch=globalThis.fetch,previousVercel=process.env.VERCEL;
+  dns.lookup=async()=>[{address:'93.184.216.34',family:4}];process.env.VERCEL='1';
+  const call=async(u,{range,full}={})=>{
+    const res={status:0,headers:{},body:'',headersSent:false,writeHead(status,headers={}){this.status=status;this.headers=headers;this.headersSent=true;return this;},write(chunk){this.body+=chunk;return true;},end(chunk){if(chunk)this.body+=chunk;return this;},once(){}};
+    await mediaProxy.mediaProxyRoute({method:'GET',url:'/api/playback/media/x?u='+encodeURIComponent(u)+(full?'&full=1':''),headers:{host:'a-d-max.vercel.app','x-forwarded-proto':'https',...(range?{range}:{})},on(){}},res);
+    return res;
+  };
+  const upstream={
+    'https://cdn.example/master.m3u8':()=>new Response('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nlow.m3u8\n',{headers:{'content-type':'application/vnd.apple.mpegurl'}}),
+    'https://cdn.example/low.m3u8':()=>new Response('#EXTM3U\n#EXTINF:6,\n1.ts\n',{headers:{'content-type':'application/vnd.apple.mpegurl'}}),
+    'https://cdn.example/key.bin':()=>new Response(new Uint8Array(16),{headers:{'content-length':'16'}}),
+    'https://cdn.example/1.ts':()=>new Response(new Uint8Array(1024),{headers:{'content-length':String(4*1024*1024)}}),
+  };
+  // The browser-reachability probe (Range bytes=0-0, no provider headers) is refused: these sources need the relay.
+  globalThis.fetch=async(url,init)=>init?.headers?.Range==='bytes=0-0'?new Response(null,{status:403}):(upstream[String(url)]||(()=>new Response(null,{status:403})))();
+  try{
+    assert.equal((await call('https://cdn.example/master.m3u8')).status,200,'variant playlists are relayed');
+    assert.equal((await call('https://cdn.example/low.m3u8')).status,502,'segments the browser cannot reach fail fast');
+    assert.equal((await call('https://cdn.example/key.bin')).status,200,'small keys are relayed');
+    assert.equal((await call('https://cdn.example/1.ts')).status,502,'segments are not relayed');
+    assert.equal((await call('https://cdn.example/1.ts',{full:true})).status,502,'full=1 cannot force relaying');
+    assert.equal((await call('https://cdn.example/1.ts',{range:'bytes=0-'})).status,502,'progressive video is not relayed');
+    process.env.MEDIA_RELAY_BYTES='1';
+    assert.equal((await call('https://cdn.example/1.ts')).status,200,'MEDIA_RELAY_BYTES=1 restores relaying');
+  }finally{dns.lookup=realLookup;globalThis.fetch=realFetch;delete process.env.MEDIA_RELAY_BYTES;if(previousVercel===undefined)delete process.env.VERCEL;else process.env.VERCEL=previousVercel;}
+}
+{
+  // External relay (Cloudflare Worker): only the site may use it, and playlists point back at it.
+  const {default:worker}=await import('../relay/worker.js');
+  const env={ALLOWED_ORIGINS:'https://a-d-max.vercel.app'},realFetch=globalThis.fetch;
+  const relayUrl='https://relay.example/api/playback/media/i.m3u8?u='+encodeURIComponent('https://cdn.example/hls/i.m3u8')+'&h=Referer%3Ahttps%3A%2F%2Fsite.example%2F';
+  let sent;
+  globalThis.fetch=async(_url,init)=>{sent=init.headers;return new Response('#EXTM3U\n#EXTINF:6,\nseg/1.ts\n',{headers:{'content-type':'application/vnd.apple.mpegurl'}});};
+  try{
+    assert.equal((await worker.fetch(new Request(relayUrl,{headers:{origin:'https://evil.example'}}),env)).status,403);
+    const ok=await worker.fetch(new Request(relayUrl,{headers:{referer:'https://a-d-max.vercel.app/watch/1'}}),env);
+    assert.equal(ok.status,200);assert.equal(ok.headers.get('access-control-allow-origin'),'https://a-d-max.vercel.app');
+    assert.equal(sent.Referer,'https://site.example/');
+    assert.match(await ok.text(),/\n\/api\/playback\/media\/1\.ts\?u=https%3A%2F%2Fcdn\.example%2Fhls%2Fseg%2F1\.ts&h=Referer/);
+  }finally{globalThis.fetch=realFetch;}
+}
 assert.equal(api.classifyStream({url:'https://cdn.example/a.m3u8',behaviorHints:{proxyHeaders:{request:{Referer:'https://site.example/'}}}},'x','Add-on').url,'/api/playback/media/a.m3u8?u=https%3A%2F%2Fcdn.example%2Fa.m3u8&h=Referer%3Ahttps%3A%2F%2Fsite.example%2F');
 const {matchesQualityFilter}=await load('src/components/watch/SourcePicker.tsx');
 assert.equal(matchesQualityFilter('Torrentio 4K UHD 2160p','4k'),true);

@@ -23,7 +23,7 @@ export default function StreamingPlayer({originalAudioLanguage,source,title,stor
   const transcoding=!!(safe&&source.service&&(transcodeId===source.id||(source.needsConversion&&nativeId!==source.id)));
   // Relayed sources first try loading media directly from the host (keeps video off the server's
   // bandwidth); if that fails, `full=1` sends everything through the relay.
-  const relayed=!!safe&&!transcoding&&source.url.startsWith('/api/playback/media/'),fullRelay=relayed&&relayId===source.id;
+  const relayed=!!safe&&!transcoding&&source.url.includes('/api/playback/media/'),fullRelay=relayed&&relayId===source.id;
   const playbackUrl=safe?(transcoding?hlsPlaybackUrl(source.url,source.service,session.current+'-'+source.id+'-'+retry,window.location.origin):source.url+(fullRelay?'&full=1':'')):undefined;
   const isHls=!!playbackUrl&&/\.m3u8(?:[?#]|$)/i.test(playbackUrl);
   const resumePosition=useCallback(()=>{if(!resume)return 0;if(initialPosition!=null)return initialPosition;try{return Number(localStorage.getItem('admax-resume-'+storageKey))||0;}catch{return 0;}},[storageKey,resume,initialPosition]);

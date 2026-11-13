@@ -94,13 +94,16 @@ export function serviceStreamUrl(stream: AddonStream, service: string) {
   }
   throw new Error('This stream requires format conversion in another player.');
 }
-// Built-in same-origin relay (server/media-proxy.ts) for header-dependent sources when no Stremio Service is connected.
+// Relay for header-dependent sources when no Stremio Service is connected: the external relay
+// (relay/worker.js) when VITE_MEDIA_RELAY_URL is set, else the same-origin one (server/media-proxy.ts).
+// Server-side (playlist rewriting) import.meta.env is absent, so rewritten URLs stay relative to the relay.
+const relayBase=(import.meta as {env?:Record<string,string|undefined>}).env?.VITE_MEDIA_RELAY_URL?.replace(/\/+$/,'')||'';
 export function mediaProxyUrl(url:string,headers:Record<string,string>={},isHls=false){
   const query=new URLSearchParams({u:url});
   Object.entries(headers).forEach(([k,v])=>query.append('h',k+':'+v));
   const rawName=new URL(url).pathname.split('/').pop()?.replace(/[^\w.-]/g,'')||'media';
   const name=isHls&&!/\.m3u8$/i.test(rawName)?rawName+'.m3u8':rawName;
-  return '/api/playback/media/'+name+'?'+query;
+  return relayBase+'/api/playback/media/'+name+'?'+query;
 }
 export function hlsPlaybackUrl(mediaUrl:string,service:string,sessionId:string,origin:string){
   const base=normalizeServiceUrl(service);

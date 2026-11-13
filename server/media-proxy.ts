@@ -8,6 +8,12 @@ import { mediaProxyUrl } from '../src/integrations/api/stremio.js';
 const blocked=new Set(['host','connection','content-length','transfer-encoding','range','cookie','authorization']);
 const chunk=4*1024*1024; // ponytail: 4 MB ranges keep each call well inside the function time limit
 const isPlaylist=(value:string)=>/\.m3u8(?:$|\?)/i.test(value);
+// On Vercel, video bytes never pass through the function (the free tier's 10 GB Fast Origin
+// Transfer is a few films). Playlists and keys are still relayed: they are kilobytes.
+// Sources whose video the browser cannot fetch directly need the external relay (relay/worker.js).
+// MEDIA_RELAY_BYTES=1 forces full relaying (the local dev server does it by default).
+const relayBytes=()=>process.env.MEDIA_RELAY_BYTES?process.env.MEDIA_RELAY_BYTES==='1':!process.env.VERCEL;
+const smallBody=256*1024;
 interface RewriteOptions {directHost?:string;full?:boolean}
 export function rewritePlaylist(text:string,base:string,headers:Record<string,string>,{directHost,full}:RewriteOptions={}){
   const proxied=(uri:string)=>mediaProxyUrl(new URL(uri,base).href,headers)+(full?'&full=1':'');
@@ -38,8 +44,10 @@ export async function directlyReachable(url:URL,origin:string,cors:boolean){
   directHosts.set(key,{ok,until:Date.now()+10*60_000});
   return ok;
 }
+const firstEntry=(text:string)=>text.split(/\r?\n/).map(line=>line.trim()).find(line=>line&&!line.startsWith('#'));
+export const hasSegments=(text:string)=>{const first=firstEntry(text);return !!first&&!isPlaylist(first);};
 async function directSegmentHost(text:string,base:string,origin:string){
-  const first=text.split(/\r?\n/).map(line=>line.trim()).find(line=>line&&!line.startsWith('#'));
+  const first=firstEntry(text);
   if(!first||isPlaylist(first))return undefined;
   try{
     const url=await publicMediaUrl(new URL(first,base).href);
@@ -49,7 +57,8 @@ async function directSegmentHost(text:string,base:string,origin:string){
 
 export async function mediaProxyRoute(req:IncomingMessage,res:ServerResponse){
   if(req.method!=='GET'&&req.method!=='HEAD'){res.writeHead(405).end();return;}
-  const params=new URL(req.url||'','http://localhost').searchParams,value=params.get('u'),full=params.get('full')==='1';
+  const bytes=relayBytes();
+  const params=new URL(req.url||'','http://localhost').searchParams,value=params.get('u'),full=bytes&&params.get('full')==='1';
   if(!value||value.length>8000){res.writeHead(400).end();return;}
   const proto=String(req.headers['x-forwarded-proto']||((req.socket as {encrypted?:boolean}|undefined)?.encrypted?'https':'http')).split(',')[0].trim();
   const origin=proto+'://'+req.headers.host;
@@ -58,8 +67,9 @@ export async function mediaProxyRoute(req:IncomingMessage,res:ServerResponse){
   const range=req.headers.range?.match(/^bytes=(\d+)-(\d*)$/);
   let url=await publicMediaUrl(value),response:Response|undefined;
   // Progressive video (<video> range requests) is redirected to the source when it serves us without special headers.
-  if(range&&!full&&req.method==='GET'&&!isPlaylist(value)&&url.protocol==='https:'&&await directlyReachable(url,origin,false)){
-    res.writeHead(302,{Location:url.href,'Cache-Control':'private, max-age=300'}).end();return;
+  if(range&&!full&&req.method==='GET'&&!isPlaylist(value)&&url.protocol==='https:'){
+    if(await directlyReachable(url,origin,false)){res.writeHead(302,{Location:url.href,'Cache-Control':'private, max-age=300'}).end();return;}
+    if(!bytes){res.writeHead(502,{'Cache-Control':'no-store'}).end();return;}
   }
   const upstreamHeaders={...headers,...(range?{Range:`bytes=${range[1]}-${range[2]||Number(range[1])+chunk-1}`}:{})};
   const controller=new AbortController();req.on('close',()=>controller.abort());
@@ -87,6 +97,8 @@ export async function mediaProxyRoute(req:IncomingMessage,res:ServerResponse){
   }
   const sendPlaylist=async(text:string)=>{
     const directHost=full?undefined:await directSegmentHost(text,url.href,origin);
+    // Segments would have to be relayed: fail now so the player moves to another source.
+    if(!bytes&&!directHost&&hasSegments(text)){res.writeHead(502,{'Cache-Control':'no-store'}).end();return;}
     res.writeHead(200,{'Content-Type':'application/vnd.apple.mpegurl','Cache-Control':'no-store'});res.end(rewritePlaylist(text,url.href,headers,{directHost,full}));
   };
   if(/mpegurl/i.test(type)||isPlaylist(url.pathname)||isPlaylist(req.url||'')){
@@ -106,6 +118,11 @@ export async function mediaProxyRoute(req:IncomingMessage,res:ServerResponse){
       const bytes=new Uint8Array(size);let offset=0;for(const c of chunks){bytes.set(c,offset);offset+=c.length;}
       await sendPlaylist(new TextDecoder().decode(bytes));return;
     }
+  }
+  const length=Number(response.headers.get('content-length')||NaN);
+  if(!bytes&&!(length<=smallBody)){
+    await reader.cancel();
+    res.writeHead(502,{'Cache-Control':'no-store'}).end();return;
   }
   // Whole segments never change: Vercel's CDN can serve repeats without re-running this relay.
   const out:Record<string,string>={'Content-Type':type||'application/octet-stream','Accept-Ranges':'bytes','Cache-Control':response.status===200&&!range?'public, max-age=3600, s-maxage=86400':'private, max-age=600'};
