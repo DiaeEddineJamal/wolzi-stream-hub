@@ -1,0 +1,22 @@
+# Render Blueprint: the playback API (server/index.ts). The site itself is on Cloudflare Pages.
+services:
+  - type: web
+    name: a-d-max-api
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build:server
+    startCommand: npm run start:server
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Never relay video bytes: the free plan's bandwidth would run out like Vercel's did.
+      - key: MEDIA_RELAY_BYTES
+        value: "0"
+      # Copy the generated value into Cloudflare Pages as PROXY_SECRET.
+      - key: PROXY_SECRET
+        generateValue: true
+      - key: TMDB_API_KEY
+        sync: false
+      - key: WYZIE_API_KEY
+        sync: false

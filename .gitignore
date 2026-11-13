@@ -41,3 +41,6 @@ cineby*_screenshot.png
 # Local agent tooling
 .omc/
 .claude/
+
+# Render API build
+dist-server

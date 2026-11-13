@@ -387,7 +387,8 @@ const App = () => {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-        <Analytics />
+        {/* Vercel Analytics only exists on Vercel; elsewhere its script would 404. */}
+        {window.location.hostname.endsWith('.vercel.app') && <Analytics />}
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
