@@ -21,4 +21,6 @@ export async function gunzip(bytes:Uint8Array,limit=8_000_000){
   return out;
 }
 
-export const edgeCache=()=>(caches as unknown as {default:Cache}).default;
+// Cloudflare's default cache (Workers runtime); typed here so the file also checks under Node types.
+export interface EdgeCache {match(request:Request):Promise<Response|undefined>;put(request:Request,response:Response):Promise<void>}
+export const edgeCache=()=>(globalThis as unknown as {caches:{default:EdgeCache}}).caches.default;

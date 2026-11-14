@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import type { SubtitleTrack, SubtitleVideo } from '@/lib/subtitles';
+// Relative path: the Node server imports this module too, without the @/ alias.
+import type { SubtitleTrack, SubtitleVideo } from '../../lib/subtitles.js';
 const resourceSchema = z.union([z.string(), z.object({ name: z.string(), types: z.array(z.string()).optional(), idPrefixes: z.array(z.string()).optional() })]);
 export const manifestSchema = z.object({
   id: z.string().min(1).max(160), name: z.string().min(1).max(160), version: z.string().min(1),

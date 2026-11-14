@@ -5,7 +5,7 @@ export function subtitleVideoExtras(video:SubtitleVideo={}) {
   const extra:Record<string,string>={};
   if(video.filename?.trim())extra.filename=video.filename.trim().slice(0,500);
   if(video.videoHash&&/^[a-f\d]{16}$/i.test(video.videoHash))extra.videoHash=video.videoHash;
-  if(Number.isSafeInteger(video.videoSize)&&video.videoSize>0)extra.videoSize=String(video.videoSize);
+  if(typeof video.videoSize==='number'&&Number.isSafeInteger(video.videoSize)&&video.videoSize>0)extra.videoSize=String(video.videoSize);
   return extra;
 }
 
@@ -16,7 +16,7 @@ export function subtitleMatchesEpisode(track:SubtitleTrack,id=''){
   return !episodes.length||episodes.some(match=>Number(match[1])===Number(target[1])&&Number(match[2])===Number(target[2]));
 }
 
-export function preferredSubtitleIndex(tracks:Pick<TextTrack,'language'|'mode'>[],preferred:string|null){
+export function preferredSubtitleIndex(tracks:{language:string;mode:string}[],preferred:string|null){
   if(preferred==='off')return -1;
   if(preferred){const match=tracks.findIndex(track=>normalizeLangCode(track.language)===normalizeLangCode(preferred));if(match>=0)return match;}
   const showing=tracks.findIndex(track=>track.mode==='showing');
