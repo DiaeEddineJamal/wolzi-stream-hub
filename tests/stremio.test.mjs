@@ -19,6 +19,36 @@ for(const [headers,expected] of [[{host:'a-d-max.vercel.app',origin:'https://a-d
 const api=await load('src/integrations/api/stremio.ts');
 const {watchPath,toMediaItem}=await load('src/lib/media.ts');
 const resolver=await load('server/source-resolver.ts');
+const providerCatalog=await load('server/provider-catalog.ts');
+// A duplicate provider must use the maintained adapter and its headers; removed
+// providers still route to the older SDK with movie/episode coordinates intact.
+{
+  const calls=[];
+  const sdk=(version,sources)=>({
+    getSources(excludeDisabled){assert.equal(excludeDisabled,true);return sources;},
+    async getStream(...args){calls.push({version,args});return {url:`https://${version}.example/stream.m3u8`};},
+  });
+  const current=sdk('current',[{key:'shared',label:'Updated',verifyHeaders:{Referer:'https://updated.example/'}},{key:'new',label:'New'},{key:'disabled',label:'Disabled',disabled:true}]);
+  const legacy=sdk('legacy',[{key:'shared',label:'Old'},{key:'retained',label:'Retained',verifyHeaders:true}]);
+  const catalog=providerCatalog.createProviderCatalog(current,legacy);
+  assert.deepEqual(catalog.map(p=>p.key),['shared','new','retained']);
+  assert.equal(catalog[0].label,'Updated');
+  assert.deepEqual(catalog[0].verifyHeaders,{Referer:'https://updated.example/'});
+  assert.equal(catalog[2].verifyHeaders,undefined);
+  await catalog[0].getStream('157336',null,null);
+  await catalog[2].getStream('1396',2,3);
+  assert.deepEqual(calls,[{version:'current',args:['shared','157336',null,null]},{version:'legacy',args:['retained','1396',2,3]}]);
+}
+{
+  const [{default:SDK},{default:LegacySDK}]=await Promise.all([import('@vyla-entertainment/sdk'),import('vyla-sdk-legacy')]);
+  const catalog=providerCatalog.createProviderCatalog(new SDK(),new LegacySDK());
+  const keys=new Set(catalog.map(p=>p.key));
+  assert.equal(keys.size,catalog.length);
+  assert.equal(catalog.length,78);
+  for(const provider of new LegacySDK().getSources(true))assert.ok(keys.has(provider.key),`Retain ${provider.key}`);
+  for(const key of ['vidly','vidbolt','hexa','meowtv','cno','aether','willow','chillflix','taroflix','framextv','4movies','youplex'])assert.ok(keys.has(key),`Add ${key}`);
+  assert.equal(catalog.find(p=>p.key==='movy').cdnHeaders[0].headers.Origin,'https://www.movy.sx');
+}
 const subtitles=await load('src/lib/subtitles.ts');
 const artwork=await load('src/lib/artwork.ts');
 const captions=await load('src/lib/captions.ts');

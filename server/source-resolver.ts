@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import { z } from 'zod';
-import type VylaSDK from '@vyla-entertainment/sdk';
+import { loadProviderCatalog, type PlaybackProvider, type ProviderMeta } from './provider-catalog.js';
 import { isIndianLanguageStream } from '../src/lib/stream-language.js';
 
 export function isPublicAddress(address: string) {
@@ -80,10 +80,9 @@ const querySchema=z.object({type:z.enum(['movie','tv']),id:z.string().regex(/^\d
 const candidateSchema=z.object({url:z.string(),quality:z.string().optional(),label:z.string().optional(),server:z.string().optional(),name:z.string().optional(),headers:z.record(z.string()).optional(),type:z.string().optional()}).passthrough();
 const resultSchema=z.object({url:z.string().optional(),headers:z.record(z.string()).optional(),allUrls:z.array(candidateSchema).optional(),streams:z.array(candidateSchema).optional()}).passthrough();
 type Payload={provider:string;name:string;status:'reachable'|'unavailable'|'timeout';streams:{url:string;name:string;behaviorHints?:{isHls?:boolean;proxyHeaders?:{request:Record<string,string>}}}[]};
-type ProviderRule={pattern:RegExp;headers:Record<string,string>};
-type ProviderMeta={key:string;label:string;verifyHeaders?:Record<string,string>;cdnHeaders?:ProviderRule[]};
-
-const PRIORITY_PROVIDERS=['movy','vidrock','vidzee','cinemaarmy','vixsrc','vidfast','vidup','pstream','movienight','movenerds','flaxmovies','vidapi','vidlink','lookmovie','111477','3eyedraven','bcine','fsonline','vidy','xdownloader','streamaggregator','dulo','peestream','thugtv'];
+// FMHY-listed sites and the servers observed in 1Shows / AniCine get an early
+// slot in the bounded scan. Unknown SDK additions remain discoverable too.
+const PRIORITY_PROVIDERS=['movy','vidfast','vidlink','vidy','vidzee','vidrock','vidly','vidbolt','hexa','meowtv','cno','aether','willow','chillflix','cinemaarmy','vixsrc','vidup','pstream','movienight','movenerds','flaxmovies','vidapi','lookmovie','111477','3eyedraven','bcine','fsonline','xdownloader','streamaggregator','dulo','peestream','thugtv'];
 
 export function mergeProviderHeaders(url:string,provider:ProviderMeta,rawHeaders?:Record<string,string>,candidateHeaders?:Record<string,string>){
   const merged:Record<string,string>={...(provider.verifyHeaders||{}),...(rawHeaders||{}),...(candidateHeaders||{})};
@@ -94,10 +93,10 @@ export function mergeProviderHeaders(url:string,provider:ProviderMeta,rawHeaders
 }
 
 export function createSourceResolver(tmdbApiKey?:string){
-  let sdkPromise:Promise<VylaSDK>|undefined;
+  let catalogPromise:Promise<PlaybackProvider[]>|undefined;
   const cache=new Map<string,{until:number;value:Payload}>();
   const pending=new Map<string,Promise<Payload>>();
-  const getSdk=()=>sdkPromise||=(import('@vyla-entertainment/sdk').then(({default:SDK})=>new SDK({tmdbApiKey})));
+  const getProviders=()=>catalogPromise||=loadProviderCatalog(tmdbApiKey).catch(error=>{catalogPromise=undefined;throw error;});
   return async(req:IncomingMessage,res:ServerResponse)=>{
     if(req.method!=='GET'){res.writeHead(405).end();return;}
     const parsed=querySchema.safeParse(Object.fromEntries(new URL(req.url||'','http://localhost').searchParams));
@@ -106,7 +105,7 @@ export function createSourceResolver(tmdbApiKey?:string){
     let closed=false;res.on('close',()=>{closed=true;});
     const send=(data:unknown)=>{if(!closed)res.write(`data: ${JSON.stringify(data)}\n\n`);};
     try{
-      const sdk=await getSdk(),rawProviders=sdk.getSources(true) as ProviderMeta[],query=parsed.data;
+      const rawProviders=await getProviders(),query=parsed.data;
       const providers=[...rawProviders].sort((a,b)=>{
         const ia=PRIORITY_PROVIDERS.indexOf(a.key),ib=PRIORITY_PROVIDERS.indexOf(b.key);
         return (ia===-1?999:ia)-(ib===-1?999:ib);
@@ -124,7 +123,7 @@ export function createSourceResolver(tmdbApiKey?:string){
             task=(async():Promise<Payload>=>{
               const empty={provider:provider.key,name:provider.label,status:'unavailable' as const,streams:[]};
               try{
-                const raw=resultSchema.parse(await sdk.getStream(provider.key,query.id,query.type==='tv'?query.season:null,query.type==='tv'?query.episode:null));
+                const raw=resultSchema.parse(await provider.getStream(query.id,query.type==='tv'?query.season:null,query.type==='tv'?query.episode:null));
                 const list=raw.allUrls?.length?raw.allUrls:raw.streams?.length?raw.streams:raw.url?[candidateSchema.parse(raw)]:[];
                 const candidates=selectCandidates(list.filter(item=>!isIndianLanguageStream(item.quality,item.label,item.server,item.name,item.url)));
                 const checked=await Promise.all(candidates.map(async candidate=>{

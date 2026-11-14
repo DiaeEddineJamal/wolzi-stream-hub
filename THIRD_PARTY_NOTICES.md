@@ -97,8 +97,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-## Vyla SDK 1.17.0
-Source: https://vyla.cc/sdk/ and npm @vyla-entertainment/sdk. Used in the local source-resolution backend. License: CC BY-NC 4.0; commercial use requires separate permission. Transitive node-tls-client is GPL-3.0. No upstream source was modified.
+## Vyla SDK 1.29.0 and 1.17.0
+Source: https://vyla.cc/sdk/ and npm @vyla-entertainment/sdk. Version 1.29.0 supplies maintained adapters; version 1.17.0 is installed as the npm alias vyla-sdk-legacy to retain providers removed upstream. Used in the source-resolution backend. License: CC BY-NC 4.0; commercial use requires separate permission. Transitive node-tls-client is GPL-3.0. No upstream source was modified.
 
 Attribution-NonCommercial 4.0 International
 
