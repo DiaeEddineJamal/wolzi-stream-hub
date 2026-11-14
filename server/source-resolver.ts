@@ -3,6 +3,7 @@ import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import { z } from 'zod';
 import type VylaSDK from '@vyla-entertainment/sdk';
+import { isIndianLanguageStream } from '../src/lib/stream-language.js';
 
 export function isPublicAddress(address: string) {
   const ip=address.toLowerCase().replace(/^::ffff:/,'');
@@ -125,7 +126,7 @@ export function createSourceResolver(tmdbApiKey?:string){
               try{
                 const raw=resultSchema.parse(await sdk.getStream(provider.key,query.id,query.type==='tv'?query.season:null,query.type==='tv'?query.episode:null));
                 const list=raw.allUrls?.length?raw.allUrls:raw.streams?.length?raw.streams:raw.url?[candidateSchema.parse(raw)]:[];
-                const candidates=selectCandidates(list);
+                const candidates=selectCandidates(list.filter(item=>!isIndianLanguageStream(item.quality,item.label,item.server,item.name,item.url)));
                 const checked=await Promise.all(candidates.map(async candidate=>{
                   const headers=mergeProviderHeaders(candidate.url,provider,raw.headers,candidate.headers);
                   const kind=await detectMediaKind(candidate.url,headers).catch(()=>null);

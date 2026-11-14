@@ -10,7 +10,7 @@ import { detectQualityTier, QUALITY_BADGES } from './SourcePicker';
 import CaptionSettings from './CaptionSettings';
 import { useAudioTracks } from '@/hooks/useAudioTracks';
 import { isPlayerFullscreen, togglePlayerFullscreen, touchPlayerQuery } from '@/lib/mobile-player';
-import { useSubtitleAutoSync, type AutoSyncStatus } from '@/hooks/useSubtitleAutoSync';
+import { useSubtitleAutoSync, useSubtitleLengthFit, type AutoSyncStatus } from '@/hooks/useSubtitleAutoSync';
 import type { SubtitleAlignment } from '@/lib/subtitle-sync';
 export interface NextEpisode {label:string;image?:string;eyebrow?:string;onPlay:()=>void}
 export interface PlayerIdleMeta {
@@ -58,9 +58,11 @@ export default function PlayerControls({originalAudioLanguage,captionKey='video'
   const cueTimes=useRef(new WeakMap<object,CaptionTiming>());
   const selectedTrack=tracks[trackIndex];
   const externalTracks=media?new Set(Array.from(media.querySelectorAll('track')).map(element=>element.track)):new Set<TextTrack>();
+  const sameLanguage=selectedTrack?tracks.filter(track=>externalTracks.has(track)&&normalizeLangCode(track.language)===normalizeLangCode(selectedTrack.language)):[];
   const autoSync=useSubtitleAutoSync({media,enabled:captions.autoSync&&!!selectedTrack,track:selectedTrack,
-    candidates:selectedTrack?tracks.filter(track=>externalTracks.has(track)&&normalizeLangCode(track.language)===normalizeLangCode(selectedTrack.language)):[],
-    allowSwitch:selectedCaption.current===undefined,initial:autoAlignments[syncKey]});
+    candidates:sameLanguage,allowSwitch:selectedCaption.current===undefined,initial:autoAlignments[syncKey]});
+  // Viewer-chosen tracks are never replaced; only the player's own pick is.
+  const lengthFit=useSubtitleLengthFit({media,enabled:selectedCaption.current===undefined,track:selectedTrack,candidates:sameLanguage,duration:state.duration});
   const alignment=captions.autoSync?autoSync.alignment:undefined;
   useEffect(()=>{
     if(!autoSync.alignment)return;
@@ -73,11 +75,11 @@ export default function PlayerControls({originalAudioLanguage,captionKey='video'
     });
   },[autoSync.alignment,syncKey,saveAutoAlignments]);
   useEffect(()=>{
-    const better=autoSync.better,index=better?tracks.indexOf(better):-1;
+    const better=autoSync.better||lengthFit,index=better?tracks.indexOf(better):-1;
     if(index<0||selectedCaption.current!==undefined)return;
     selectedCaption.current=better;activateCaptionTrack(tracks,index);setTrackIndex(index);
-    setHint('Switched to a subtitle release that matches the dialogue.');
-  },[autoSync.better,tracks]);
+    setHint(autoSync.better?'Switched to a subtitle release that matches the dialogue.':'Switched to a subtitle release that fits this video’s length.');
+  },[autoSync.better,lengthFit,tracks]);
   const [earCue,setEarCue]=useState<{start:number;text:string}|null>(null);
   useEffect(()=>setEarCue(null),[syncKey]);
   const nextCue=(after:number)=>{

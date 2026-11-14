@@ -93,6 +93,17 @@ export function estimateAlignment(cues:SyncCue[],timeline:SpeechTimeline,maxOffs
   return best&&best.score>=.12&&best.confidence>=.5?best:undefined;
 }
 
+// How well a subtitle file's length fits the video, before any audio is heard. The last line must
+// end before the video does, and not so early that whole scenes are missing (credits run up to
+// ~15 min). 2: fits as is. 1: fits only at another frame rate (auto-sync can rescale). 0: another cut.
+export function durationFit(cues:SyncCue[],duration:number):0|1|2{
+  if(!cues.length||!(duration>0))return 0;
+  const last=cues[cues.length-1].end;
+  const fits=(scale:number)=>{const end=last*scale;return end<=duration+5&&duration-end<=900;};
+  if(fits(1))return 2;
+  return FRAME_RATIOS.some(scale=>scale!==1&&fits(scale))?1:0;
+}
+
 export function displayedCueStart(cue:SyncCue,alignment:Pick<SubtitleAlignment,'offset'|'scale'>|undefined,manual=0){
   return cue.start*(alignment?.scale??1)+(alignment?.offset??0)+manual;
 }

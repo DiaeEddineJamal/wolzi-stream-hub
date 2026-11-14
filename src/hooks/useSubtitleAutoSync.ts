@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { estimateAlignment, parseVttCues, SpeechTimeline, type SubtitleAlignment, type SyncCue } from '@/lib/subtitle-sync';
+import { durationFit, estimateAlignment, parseVttCues, SpeechTimeline, type SubtitleAlignment, type SyncCue } from '@/lib/subtitle-sync';
 
 export type AutoSyncStatus='off'|'unsupported'|'embedded'|'listening'|'synced'|'no-match';
 type CaptureVideo=HTMLVideoElement&{captureStream?:()=>MediaStream};
@@ -51,6 +51,37 @@ function useSpeechTimeline(media:HTMLVideoElement|null,enabled:boolean){
     return()=>{disposed=true;clearInterval(sample);media.removeEventListener('playing',resume);document.removeEventListener('pointerdown',resume,true);document.removeEventListener('keydown',resume,true);if(stream)stream.onaddtrack=null;source?.disconnect();void context?.close().catch(()=>{});};
   },[media,enabled]);
   return {timeline,supported};
+}
+
+// Before any dialogue is heard: if the chosen release does not fit the video's length (another cut
+// or frame rate), pick the best-fitting release in the same language. Runs once per track choice.
+export function useSubtitleLengthFit({media,enabled,track,candidates,duration}:{media:HTMLVideoElement|null;enabled:boolean;track?:TextTrack;candidates:TextTrack[];duration:number}){
+  const [better,setBetter]=useState<TextTrack>();
+  const latest=useRef(candidates);latest.current=candidates;
+  const known=duration>600; // Films and episodes only; trailers and clips are too short to judge.
+  useEffect(()=>{
+    setBetter(undefined);
+    const src=trackSource(media,track);
+    if(!enabled||!track||!src||!known||!media)return;
+    let cancelled=false;
+    const fitOf=(source:string)=>loadCues(source).then(cues=>durationFit(cues,media.duration)).catch(()=>0 as const);
+    void (async()=>{
+      const current=await fitOf(src);
+      if(cancelled||current===2)return;
+      let fallback:TextTrack|undefined;
+      for(const candidate of latest.current.slice(0,8)){
+        const candidateSrc=trackSource(media,candidate);
+        if(!candidateSrc||candidate===track)continue;
+        const fit=await fitOf(candidateSrc);
+        if(cancelled)return;
+        if(fit===2){setBetter(candidate);return;}
+        if(fit===1&&current===0)fallback??=candidate;
+      }
+      if(fallback)setBetter(fallback);
+    })();
+    return()=>{cancelled=true;};
+  },[media,enabled,track,known]);
+  return better;
 }
 
 interface Options {media:HTMLVideoElement|null;enabled:boolean;track?:TextTrack;candidates:TextTrack[];allowSwitch:boolean;initial?:SubtitleAlignment}

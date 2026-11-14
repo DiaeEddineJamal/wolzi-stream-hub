@@ -456,3 +456,39 @@ assert.equal(matchesTrendingFilters(trendingMovie,{...trendingBase,genre:'18'}),
 assert.equal(matchesTrendingFilters({...trendingMovie,release_date:''},{...trendingBase,year:'2026'}),false);
 
 assert.equal(matchesTrendingFilters({...trendingMovie,media_type:'tv',genre_ids:[10759]},{...trendingBase,genre:'28'}),true);
+
+{
+  // Indian-language dubs are hidden; ordinary titles and hosts are not caught by short codes.
+  const {isIndianLanguageStream:indian}=await load('src/lib/stream-language.ts');
+  for(const value of ['VidZee · v6:Hindi','Movie.2024.HINDI.Dubbed.720p','Tamil HD','[Telugu + Eng]','https://cdn.example/movies/hindi/master.m3u8'])assert.equal(indian(value),true,value);
+  for(const value of ['VidZee · dcloud','Hotel Transylvania 1080p','The Matrix Teljes','https://tel.example/x.m3u8','https://cdn.example/a.m3u8?tok=hindi'])assert.equal(indian(value),false,value);
+}
+{
+  // Subtitle length must fit the video: a longer file is another cut; a PAL file fits only rescaled.
+  const cue=end=>[{start:1,end:2},{start:end-2,end}];
+  assert.equal(sync.durationFit(cue(7900),8178),2);
+  assert.equal(sync.durationFit(cue(8178*25/23.976-60),8178),1,'PAL release of the same cut');
+  assert.equal(sync.durationFit(cue(9500),8178),0,'longer cut');
+  assert.equal(sync.durationFit(cue(6000),8178),0,'scenes missing');
+  assert.equal(sync.durationFit([],8178),0);
+  // Hearing-impaired tracks rank after plain ones; ties go to the more downloaded file.
+  const plain={url:'plain',lang:'en',release:'The Matrix',downloads:10},hi={url:'hi',lang:'en',release:'The Matrix',hearingImpaired:true,downloads:900},sdh={url:'sdh',lang:'en',release:'The.Matrix.SDH'},popular={url:'popular',lang:'en',release:'The Matrix',downloads:500};
+  assert.deepEqual(subtitles.rankSubtitleTracks([hi,sdh,plain,popular],'The Matrix').map(t=>t.url),['popular','plain','hi','sdh']);
+}
+{
+  // Shared subtitle download (Node server and Cloudflare edge): gzip, legacy charset hint, advert cues.
+  const core=await load('server/subtitle-core.ts');
+  const {gzipSync,gunzipSync}=require('node:zlib');
+  const srt='1\n00:00:01,000 --> 00:00:02,000\nمرحبا\n\n2\n00:00:03,000 --> 00:00:04,000\nSupport us and become VIP member\n';
+  const cp1256=Buffer.from([...srt].map(ch=>ch==='م'?0xe3:ch==='ر'?0xd1:ch==='ح'?0xcd:ch==='ب'?0xc8:ch==='ا'?0xc7:ch.charCodeAt(0)));
+  const realFetch=globalThis.fetch;const seen=[];
+  globalThis.fetch=async url=>{seen.push(new URL(url).origin+new URL(url).pathname);return String(url).includes('/old')?new Response(null,{status:302,headers:{location:'https://files.example/new.gz'}}):new Response(gzipSync(cp1256),{headers:{'content-type':'application/octet-stream'}});};
+  try{
+    const {vtt}=await core.downloadSubtitle('https://files.example/old#charset=CP1256',async v=>new URL(v),async b=>new Uint8Array(gunzipSync(b)));
+    assert.match(vtt,/^WEBVTT/);assert.match(vtt,/00:00:01\.000 --> 00:00:02\.000\nمرحبا/);
+    assert.doesNotMatch(vtt,/VIP/,'advert cue removed');
+    assert.deepEqual(seen,['https://files.example/old','https://files.example/new.gz'],'redirect followed');
+    await assert.rejects(()=>core.downloadSubtitle('https://files.example/old',async()=>{throw new Error('blocked');},async b=>b));
+    assert.equal((await core.searchSubtitles(new URLSearchParams({id:'bad id'}))).status,400);
+  }finally{globalThis.fetch=realFetch;}
+}

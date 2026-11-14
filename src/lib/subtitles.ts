@@ -39,9 +39,12 @@ export function rankSubtitleTracks<T extends SubtitleTrack>(tracks:T[],release='
     return [...new Set(tokens(candidate))].filter(token=>wanted.has(token)).length
       +(wantedOrigin&&candidateOrigin?(wantedOrigin===candidateOrigin?12:-20):0)
       +(wantedEpisode&&candidateEpisode?(wantedEpisode===candidateEpisode?20:-100):0)
-      +(wantedGroup&&candidate.split(' · ').some(value=>group(value)===wantedGroup)?25:0);
+      +(wantedGroup&&candidate.split(' · ').some(value=>group(value)===wantedGroup)?25:0)
+      // Plain dialogue tracks first; hearing-impaired ones add sound descriptions most viewers don't want.
+      -(track.hearingImpaired||/(?:^|[^a-z])(sdh|hi)(?![a-z])|hearing[ ._-]?impaired/i.test(candidate+' '+(track.label||''))?4:0);
   };
-  return [...tracks].sort((a,b)=>score(b)-score(a));
+  // Ties: the more downloaded file is usually the better-timed one.
+  return [...tracks].sort((a,b)=>score(b)-score(a)||(b.downloads||0)-(a.downloads||0));
 }
 
 export function decodeSubtitle(bytes:Uint8Array,contentType=''){

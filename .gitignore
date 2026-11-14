@@ -44,3 +44,6 @@ cineby*_screenshot.png
 
 # Render API build
 dist-server
+
+# Local Cloudflare runtime state (wrangler pages dev)
+.wrangler/

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { StreamChoice } from '@/integrations/api/stremio';
+import { isIndianLanguageStream } from '@/lib/stream-language';
 function preference(source:StreamChoice){
   if(source.availability==='ready')return 100;
   if(source.availability==='reachable')return 90;
@@ -12,7 +13,7 @@ export function usePlaybackSelection(sources:StreamChoice[],discovering:boolean,
   const manual=useRef(false),played=useRef(false);
   useEffect(()=>{setSelected(undefined);setHealth({});manual.current=false;played.current=false;},[resetKey]);
   useEffect(()=>{const timeout=setTimeout(()=>setGrace(true),8000);return()=>clearTimeout(timeout);},[]);
-  const choices=useMemo(()=>sources.map(s=>health[s.id]?{...s,availability:health[s.id]}:s).sort((a,b)=>preference(b)-preference(a)),[sources,health]);
+  const choices=useMemo(()=>sources.filter(s=>!isIndianLanguageStream(s.name,s.description,s.filename)).map(s=>health[s.id]?{...s,availability:health[s.id]}:s).sort((a,b)=>preference(b)-preference(a)),[sources,health]);
   const candidates=choices.filter(s=>s.kind==='video'&&s.availability!=='failed');
   const current=choices.find(s=>s.id===selected),best=candidates[0];
   useEffect(()=>{
