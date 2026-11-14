@@ -1,46 +1,54 @@
-# Deploying on Cloudflare Pages + Render (free)
+# Deploying on Cloudflare Pages + Back4App Containers (free, no card)
 
 The site is split in two:
 
 - **Cloudflare Pages** serves the site (unlimited static bandwidth on the free plan). Its Pages
   Function `functions/api/playback/[[path]].js` forwards `/api/playback/*` to the API.
-- **Render** runs the playback API (`server/index.ts`) as a normal Node server.
+- **Back4App Containers** (free, no card) runs the playback API (`server/index.ts`) from the
+  root `Dockerfile`. It needs a real Node server: the source SDK loads a native TLS library,
+  which Cloudflare Workers/Pages Functions cannot run.
 
 The browser only ever talks to the Pages address. Video goes straight from the source to the
 viewer; only small responses (source lists, subtitles, playlists) pass through.
 
-## 1. Render (API)
+## 1. Shared secret
 
-1. Sign in at render.com with GitHub and choose **New → Blueprint**.
-2. Pick the `wolzi-stream-hub` repo. Render reads `render.yaml` and creates `a-d-max-api`.
-3. When asked, enter `TMDB_API_KEY` (and `WYZIE_API_KEY` if you use it).
-4. After the first deploy, open the service and note:
-   - its URL, e.g. `https://a-d-max-api.onrender.com`
-   - **Environment → PROXY_SECRET** (generated): copy the value.
+Generate one random value. It goes into both Back4App and Cloudflare:
 
-Check it works: `https://<your-service>.onrender.com/healthz` should answer `ok`.
+```bash
+node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))"
+```
 
-## 2. Cloudflare Pages (site)
+## 2. Back4App container (API)
 
-1. Sign in at dash.cloudflare.com → **Workers & Pages → Create → Pages → Connect to Git**.
-2. Pick the `wolzi-stream-hub` repo, branch `main`.
-3. Build settings: framework **None** (or Vite), build command `npm run build`, output `dist`.
-4. **Environment variables** (Production):
-   - every `VITE_*` variable from your local `.env` (Supabase, TMDB, …)
-   - `API_ORIGIN` = the Render URL from step 1
-   - `PROXY_SECRET` = the value copied from Render (mark it as a secret)
-5. Deploy. The site will be at `https://<project>.pages.dev`.
+1. Sign up at back4app.com (no card needed) and choose **Containers → New container app**.
+2. Connect GitHub and pick `DiaeEddineJamal/wolzi-stream-hub`, branch `main`, root `./`.
+3. Plan **Free**. Port **8080**. Health check path `/healthz`.
+4. Environment variables: `PROXY_SECRET` (step 1) and `TMDB_API_KEY` (and `WYZIE_API_KEY` if used).
+5. Deploy. The API is at the app's `*.b4a.run` address, and `/healthz` should answer `ok`.
 
-## 3. After the first deploy
+Back4App redeploys automatically when `main` changes.
 
-- **Supabase → Authentication → URL Configuration**: add the `pages.dev` address (and any custom
-  domain) to Site URL / Redirect URLs, or sign-up emails will link to the old Vercel address.
+## 3. Cloudflare Pages (site)
+
+Project `a-d-max` (`https://a-d-max.pages.dev`) builds from `main` on every push.
+Under **Settings → Variables and secrets** (Production):
+
+- the `VITE_*` variables from `.env` (already set)
+- `API_ORIGIN` = the Back4App address from step 2
+- `PROXY_SECRET` = the value from step 1, as a secret
+
+Redeploy after changing variables.
+
+## 4. After the first deploy
+
+- **Supabase → Authentication → URL Configuration**: add `https://a-d-max.pages.dev` to the
+  Redirect URLs, or sign-up emails will link to the old Vercel address.
 - **Optional video relay** (`relay/`): add the `pages.dev` address to `ALLOWED_ORIGINS` in
   `relay/wrangler.toml`, then set `VITE_MEDIA_RELAY_URL` in Pages.
-- Set `VITE_SITE_URL` in Pages if you use it for SEO links.
 
 ## Free-plan behaviour
 
-- Render's free service sleeps after ~15 minutes without traffic. The first source search after
-  that waits 30–60 seconds while it wakes up.
+- The free container has 0.25 CPU and 256 MB RAM, and 100 GB of transfer a month. Video never
+  passes through it.
 - Pages Functions: 100,000 requests/day on the free plan. Each title played uses a handful.

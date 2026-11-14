@@ -1,0 +1,9 @@
+node_modules
+dist
+dist-server
+.git
+.env*
+.vercel
+artifacts
+tests/media
+*.png

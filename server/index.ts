@@ -6,7 +6,7 @@ import { subtitleRoute } from './subtitles.js';
 import { mediaProxyRoute } from './media-proxy.js';
 import { sameOriginPlayback } from './playback-origin.js';
 
-// Standalone playback API (Render). The site's Cloudflare Pages Function (functions/api/playback)
+// Standalone playback API (Back4App container, see Dockerfile). The site's Cloudflare Pages Function (functions/api/playback)
 // forwards /api/playback/* here with a shared secret and the site's host, so the handlers see
 // the same same-origin request they would on Vercel.
 type Handler=(req:IncomingMessage,res:ServerResponse)=>Promise<void>;
