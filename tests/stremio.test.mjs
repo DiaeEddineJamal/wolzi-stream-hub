@@ -316,6 +316,16 @@ assert.equal(api.isNativeVideoUrl(rewritten.split('\n').at(-2)),true);
     assert.equal(ok.status,200);assert.equal(ok.headers.get('access-control-allow-origin'),'https://a-d-max.vercel.app');
     assert.equal(sent.Referer,'https://site.example/');
     assert.match(await ok.text(),/\n\/api\/playback\/media\/1\.ts\?u=https%3A%2F%2Fcdn\.example%2Fhls%2Fseg%2F1\.ts&h=Referer/);
+    // Playlists without an .m3u8 name or mpegurl type are recognised by content.
+    globalThis.fetch=async()=>new Response('#EXTM3U\n#EXTINF:6,\nseg/2.ts\n',{headers:{'content-type':'text/plain'}});
+    const unnamed=await worker.fetch(new Request('https://relay.example/api/playback/media/vd?u='+encodeURIComponent('https://cdn.example/vd/SUVjbE'),{headers:{origin:'https://a-d-max.vercel.app'}}),env);
+    assert.match(await unnamed.text(),/\n\/api\/playback\/media\/2\.ts\?u=https%3A%2F%2Fcdn\.example%2Fvd%2Fseg%2F2\.ts/);
+    // Media passes through byte for byte, with its range headers.
+    const bytes=new Uint8Array(70000).map((_,i)=>i%251);
+    globalThis.fetch=async()=>new Response(bytes,{status:206,headers:{'content-type':'video/mp2t','content-range':'bytes 0-69999/140000','content-length':'70000'}});
+    const media=await worker.fetch(new Request('https://relay.example/api/playback/media/1.ts?u='+encodeURIComponent('https://cdn.example/1.ts'),{headers:{origin:'https://a-d-max.vercel.app',range:'bytes=0-69999'}}),env);
+    assert.equal(media.status,206);assert.equal(media.headers.get('content-range'),'bytes 0-69999/140000');
+    assert.deepEqual(new Uint8Array(await media.arrayBuffer()),bytes);
   }finally{globalThis.fetch=realFetch;}
 }
 assert.equal(api.classifyStream({url:'https://cdn.example/a.m3u8',behaviorHints:{proxyHeaders:{request:{Referer:'https://site.example/'}}}},'x','Add-on').url,'/api/playback/media/a.m3u8?u=https%3A%2F%2Fcdn.example%2Fa.m3u8&h=Referer%3Ahttps%3A%2F%2Fsite.example%2F');

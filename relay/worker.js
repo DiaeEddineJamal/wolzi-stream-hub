@@ -4,7 +4,6 @@
 // Deploy: see relay/README.md. Only pages from ALLOWED_ORIGINS may use it (no open proxy).
 
 const blocked = new Set(['host', 'connection', 'content-length', 'transfer-encoding', 'range', 'cookie', 'authorization']);
-const isPlaylist = value => /\.m3u8(?:$|\?)/i.test(value);
 
 function relayUrl(target, headers) {
   const query = new URLSearchParams({ u: target });
@@ -60,15 +59,32 @@ export default {
     if (!response.ok) return new Response(null, { status: response.status >= 400 ? response.status : 502, headers: cors });
 
     const type = response.headers.get('content-type') || '';
-    if (request.method === 'GET' && (/mpegurl/i.test(type) || isPlaylist(target.pathname) || isPlaylist(value))) {
-      const text = await response.text();
+    const out = { ...cors, 'Content-Type': type || 'application/octet-stream', 'Accept-Ranges': 'bytes', 'Cache-Control': 'private, max-age=600' };
+    for (const name of ['content-length', 'content-range']) if (response.headers.get(name)) out[name] = response.headers.get(name);
+    if (request.method !== 'GET' || !response.body) return new Response(request.method === 'GET' ? response.body : null, { status: response.status, headers: out });
+    // Playlists are found by content: some hosts serve them without an .m3u8 extension or an
+    // mpegurl content type.
+    const reader = response.body.getReader();
+    const first = await reader.read();
+    const head = first.done ? '' : new TextDecoder().decode(first.value.slice(0, 64)).trimStart();
+    if (head.startsWith('#EXTM3U')) {
+      const chunks = first.done ? [] : [first.value];
+      let size = chunks[0]?.length || 0;
+      while (size < 4_000_000) { const part = await reader.read(); if (part.done) break; chunks.push(part.value); size += part.value.length; }
+      await reader.cancel();
+      const bytes = new Uint8Array(size); let offset = 0; for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
+      const text = new TextDecoder().decode(bytes);
       if (text.trimStart().startsWith('#EXTM3U')) {
         return new Response(rewritePlaylist(text, response.url || target.href, headers), { headers: { ...cors, 'Content-Type': 'application/vnd.apple.mpegurl', 'Cache-Control': 'no-store' } });
       }
-      return new Response(text, { status: response.status, headers: { ...cors, 'Content-Type': type || 'application/octet-stream' } });
+      return new Response(bytes, { status: response.status, headers: out });
     }
-    const out = { ...cors, 'Content-Type': type || 'application/octet-stream', 'Accept-Ranges': 'bytes', 'Cache-Control': 'private, max-age=600' };
-    for (const name of ['content-length', 'content-range']) if (response.headers.get(name)) out[name] = response.headers.get(name);
-    return new Response(response.body, { status: response.status, headers: out });
+    // Media: send the peeked chunk, then stream the rest untouched.
+    const rest = new ReadableStream({
+      start(controller) { if (!first.done) controller.enqueue(first.value); },
+      async pull(controller) { const part = await reader.read(); if (part.done) controller.close(); else controller.enqueue(part.value); },
+      cancel(reason) { return reader.cancel(reason); },
+    });
+    return new Response(rest, { status: response.status, headers: out });
   },
 };
