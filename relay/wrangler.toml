@@ -5,3 +5,8 @@ compatibility_date = "2025-10-01"
 [vars]
 # Comma-separated site origins allowed to use the relay.
 ALLOWED_ORIGINS = "https://a-d-max.pages.dev,https://a-d-max.vercel.app,https://wolziflix.vercel.app,https://wolzi-stream-hub.vercel.app,http://127.0.0.1:8080,http://localhost:8080"
+# Keeps the free Render API (server/index.ts) awake; see the scheduled handler in worker.js.
+KEEP_WARM_URL = "https://a-d-max-api.onrender.com/healthz"
+
+[triggers]
+crons = ["*/10 * * * *"]

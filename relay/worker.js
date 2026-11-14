@@ -31,6 +31,11 @@ function allowedOrigin(request, env) {
 }
 
 export default {
+  // Cron trigger (every 10 min): keeps the free-tier playback API awake, since it sleeps after 15 idle
+  // minutes and a cold start outlasts the site's source search. KEEP_WARM_URL is its /healthz address.
+  async scheduled(_controller, env, ctx) {
+    if (env.KEEP_WARM_URL) ctx.waitUntil(fetch(env.KEEP_WARM_URL, { signal: AbortSignal.timeout(90000) }).catch(() => {}));
+  },
   async fetch(request, env) {
     const origin = allowedOrigin(request, env);
     if (!origin) return new Response('Forbidden', { status: 403 });

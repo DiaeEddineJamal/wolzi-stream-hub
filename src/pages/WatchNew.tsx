@@ -111,6 +111,7 @@ function WatchSession(){
           initialPosition={initialPosition}
           poster={getBackdropUrl(currentEpisode?.still_path)||item?.backdropUrl}
           searching={pickerProps.loading}
+          searchLabel={resolved.waking?'Starting the source server… this can take up to a minute':undefined}
           onSourceReady={playback.onReady}
           onSourceError={playback.onFailure}
           onNextSource={playback.next}
