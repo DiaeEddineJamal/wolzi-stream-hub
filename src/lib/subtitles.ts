@@ -73,6 +73,22 @@ export function stripSubtitleAds(vtt:string){
   const [header,...blocks]=vtt.split(/\n{2,}/);
   return [header,...blocks.filter(block=>!(block.includes('-->')&&SUBTITLE_AD.test(block)))].join('\n\n').trimEnd()+'\n';
 }
+// Browser fallback when the site's servers are refused (OpenSubtitles.org rate-limits shared
+// datacenter addresses): hosts that allow cross-origin reads are fetched from the viewer's own
+// connection and converted here, then served to the <track> as a blob URL.
+export async function subtitleBlobUrl(url:string,signal?:AbortSignal){
+  const target=new URL(url);
+  if(target.protocol!=='https:'||target.username||target.password)throw new Error('Invalid subtitle address');
+  const hint=/^#charset=([\w-]+)$/.exec(target.hash)?.[1];target.hash='';
+  const response=await fetch(target,{credentials:'omit',referrerPolicy:'no-referrer',signal});
+  if(!response.ok)throw new Error('Subtitle unavailable');
+  let bytes=new Uint8Array(await response.arrayBuffer());
+  if(bytes.length>2_000_000)throw new Error('Subtitle too large');
+  if(bytes[0]===0x1f&&bytes[1]===0x8b)bytes=new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+  const type=response.headers.get('content-type')||'';
+  const vtt=stripSubtitleAds(toWebVTT(decodeSubtitle(bytes,/charset=/i.test(type)||!hint?type:'text/plain; charset='+hint)));
+  return URL.createObjectURL(new Blob([vtt],{type:'text/vtt'}));
+}
 export function subtitleUrl(url:string){
   return url.startsWith('blob:')?url:'/api/playback/subtitles?'+new URLSearchParams({url});
 }

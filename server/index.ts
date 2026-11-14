@@ -12,6 +12,8 @@ import { sameOriginPlayback } from './playback-origin.js';
 type Handler=(req:IncomingMessage,res:ServerResponse)=>Promise<void>;
 const secret=process.env.PROXY_SECRET||'';
 if(!secret){console.error('PROXY_SECRET is required.');process.exit(1);}
+// One provider's stray async error must not restart the whole API (Node exits on these by default).
+process.on('unhandledRejection',error=>{console.error('Unhandled rejection:',error instanceof Error?error.message:error);});
 const routes:[string,Handler][]=[
   ['/api/playback/media',sameOriginPlayback(mediaProxyRoute)],
   ['/api/playback/sources',sameOriginPlayback(createSourceResolver(process.env.TMDB_API_KEY||process.env.VITE_TMDB_API_KEY))],
