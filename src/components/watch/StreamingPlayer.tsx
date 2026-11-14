@@ -58,7 +58,16 @@ export default function StreamingPlayer({originalAudioLanguage,source,title,stor
         hls=new HlsEngine({...playbackBufferConfig(window.matchMedia(touchPlayerQuery).matches),
           // Relayed bytes are billed hosting bandwidth: don't prefetch minutes the viewer may never watch.
           ...(relayed?{maxBufferLength:30,maxMaxBufferLength:45}:{}),enableWorker:true,fragLoadPolicy:{default:{maxTimeToFirstByteMs:25000,maxLoadTimeMs:60000,timeoutRetry:{maxNumRetry:4,retryDelayMs:1000,maxRetryDelayMs:8000},errorRetry:{maxNumRetry:relayed&&!fullRelay?1:4,retryDelayMs:1000,maxRetryDelayMs:8000}}},manifestLoadPolicy:{default:{maxTimeToFirstByteMs:20000,maxLoadTimeMs:30000,timeoutRetry:{maxNumRetry:3,retryDelayMs:1000,maxRetryDelayMs:4000},errorRetry:{maxNumRetry:3,retryDelayMs:1000,maxRetryDelayMs:4000}}}});setEngine(hls);hls.attachMedia(media);hls.loadSource(playbackUrl);
-        hls.on(HlsEngine.Events.ERROR,(_,data)=>{if(!data.fatal||cancelled)return;if(data.type===HlsEngine.ErrorTypes.NETWORK_ERROR){if(relayed&&!fullRelay)playbackError();else hls.startLoad();}else if(data.type===HlsEngine.ErrorTypes.MEDIA_ERROR)hls.recoverMediaError();else playbackError();});
+        // Bounded recovery: an unlimited startLoad() on a playlist that always fails re-requests it
+        // in a tight loop (thousands of requests a minute against the hosting quota).
+        let restarts=0;
+        hls.on(HlsEngine.Events.ERROR,(_,data)=>{
+          if(!data.fatal||cancelled)return;
+          const manifestFailed=/^manifest/i.test(String(data.details));
+          if(data.type===HlsEngine.ErrorTypes.NETWORK_ERROR&&!manifestFailed&&!(relayed&&!fullRelay)&&restarts++<2)hls.startLoad();
+          else if(data.type===HlsEngine.ErrorTypes.MEDIA_ERROR&&restarts++<2)hls.recoverMediaError();
+          else playbackError();
+        });
       }else if(media.canPlayType('application/vnd.apple.mpegurl')){media.src=playbackUrl;media.load();}else playbackError();
     }).catch(()=>{if(!cancelled)playbackError();});}
     return()=>{cancelled=true;hls?.destroy();};
