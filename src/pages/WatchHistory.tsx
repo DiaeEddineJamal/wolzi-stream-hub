@@ -10,7 +10,9 @@ import { watchPath } from '@/lib/media';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { useSEO } from '@/hooks/useSEO';
 export default function WatchHistory(){
+  useSEO({title:'Watch history — A&D MAX'});
   const history=usePlaybackHistory(),[clearing,setClearing]=useState(false);
   const clear=async()=>{setClearing(true);try{await history.clear();toast.success('Watch history cleared');}catch{toast.error('Your watch history could not be cleared.');}finally{setClearing(false);}};
   // One card per title (latest episode first), so series with several watched episodes don't collide.

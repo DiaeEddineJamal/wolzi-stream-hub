@@ -1,5 +1,4 @@
-import React from "react";
-import { Toaster } from "@/components/ui/toaster";
+import React, { lazy, Suspense } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -7,32 +6,37 @@ import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from "react-r
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Analytics } from "@vercel/analytics/react";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Profile from "./pages/Profile";
-import NotFound from "./pages/NotFound";
-import MediaDetail from "./pages/MediaDetail";
-import Movies from "./pages/Movies";
-import TVSeries from "./pages/TVSeries";
-import Anime from "./pages/Anime";
-import WatchHistory from "./pages/WatchHistory";
-import SearchResults from "./pages/SearchResults";
-import WatchNew from "./pages/WatchNew";
-import Addons from "./pages/Addons";
-import AddonDetail from "./pages/AddonDetail";
-import Library from "./pages/Library";
-import ViewAllPage from "./pages/ViewAllPage";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsOfService from "./pages/TermsOfService";
-import Contact from "./pages/Contact";
-import About from "./pages/About";
-import Help from "./pages/Help";
-import LegalDisclaimer from "./pages/LegalDisclaimer";
-import Platform from "./pages/Platform";
+import ErrorBoundary from "@/components/layout/ErrorBoundary";
+import MainLayout from "@/layouts/MainLayout";
+import LoadingState from "@/components/primitives/LoadingState";
 import tmdbApi, { getPosterUrl, getBackdropUrl } from "./integrations/api/tmdb";
-import jikanApi from "./integrations/api/jikan";
 import axios from 'axios';
 import { genreNamesFromIds } from '@/constants/tmdb-genres';
+
+// Route-level code splitting: each page loads on first visit.
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Profile = lazy(() => import("./pages/Profile"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const MediaDetail = lazy(() => import("./pages/MediaDetail"));
+const Movies = lazy(() => import("./pages/Movies"));
+const TVSeries = lazy(() => import("./pages/TVSeries"));
+const Anime = lazy(() => import("./pages/Anime"));
+const WatchHistory = lazy(() => import("./pages/WatchHistory"));
+const SearchResults = lazy(() => import("./pages/SearchResults"));
+const WatchNew = lazy(() => import("./pages/WatchNew"));
+const Addons = lazy(() => import("./pages/Addons"));
+const AddonDetail = lazy(() => import("./pages/AddonDetail"));
+const Library = lazy(() => import("./pages/Library"));
+const ViewAllPage = lazy(() => import("./pages/ViewAllPage"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const Contact = lazy(() => import("./pages/Contact"));
+const About = lazy(() => import("./pages/About"));
+const Help = lazy(() => import("./pages/Help"));
+const LegalDisclaimer = lazy(() => import("./pages/LegalDisclaimer"));
+const Platform = lazy(() => import("./pages/Platform"));
+const PageFallback = () => <MainLayout><div className="grid min-h-[70vh] place-items-center"><LoadingState label="Loading" /></div></MainLayout>;
 
 const queryClient = new QueryClient({defaultOptions:{queries:{staleTime:120000,retry:1,refetchOnWindowFocus:false}}});
 
@@ -291,9 +295,10 @@ const App = () => {
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <Toaster />
         <Sonner />
         <BrowserRouter>
+          <ErrorBoundary>
+          <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
@@ -386,6 +391,8 @@ const App = () => {
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
+          </ErrorBoundary>
         </BrowserRouter>
         {/* Vercel Analytics only exists on Vercel; elsewhere its script would 404. */}
         {window.location.hostname.endsWith('.vercel.app') && <Analytics />}

@@ -12,8 +12,10 @@ import { DeleteButton } from '@/components/vendor/delete-button';
 import LoadingState from '@/components/primitives/LoadingState';
 import StreamingServiceSettings from '@/components/watch/StreamingServiceSettings';
 import { toast } from 'sonner';
+import { useSEO } from '@/hooks/useSEO';
 const CINEMETA='https://v3-cinemeta.strem.io/manifest.json';
 export default function Addons(){
+  useSEO({title:'Add-ons — A&D MAX'});
   const {addons,install,remove,toggle}=useAddons();
   const {service}=useStreamingService();
   const [url,setUrl]=useState('');

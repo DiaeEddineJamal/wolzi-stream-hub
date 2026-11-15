@@ -3,7 +3,13 @@
 // Cloudflare Workers so video bytes are not billed as Vercel Fast Origin Transfer.
 // Deploy: see relay/README.md. Only pages from ALLOWED_ORIGINS may use it (no open proxy).
 
-const blocked = new Set(['host', 'connection', 'content-length', 'transfer-encoding', 'range', 'cookie', 'authorization']);
+const blocked = new Set(['host', 'connection', 'content-length', 'transfer-encoding', 'range', 'cookie', 'authorization', 'proxy-authorization', 'forwarded', 'x-forwarded-for', 'x-forwarded-host', 'x-forwarded-proto', 'x-real-ip', 'via', 'te', 'upgrade', 'expect']);
+// Same rule as server/media-proxy.ts: an upstream never chooses a type a browser would render or run.
+const safeMediaType = type => {
+  const value = type.split(';')[0].trim().toLowerCase();
+  return /^(video|audio)\/[\w.+-]+$|^image\/(jpeg|png|webp|gif)$|^text\/(vtt|plain)$|^application\/(vnd\.apple\.mpegurl|x-mpegurl|dash\+xml)$/.test(value) ? value : 'application/octet-stream';
+};
+const relayGuard = { 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "sandbox; default-src 'none'" };
 
 function relayUrl(target, headers) {
   const query = new URLSearchParams({ u: target });
@@ -64,7 +70,7 @@ export default {
     if (!response.ok) return new Response(null, { status: response.status >= 400 ? response.status : 502, headers: cors });
 
     const type = response.headers.get('content-type') || '';
-    const out = { ...cors, 'Content-Type': type || 'application/octet-stream', 'Accept-Ranges': 'bytes', 'Cache-Control': 'private, max-age=600' };
+    const out = { ...cors, ...relayGuard, 'Content-Type': safeMediaType(type), 'Accept-Ranges': 'bytes', 'Cache-Control': 'private, max-age=600' };
     for (const name of ['content-length', 'content-range']) if (response.headers.get(name)) out[name] = response.headers.get(name);
     if (request.method !== 'GET' || !response.body) return new Response(request.method === 'GET' ? response.body : null, { status: response.status, headers: out });
     // Playlists are found by content: some hosts serve them without an .m3u8 extension or an
@@ -80,7 +86,7 @@ export default {
       const bytes = new Uint8Array(size); let offset = 0; for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
       const text = new TextDecoder().decode(bytes);
       if (text.trimStart().startsWith('#EXTM3U')) {
-        return new Response(rewritePlaylist(text, response.url || target.href, headers), { headers: { ...cors, 'Content-Type': 'application/vnd.apple.mpegurl', 'Cache-Control': 'no-store' } });
+        return new Response(rewritePlaylist(text, response.url || target.href, headers), { headers: { ...cors, ...relayGuard, 'Content-Type': 'application/vnd.apple.mpegurl', 'Cache-Control': 'no-store' } });
       }
       return new Response(bytes, { status: response.status, headers: out });
     }

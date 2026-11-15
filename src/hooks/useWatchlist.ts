@@ -7,8 +7,13 @@ import { toMediaItem, type MediaItem, type MediaType } from '@/lib/media';
 import { toast } from 'sonner';
 const KEY='admax-watchlist';
 let cachedRaw:string|null=null,cached:MediaItem[]=[];
-const subscribe=(listener:()=>void)=>{window.addEventListener('storage',listener);window.addEventListener('admax-library',listener);return()=>{window.removeEventListener('storage',listener);window.removeEventListener('admax-library',listener);};};
-function parse(raw:string|null){try{const value=JSON.parse(raw||'[]');return Array.isArray(value)?value.filter(item=>item&&typeof item.id==='string'&&typeof item.title==='string'&&['movie','tv','anime'].includes(item.mediaType)):[];}catch{return [];}}
+const listeners=new Set<()=>void>(),notify=()=>listeners.forEach(listener=>listener());
+const subscribe=(listener:()=>void)=>{
+  if(!listeners.size){window.addEventListener('storage',notify);window.addEventListener('admax-library',notify);}
+  listeners.add(listener);
+  return()=>{listeners.delete(listener);if(!listeners.size){window.removeEventListener('storage',notify);window.removeEventListener('admax-library',notify);}};
+};
+function parse(raw:string|null){try{const value=JSON.parse(raw||'[]');return Array.isArray(value)?value.filter(item=>item&&typeof item.id==='string'&&typeof item.title==='string'&&['movie','tv','anime'].includes(item.mediaType)).map(item=>item.rating==null||typeof item.rating==='number'?item:{...item,rating:Number(item.rating)||0}):[];}catch{return [];}}
 function snapshot(){try{const raw=localStorage.getItem(KEY);if(raw!==cachedRaw){cachedRaw=raw;cached=parse(raw);}}catch{/* Storage is optional. */}return cached;}
 const same=(a:MediaItem,b:MediaItem)=>a.id===b.id&&a.mediaType===b.mediaType;
 function cacheAccount(id:string,items:MediaItem[]){try{localStorage.setItem(KEY+'-'+id,JSON.stringify(items));}catch{/* Account data remains in Supabase. */}}

@@ -46,12 +46,14 @@ const setJsonLd = (schema: Record<string, any>) => {
   script.textContent = JSON.stringify(schema)
 }
 
+const DEFAULT_DESCRIPTION = 'Find your next great film, unforgettable series, and favorite anime. A world of stories, together in A&D MAX.'
+
 export function useSEO(params: SEOParams) {
   useEffect(() => {
     const siteUrl = params.url || import.meta.env.VITE_SITE_URL || window.location.origin
     const pageUrl = params.canonical || `${siteUrl}${window.location.pathname}${window.location.search}`
     const title = params.title || document.title
-    const description = params.description || ''
+    const description = params.description || DEFAULT_DESCRIPTION
     const image = params.image || '/brand/admax-logo.png'
     const type = params.type || 'website'
     const keywords = params.keywords?.join(', ')

@@ -150,6 +150,20 @@ export default function PlayerControls({originalAudioLanguage,captionKey='video'
     const orderObserver=new MutationObserver(updateTracks);orderObserver.observe(media,{childList:true});
     return()=>{clearTimeout(errorTimer);media.removeEventListener('error',trackError,true);orderObserver.disconnect();events.forEach(event=>media.removeEventListener(event,update));media.textTracks.removeEventListener('addtrack',updateTracks);media.textTracks.removeEventListener('removetrack',updateTracks);media.textTracks.removeEventListener('change',updateTracks);media.removeEventListener('admax:subtitleerror',updateTracks);};
   },[media,captionKey]);
+  // Volume, mute and speed follow the viewer across episodes, sources and retries (each gets a new <video>).
+  useEffect(()=>{
+    if(!media)return;
+    try{
+      const saved=JSON.parse(localStorage.getItem('admax-player-audio')||'{}');
+      if(typeof saved.volume==='number'&&saved.volume>=0&&saved.volume<=1)media.volume=saved.volume;
+      if(typeof saved.muted==='boolean')media.muted=saved.muted;
+      // defaultPlaybackRate too: loading a source resets playbackRate to it.
+      if([.5,.75,1,1.25,1.5,2].includes(saved.rate)){media.defaultPlaybackRate=saved.rate;media.playbackRate=saved.rate;}
+    }catch{/* Storage is optional. */}
+    const save=()=>{try{localStorage.setItem('admax-player-audio',JSON.stringify({volume:media.volume,muted:media.muted,rate:media.playbackRate}));}catch{/* Storage is optional. */}};
+    media.addEventListener('volumechange',save);media.addEventListener('ratechange',save);
+    return()=>{media.removeEventListener('volumechange',save);media.removeEventListener('ratechange',save);};
+  },[media]);
   useEffect(()=>{if(!engine)return;const events=(engine.constructor as typeof Hls).Events;const update=()=>setQuality(engine.autoLevelEnabled?-1:engine.currentLevel);engine.on(events.LEVEL_SWITCHED,update);update();return()=>{engine.off(events.LEVEL_SWITCHED,update);};},[engine]);
   useEffect(()=>{
     setTimelineOffset(0);
@@ -169,7 +183,18 @@ export default function PlayerControls({originalAudioLanguage,captionKey='video'
   useEffect(()=>{
     const stage=container.current;if(!stage)return;
     const change=()=>{const full=isPlayerFullscreen(stage,media);setFullscreen(full);if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches)stage.animate?.([{opacity:.72,transform:`scale(${full ? .985 : 1.015})`},{opacity:1,transform:'scale(1)'}],{duration:300,easing:'cubic-bezier(.2,.7,.3,1)'});};
-    const key=(e:KeyboardEvent)=>{if(!stage.contains(document.activeElement)&&document.fullscreenElement!==stage)return;if(e.target instanceof HTMLInputElement||e.target instanceof HTMLSelectElement||e.target instanceof HTMLTextAreaElement)return;if(e.key==='Escape'){setMenu(null);return;}if((e.code==='Space'&&!(e.target instanceof HTMLButtonElement))||e.key.toLowerCase()==='k'){e.preventDefault();toggle();}else if(e.key==='ArrowRight'||e.key.toLowerCase()==='l'){e.preventDefault();seek((media?.currentTime||0)+10);wake();}else if(e.key==='ArrowLeft'||e.key.toLowerCase()==='j'){e.preventDefault();seek((media?.currentTime||0)-10);wake();}else if(e.key.toLowerCase()==='m'&&media){media.muted=!media.muted;}else if(e.key.toLowerCase()==='g'){nudge.current(-.1);}else if(e.key.toLowerCase()==='h'){nudge.current(.1);}else if(e.key.toLowerCase()==='f'){e.preventDefault();toggleFullscreen();}};
+    const key=(e:KeyboardEvent)=>{
+      // Also active before the player is first clicked (focus still on the page body).
+      if(!stage.contains(document.activeElement)&&document.fullscreenElement!==stage&&document.activeElement!==document.body)return;
+      // Browser shortcuts (Ctrl+F, Alt+Left…) stay with the browser.
+      if(e.ctrlKey||e.metaKey||e.altKey)return;
+      const target=e.target as HTMLElement|null,slider=target instanceof HTMLInputElement&&target.type==='range';
+      // Sliders keep their own arrow keys; text fields and the source sheet keep every key.
+      if((target instanceof HTMLInputElement&&!slider)||target instanceof HTMLSelectElement||target instanceof HTMLTextAreaElement||target?.closest?.('.source-sheet'))return;
+      if(slider&&e.key.startsWith('Arrow'))return;
+      if(e.key==='Escape'){setMenu(null);return;}
+      if((e.key==='ArrowUp'||e.key==='ArrowDown')&&media&&stage.contains(document.activeElement)){e.preventDefault();media.muted=false;media.volume=Math.min(1,Math.max(0,Math.round((media.volume+(e.key==='ArrowUp'?.05:-.05))*100)/100));wake();return;}
+      if((e.code==='Space'&&!(e.target instanceof HTMLButtonElement))||e.key.toLowerCase()==='k'){e.preventDefault();toggle();}else if(e.key==='ArrowRight'||e.key.toLowerCase()==='l'){e.preventDefault();seek((media?.currentTime||0)+10);wake();}else if(e.key==='ArrowLeft'||e.key.toLowerCase()==='j'){e.preventDefault();seek((media?.currentTime||0)-10);wake();}else if(e.key.toLowerCase()==='m'&&media){media.muted=!media.muted;}else if(e.key.toLowerCase()==='g'){nudge.current(-.1);}else if(e.key.toLowerCase()==='h'){nudge.current(.1);}else if(e.key.toLowerCase()==='f'){e.preventDefault();toggleFullscreen();}};
     const outside=(e:PointerEvent)=>{if(menuRef.current&&!menuRef.current.contains(e.target as Node)&&!(e.target as HTMLElement).closest('[data-player-menu]'))setMenu(null);};
     const onPointerMove=(e:PointerEvent)=>{if(e.pointerType!=='touch')wake();};
     document.addEventListener('fullscreenchange',change);media?.addEventListener('webkitbeginfullscreen',change);media?.addEventListener('webkitendfullscreen',change);window.addEventListener('keydown',key);document.addEventListener('pointerdown',outside);stage.addEventListener('pointermove',onPointerMove);stage.addEventListener('focusin',wake);
@@ -346,7 +371,7 @@ export default function PlayerControls({originalAudioLanguage,captionKey='video'
           <span>Original Stream{media?.videoHeight?` · ${media.videoHeight}p`:""}</span>
         </div>}
         <p className="cinema-menu-label">PLAYBACK SPEED</p>
-        <div className="cinema-speed-options">{[.5,.75,1,1.25,1.5,2].map(rate=><button key={rate} aria-pressed={state.rate===rate} onClick={()=>{if(media)media.playbackRate=rate;}}>{rate}×</button>)}</div>
+        <div className="cinema-speed-options">{[.5,.75,1,1.25,1.5,2].map(rate=><button key={rate} aria-pressed={state.rate===rate} onClick={()=>{if(media){media.defaultPlaybackRate=rate;media.playbackRate=rate;}}}>{rate}×</button>)}</div>
         {nextEpisode&&<button className="cinema-menu-option" role="switch" aria-checked={!!autoNext} onClick={()=>onAutoNextChange?.(!autoNext)}><span>Autoplay next episode</span><span className={`cinema-toggle ${autoNext?'on':''}`}/></button>}
         {onCompatibility&&<button className="cinema-menu-option" onClick={onCompatibility}><span>{converted?'Browser-compatible mode':'Convert for this browser'}</span>{converted&&<Check size={15}/>}</button>}
         <button className="cinema-menu-option" onClick={()=>{(onOpenSources||onNextSource)?.();setMenu(null);}}><span>Switch server / resolution</span><ChevronRight size={15}/></button>

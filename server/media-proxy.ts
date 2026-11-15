@@ -5,7 +5,15 @@ import { mediaProxyUrl } from '../src/integrations/api/stremio.js';
 // Same-origin relay for sources that need request headers (Referer, User-Agent…) browsers cannot set.
 // Every byte relayed here is billed as Vercel Fast Origin Transfer, so media goes direct whenever
 // the browser can fetch it itself; `full=1` (the client's fallback) forces the relay.
-const blocked=new Set(['host','connection','content-length','transfer-encoding','range','cookie','authorization']);
+const blocked=new Set(['host','connection','content-length','transfer-encoding','range','cookie','authorization','proxy-authorization','forwarded','x-forwarded-for','x-forwarded-host','x-forwarded-proto','x-real-ip','via','te','upgrade','expect']);
+// The relay answers on the site's own origin, so an upstream must never choose a type the browser
+// would render or run there (text/html, SVG, scripts…). Anything unexpected becomes a download.
+export const safeMediaType=(type:string)=>{
+  const value=type.split(';')[0].trim().toLowerCase();
+  return /^(video|audio)\/[\w.+-]+$|^image\/(jpeg|png|webp|gif)$|^text\/(vtt|plain)$|^application\/(vnd\.apple\.mpegurl|x-mpegurl|dash\+xml)$/.test(value)?value:'application/octet-stream';
+};
+// Sent with every relayed body: no type sniffing, and no scripts or same-origin access if opened as a page.
+export const relayGuard={'X-Content-Type-Options':'nosniff','Content-Security-Policy':"sandbox; default-src 'none'"};
 const chunk=4*1024*1024; // ponytail: 4 MB ranges keep each call well inside the function time limit
 const isPlaylist=(value:string)=>/\.m3u8(?:$|\?)/i.test(value);
 // On Vercel, video bytes never pass through the function (the free tier's 10 GB Fast Origin
@@ -92,32 +100,28 @@ export async function mediaProxyRoute(req:IncomingMessage,res:ServerResponse){
   if(!response?.ok||!response.body){res.writeHead(response?.status&&response.status>=400?response.status:502).end();return;}
   const type=response.headers.get('content-type')||'';
   if(req.method==='HEAD'){
-    res.writeHead(response.status,{'Content-Type':type||'application/octet-stream','Accept-Ranges':'bytes'});
+    res.writeHead(response.status,{...relayGuard,'Content-Type':safeMediaType(type),'Accept-Ranges':'bytes'});
     await response.body.cancel();res.end();return;
   }
   const sendPlaylist=async(text:string)=>{
     const directHost=full?undefined:await directSegmentHost(text,url.href,origin);
     // Segments would have to be relayed: fail now so the player moves to another source.
     if(!bytes&&!directHost&&hasSegments(text)){res.writeHead(502,{'Cache-Control':'no-store'}).end();return;}
-    res.writeHead(200,{'Content-Type':'application/vnd.apple.mpegurl','Cache-Control':'no-store'});res.end(rewritePlaylist(text,url.href,headers,{directHost,full}));
+    res.writeHead(200,{...relayGuard,'Content-Type':'application/vnd.apple.mpegurl','Cache-Control':'no-store'});res.end(rewritePlaylist(text,url.href,headers,{directHost,full}));
   };
-  if(/mpegurl/i.test(type)||isPlaylist(url.pathname)||isPlaylist(req.url||'')){
-    const text=await response.text();
-    if(text.trimStart().startsWith('#EXTM3U')){await sendPlaylist(text);return;}
-    res.writeHead(response.status,{'Content-Type':type||'application/octet-stream'});res.end(text);return;
-  }
   // Peek first chunk in case an HLS playlist is served without an .m3u8 extension or mpegurl content-type.
   const reader=response.body.getReader();
   const first=await reader.read();
-  if(!first.done&&first.value){
-    const prefix=new TextDecoder().decode(first.value.slice(0,64)).trimStart();
-    if(prefix.startsWith('#EXTM3U')){
-      const chunks=[first.value];let size=first.value.length;
-      while(size<2_000_000){const next=await reader.read();if(next.done)break;chunks.push(next.value);size+=next.value.length;}
-      await reader.cancel();
-      const bytes=new Uint8Array(size);let offset=0;for(const c of chunks){bytes.set(c,offset);offset+=c.length;}
-      await sendPlaylist(new TextDecoder().decode(bytes));return;
-    }
+  const prefix=first.done||!first.value?'':new TextDecoder().decode(first.value.slice(0,64)).trimStart();
+  if(/mpegurl/i.test(type)||isPlaylist(url.pathname)||isPlaylist(req.url||'')||prefix.startsWith('#EXTM3U')){
+    // Capped: the ".m3u8" in the request path is caller-chosen, so it must not allow buffering a whole file.
+    const chunks=first.done||!first.value?[]:[first.value];let size=chunks[0]?.length||0;
+    while(!first.done&&size<2_000_000){const next=await reader.read();if(next.done)break;chunks.push(next.value);size+=next.value.length;}
+    await reader.cancel();
+    const body=new Uint8Array(size);let offset=0;for(const c of chunks){body.set(c,offset);offset+=c.length;}
+    const text=new TextDecoder().decode(body);
+    if(text.trimStart().startsWith('#EXTM3U')){await sendPlaylist(text);return;}
+    res.writeHead(response.status,{...relayGuard,'Content-Type':safeMediaType(type)});res.end(text);return;
   }
   const length=Number(response.headers.get('content-length')||NaN);
   if(!bytes&&!(length<=smallBody)){
@@ -125,7 +129,7 @@ export async function mediaProxyRoute(req:IncomingMessage,res:ServerResponse){
     res.writeHead(502,{'Cache-Control':'no-store'}).end();return;
   }
   // Whole segments never change: Vercel's CDN can serve repeats without re-running this relay.
-  const out:Record<string,string>={'Content-Type':type||'application/octet-stream','Accept-Ranges':'bytes','Cache-Control':response.status===200&&!range?'public, max-age=3600, s-maxage=86400':'private, max-age=600'};
+  const out:Record<string,string>={...relayGuard,'Content-Type':safeMediaType(type),'Accept-Ranges':'bytes','Cache-Control':response.status===200&&!range?'public, max-age=3600, s-maxage=86400':'private, max-age=600'};
   for(const name of ['content-length','content-range'])if(response.headers.get(name))out[name]=response.headers.get(name)!;
   res.writeHead(response.status,out);
   if(first.done||!first.value){res.end();return;}

@@ -26,6 +26,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePlaybackHistory } from '@/hooks/usePlaybackHistory';
 import { resumeSeconds } from '@/lib/watch-progress';
 import { toast } from 'sonner';
+import { useSEO } from '@/hooks/useSEO';
 
 export default function WatchNew(){ const {id}=useParams(),{pathname}=useLocation(); const type=pathname.includes('/movie/')?'movie':pathname.includes('/anime/')?'anime':'tv'; return <WatchSession key={`${type}-${id}`}/>; }
 function WatchSession(){
@@ -72,6 +73,7 @@ function WatchSession(){
   const subtitles=useSubtitles(type==='movie'?'movie':'series',imdb?streamId:undefined,active?.filename||[details.data?.title||details.data?.name,active?.name,active?.description].filter(Boolean).join(' '),imdb?streamId:type==='movie'?id:`${id}:${season}:${episode}`,active);
   const item=details.data?toMediaItem(details.data,type):null;
   const theme=useArtworkTheme(item?.backdropUrl);
+  useSEO({title:item?`Watch ${item.title}${type!=='movie'?` · S${season} E${episode}`:''} — A&D MAX`:'Watch — A&D MAX',description:item?.description,image:item?.backdropUrl});
   const currentEpisode=episodes.data?.episodes?.find((ep:any)=>ep.episode_number===episode);
   const nextInSeason=episodes.data?.episodes?.find((ep:any)=>ep.episode_number===episode+1);
   // The last episode of a season continues with the first episode of the next one.
@@ -88,6 +90,10 @@ function WatchSession(){
   const pickerProps={sources:choices,activeId:active?.id,onSelect:playback.onSelect,loading:resolved.checking||addonResults.isFetching,errors:[...(resolved.error?['Source discovery']:[]),...(addonResults.data||[]).filter(r=>r.error).map(r=>r.name)],onRetry:()=>{setScan(s=>s+1);void recheck();void addonResults.refetch();}};
   const activeTier=active?detectQualityTier(active.name+' '+(active.description||'')):'auto';
   const activeBadge=QUALITY_BADGES[activeTier]?.icon;
+  // Real US certification from TMDB; nothing is shown when TMDB has none.
+  const certification:string|undefined=type==='movie'
+    ?details.data?.release_dates?.results?.find((r:any)=>r.iso_3166_1==='US')?.release_dates?.map((r:any)=>r.certification).find(Boolean)
+    :details.data?.content_ratings?.results?.find((r:any)=>r.iso_3166_1==='US')?.rating||undefined;
   const idleMeta={
     title:item?.title||'A&D MAX',
     logoUrl,
@@ -95,7 +101,7 @@ function WatchSession(){
     episodeCode:type!=='movie'?`S${season} E${episode}`:undefined,
     year:item?.year,
     rating:item?.rating,
-    contentRating:details.data?.adult?'TV-MA':type==='movie'?'PG-13':'TV-MA',
+    contentRating:certification,
     description:currentEpisode?.overview||item?.description,
     backdropUrl:getBackdropUrl(currentEpisode?.still_path)||item?.backdropUrl,
   };
@@ -145,9 +151,8 @@ function WatchSession(){
           <div className="apple-watch-badges">
             {(item?.rating??0)>0&&item&&<span className="apple-meta-rating"><Star size={13} fill="currentColor"/>{item.rating.toFixed(1)}</span>}
             {item?.year&&<span>{item.year}</span>}
-            <span className="apple-cert-badge">{idleMeta.contentRating}</span>
-            <img src="/badges/4k.png" alt="4K UHD" className="h-4 w-auto opacity-90"/>
-            <img src="/badges/1080p.png" alt="Full HD" className="h-4 w-auto opacity-85"/>
+            {certification&&<span className="apple-cert-badge">{certification}</span>}
+            {activeBadge&&<img src={activeBadge} alt="Stream quality" className="h-4 w-auto opacity-90"/>}
             {(currentEpisode?.runtime||details.data?.runtime)>0&&<span className="inline-flex items-center gap-1"><Clock size={12}/>{currentEpisode?.runtime||details.data?.runtime} min</span>}
             {item?.genres?.slice(0,3).map(g=><span key={g} className="apple-genre-chip">{g}</span>)}
           </div>
@@ -156,7 +161,7 @@ function WatchSession(){
         <div className="apple-watch-actions">
           {item&&<Button variant="secondary" className="rounded-full px-5" onClick={()=>toggle(item)} aria-pressed={has(item)}>{has(item)?<Check size={16}/>:<Plus size={16}/>}{has(item)?'In Up Next':'Add to Up Next'}</Button>}
           <Button variant="secondary" className="rounded-full px-5" onClick={()=>setSourcesOpen(true)}><Layers size={16}/>Servers ({choices.length})</Button>
-          {next&&<Button className="rounded-full px-5" asChild><Link to={watchPath(type,id,season,next.episode_number)}>Next Episode <SkipForward size={16}/></Link></Button>}
+          {next&&<Button className="rounded-full px-5" asChild><Link to={watchPath(type,id,next.season,next.episode_number)} state={{autoplay:true}}>Next Episode <SkipForward size={16}/></Link></Button>}
           {item&&<Button variant="ghost" className="rounded-full" asChild><Link to={`/${type}/${id}`}>Title Details <ChevronRight size={15}/></Link></Button>}
         </div>
       </section>

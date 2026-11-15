@@ -67,6 +67,8 @@ export default function SearchResults(){
     return list;
   },[results.data?.results,genre,minRating,yearFilter,sortBy]);
 
+  const thisYear=new Date().getFullYear();
+  const turnPage=(next:number)=>{setParams({q,page:String(next)});window.scrollTo(0,0);};
   const hasExtraFilters=genre!=='all'||minRating!=='all'||yearFilter!=='all'||sortBy!=='relevance';
 
   return <MainLayout><div className="page-shell search-page"><header className="catalog-header"><div><p className="eyebrow">FOLLOW YOUR CURIOSITY</p><h1>Find your next story.</h1></div></header>
@@ -82,16 +84,16 @@ export default function SearchResults(){
       </div>
       <div className="filter-selects">
         <ChoiceSelect label="Genre" value={genre} onValueChange={setGenre} options={[{value:'all',label:'All Genres'},...MOVIE_GENRES.map(g=>({value:g.id,label:g.label}))]}/>
-        <ChoiceSelect label="Year" value={yearFilter} onValueChange={setYearFilter} options={[{value:'all',label:'All Years'},{value:'2026',label:'2026'},{value:'2025',label:'2025'},{value:'2024',label:'2024'},{value:'2020s',label:'2020s'},{value:'2010s',label:'2010s'},{value:'classic',label:'Before 2010'}]}/>
+        <ChoiceSelect label="Year" value={yearFilter} onValueChange={setYearFilter} options={[{value:'all',label:'All Years'},...[0,1,2].map(back=>({value:String(thisYear-back),label:String(thisYear-back)})),{value:'2020s',label:'2020s'},{value:'2010s',label:'2010s'},{value:'classic',label:'Before 2010'}]}/>
         <ChoiceSelect label="Rating" value={minRating} onValueChange={setMinRating} options={[{value:'all',label:'Any Rating'},{value:'8',label:'★ 8.0+'},{value:'7',label:'★ 7.0+'},{value:'6',label:'★ 6.0+'}]}/>
         <ChoiceSelect label="Sort by" value={sortBy} onValueChange={setSortBy} options={[{value:'relevance',label:'Best Match'},{value:'rating',label:'Highest Rated'},{value:'newest',label:'Newest First'},{value:'title',label:'Title A–Z'}]}/>
         {hasExtraFilters&&<Button variant="ghost" size="sm" onClick={()=>{setGenre('all');setMinRating('all');setYearFilter('all');setSortBy('relevance');}}>Reset</Button>}
       </div>
     </div>
     {!q?<div className="empty-state"><Search size={32} className="text-muted-foreground"/><h2>So many stories. Start with a name.</h2><p>Results appear automatically as you type.</p></div>:results.isPending?<GridPageSkeleton/>:results.isError?<div className="empty-state"><h2>Search is taking a break.</h2><Button onClick={()=>results.refetch()}>Try again</Button></div>:<>
-      <p className="mb-7 text-sm text-muted-foreground">{hasExtraFilters||filter==='anime'?`${filteredItems.length} matching`:results.data.total_results.toLocaleString()} results for “{q}”</p>
-      {filteredItems.length?<CatalogCards items={filteredItems}/>:<div className="empty-state"><h2>No matches this time.</h2><p>Try another title or relax your filters.</p></div>}
-      <div className="flex justify-center gap-4 py-8"><Button variant="secondary" disabled={page===1} onClick={()=>setParams({q,page:String(page-1)})}>Previous</Button><Button variant="secondary" disabled={page>=Math.min(results.data.total_pages,500)} onClick={()=>setParams({q,page:String(page+1)})}>Next</Button></div>
+      <p className="mb-7 text-sm text-muted-foreground">{hasExtraFilters||filter==='anime'?`${filteredItems.length} on this page match your filters, out of ${results.data.total_results.toLocaleString()}`:results.data.total_results.toLocaleString()} results for “{q}”</p>
+      {filteredItems.length?<CatalogCards items={filteredItems}/>:<div className="empty-state"><h2>No matches this time.</h2><p>{(hasExtraFilters||filter==='anime')&&results.data.total_results>0?'Nothing on this page fits your filters. Try the next page or relax them.':'Try another title or relax your filters.'}</p></div>}
+      <div className="flex justify-center gap-4 py-8"><Button variant="secondary" disabled={page===1} onClick={()=>turnPage(page-1)}>Previous</Button><Button variant="secondary" disabled={page>=Math.min(results.data.total_pages,500)} onClick={()=>turnPage(page+1)}>Next</Button></div>
     </>}
   </div></MainLayout>;
 }

@@ -3,7 +3,11 @@ import './LaunchSplash.css';
 
 const LiquidGlassLogo = lazy(() => import('../vendor/reactdrops/liquid-glass-logo').then(module => ({ default: module.LiquidGlassLogo })));
 const RETURN_AFTER_MS = 5 * 60 * 1000;
-const LOGO = '/brand/admax-logo.png';
+const LOGO = '/brand/admax-logo-1024.png';
+const SEEN = 'admax-splash-seen';
+// A reload or a pasted link in the same tab is not a new launch, and nothing interrupts the player.
+const watching = () => window.location.pathname.startsWith('/watch/');
+const skipOnLoad = () => { if (watching()) return true; try { return sessionStorage.getItem(SEEN) === '1'; } catch { return false; } };
 
 // A failed animation chunk must never prevent entry into the app.
 class AnimationFallback extends Component<{ children: ReactNode }, { failed: boolean }> {
@@ -15,7 +19,7 @@ class AnimationFallback extends Component<{ children: ReactNode }, { failed: boo
 /** Lives above routing so navigation never replays the launch animation. */
 export default function LaunchSplash({ children }: { children: ReactNode }) {
   const [launch, setLaunch] = useState(1);
-  const [active, setActive] = useState(true);
+  const [active, setActive] = useState(() => !skipOnLoad());
   const [leaving, setLeaving] = useState(false);
   const [ready, setReady] = useState(false);
   const [foreground, setForeground] = useState(!document.hidden);
@@ -40,7 +44,7 @@ export default function LaunchSplash({ children }: { children: ReactNode }) {
       const since = hiddenAt.current;
       hiddenAt.current = null;
       setForeground(true);
-      if (since !== null && (activeRef.current || Date.now() - since >= RETURN_AFTER_MS)) {
+      if (since !== null && !watching() && (activeRef.current || Date.now() - since >= RETURN_AFTER_MS)) {
         setReady(false);
         setLeaving(false);
         setLaunch(value => value + 1);
@@ -78,6 +82,7 @@ export default function LaunchSplash({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!active) return;
+    try { sessionStorage.setItem(SEEN, '1'); } catch { /* Storage is optional. */ }
     const overflow = document.body.style.overflow;
     const previousFocus = document.activeElement;
     document.body.style.overflow = 'hidden';
@@ -94,7 +99,7 @@ export default function LaunchSplash({ children }: { children: ReactNode }) {
       {active && (
         <div className={`launch-splash${leaving ? ' launch-splash--leaving' : ''}`} role="dialog" aria-modal="true" aria-label="Welcome to A&D MAX" onKeyDown={event => { if (event.key === 'Escape') dismiss(); }}>
           <div className="launch-splash__art" aria-hidden="true">
-            <img className="launch-splash__still" src={LOGO} alt="" width="2172" height="724" />
+            <img className="launch-splash__still" src={LOGO} alt="" width="1024" height="341" />
             {!reducedMotion && foreground && (
               <AnimationFallback key={launch}><Suspense fallback={null}>
                 <LiquidGlassLogo key={launch} logo={LOGO} ending="logo" theme="dark" background="#000000" tileColor="#161616" logoColor="original" logoSize={560} logoScale={0.88} finalLogoScale={1} depth={2.9} maxDpr={1.5} loop={false} onReady={handleReady} />

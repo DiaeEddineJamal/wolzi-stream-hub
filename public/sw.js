@@ -22,12 +22,3 @@ self.addEventListener('fetch', event => {
   }).catch(() => caches.match('/')));
 });
 
-// Full sign-out cleanup (formerly auth-service-worker.js).
-self.addEventListener('message', event => {
-  if (event.data?.type !== 'LOGOUT') return;
-  event.waitUntil((async () => {
-    await Promise.all((await caches.keys()).map(key => caches.delete(key)));
-    if (self.indexedDB?.databases) for (const db of await self.indexedDB.databases()) if (db.name) self.indexedDB.deleteDatabase(db.name);
-    for (const client of await self.clients.matchAll()) client.postMessage({ type: 'LOGOUT_CLEANUP_COMPLETE', timestamp: new Date().toISOString() });
-  })());
-});
