@@ -10,6 +10,11 @@
 /* Apple TV / Cinejoy Pause Idle Overlay */
 .cinema-pause-idle { position:absolute;inset:0;z-index:1;pointer-events:none;display:flex;align-items:center;padding:clamp(24px,5vw,68px);background:radial-gradient(110% 90% at 22% 55%,rgba(0,0,0,.84) 0%,rgba(0,0,0,.62) 52%,rgba(0,0,0,.38) 100%);animation:apple-pause-in .45s cubic-bezier(.22,1,.36,1) both;overflow:hidden; }
 .cinema-pause-watermark { position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.14;filter:blur(2px) contrast(1.1);pointer-events:none; }
+/* With artwork, pausing shows the cover in full: it replaces the frozen frame instead of blending with it. */
+.cinema-pause-idle.has-cover { background:#000; }
+.cinema-pause-idle.has-cover .cinema-pause-watermark { opacity:1;filter:none;z-index:0; }
+.cinema-pause-idle.has-cover::before { content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,rgba(0,0,0,.8) 0%,rgba(0,0,0,.48) 40%,rgba(0,0,0,0) 72%),linear-gradient(0deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,0) 34%); }
+.cinema-pause-idle.has-cover .cinema-pause-content { z-index:2; }
 .cinema-pause-content { position:relative;z-index:1;max-width:min(540px,78%);display:flex;flex-direction:column;align-items:flex-start;gap:10px;text-align:left; }
 .cinema-pause-logo { max-width:min(320px,65vw);max-height:96px;width:auto;height:auto;object-fit:contain;filter:drop-shadow(0 8px 28px rgba(0,0,0,.75));margin-bottom:4px; }
 .cinema-pause-title { font-size:clamp(28px,4vw,52px);font-weight:750;letter-spacing:-.045em;line-height:1.03;color:#fff;text-shadow:0 6px 28px rgba(0,0,0,.8);margin:0; }
@@ -181,6 +186,9 @@
   .cinema-clock,.cinema-player:fullscreen .cinema-clock { font-size:10px;padding:0;gap:5px; }
   .cinema-pause-idle { background:#0003; }
   .cinema-pause-content,.cinema-pause-watermark { display:none; }
+  /* With artwork, touch layouts also show the cover in full when paused (title text stays hidden: the touch controls sit there). */
+  .cinema-pause-idle.has-cover .cinema-pause-watermark { display:block; }
+  .cinema-pause-idle.has-cover::before { background:linear-gradient(0deg,rgba(0,0,0,.6) 0%,rgba(0,0,0,0) 40%),rgba(0,0,0,.18); }
   .cinema-menu,.cinema-player:fullscreen .cinema-menu { position:fixed;inset:auto 8px max(8px,env(safe-area-inset-bottom));width:auto;max-height:80dvh;border-radius:20px;padding:16px; }
   .cinema-menu>header button { width:44px;height:44px; }
   .cinema-menu-option,.cinema-quality-options button,.cinema-speed-options button,.cinema-menu-upload { min-height:44px; }

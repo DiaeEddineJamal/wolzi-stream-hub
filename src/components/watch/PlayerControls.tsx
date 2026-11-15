@@ -241,7 +241,7 @@ export default function PlayerControls({originalAudioLanguage,captionKey='video'
   const renderMenu=(content:ReactNode)=>compact&&!fullscreen?createPortal(content,document.body):content;
   return <div className={`cinema-controls ${show?'is-visible':''} ${showPausedIdle?'is-paused-idle':''}`} data-menu-open={!!menu} data-touch-controls={touchControls}>
     <button className="player-click-surface" tabIndex={-1} aria-label={touchControls?(show?'Hide playback controls':'Show playback controls'):(state.paused?'Play video':'Pause video')} onPointerDown={e=>{lastTouch.current=e.pointerType==='touch';}} onClick={onSurfaceClick} onDoubleClick={touchControls?undefined:toggleFullscreen}/>
-    {showPausedIdle&&idleMeta&&<div className="cinema-pause-idle" aria-hidden="true">
+    {showPausedIdle&&idleMeta&&<div className={"cinema-pause-idle"+(idleMeta.backdropUrl?" has-cover":"")} aria-hidden="true">
       {idleMeta.backdropUrl&&<img className="cinema-pause-watermark" src={idleMeta.backdropUrl} alt=""/>}
       <div className="cinema-pause-content">
         {idleMeta.logoUrl?<img className="cinema-pause-logo" src={idleMeta.logoUrl} alt={idleMeta.title}/>:<h2 className="cinema-pause-title">{idleMeta.title}</h2>}
