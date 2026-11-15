@@ -55,7 +55,8 @@ const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
 >(({ side = "right", className, children, ...props }, ref) => (
-  <SheetPortal>
+  // Inside a fullscreen player, a sheet attached to <body> would be invisible yet still block input.
+  <SheetPortal container={document.fullscreenElement || undefined}>
     <SheetOverlay />
     <SheetPrimitive.Content
       ref={ref}

@@ -12,10 +12,7 @@ export const initAnalytics = () => {
   document.head.appendChild(inline)
 }
 
-export const trackEvent = (action: string, params: Record<string, any> = {}) => {
-  // @ts-ignore
-  if (typeof gtag === 'function') {
-    // @ts-ignore
-    gtag('event', action, params)
-  }
+export const trackEvent = (action: string, params: Record<string, unknown> = {}) => {
+  const gtag = (window as { gtag?: (...args: unknown[]) => void }).gtag
+  if (typeof gtag === 'function') gtag('event', action, params)
 }

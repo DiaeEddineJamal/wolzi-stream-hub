@@ -19,6 +19,7 @@
   "include": [
     "vite.config.ts",
     "api/**/*.ts",
-    "server/**/*.ts"
+    "server/**/*.ts",
+    "functions/**/*.ts"
   ]
 }

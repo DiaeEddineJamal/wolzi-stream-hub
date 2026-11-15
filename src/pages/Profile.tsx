@@ -17,6 +17,7 @@ import { getPosterUrl } from '@/integrations/api/tmdb';
 import { watchPath } from '@/lib/media';
 import type { WatchProgress } from '@/lib/watch-progress';
 import { supabase } from '@/lib/supabase';
+import { useSEO } from '@/hooks/useSEO';
 
 const AVATAR_TYPES=['image/jpeg','image/png','image/webp','image/gif'];
 const CROP_VIEW=240,CROP_OUT=400;
@@ -30,6 +31,7 @@ export function clampCropOffset(offset:{x:number;y:number},natural:{w:number;h:n
 }
 
 export default function Profile(){
+  useSEO({title:'Your profile — A&D MAX'});
   const {user,profile,logout,updateProfile}=useAuth(),navigate=useNavigate();
   const {items:saved}=useWatchlist(),{items:history,continuing}=usePlaybackHistory(),{service}=useStreamingService(),{addons}=useAddons();
   const name=profile?.username||user?.user_metadata?.username||user?.email?.split('@')[0]||'Viewer';
@@ -70,14 +72,12 @@ export default function Profile(){
       ctx.imageSmoothingQuality='high';
       ctx.drawImage(img,(CROP_OUT-w)/2+clamped.x*ratio,(CROP_OUT-h)/2+clamped.y*ratio,w,h);
       const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,'image/webp',0.9));
-      const dataUrl=canvas.toDataURL('image/webp',0.88);
-      let finalUrl=dataUrl;
-      if(blob){
-        const path=`${user.id}/${crypto.randomUUID()}.webp`;
-        const {error}=await supabase.storage.from('avatars').upload(path,blob,{contentType:'image/webp',upsert:true});
-        if(!error)finalUrl=supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
-      }
-      await setPhoto(finalUrl,'Photo updated');
+      if(!blob)throw new Error('Could not prepare the photo');
+      const path=`${user.id}/${crypto.randomUUID()}.webp`;
+      // Never fall back to a data: URL: user metadata travels inside the session token on every request.
+      const {error}=await supabase.storage.from('avatars').upload(path,blob,{contentType:'image/webp',upsert:true});
+      if(error)throw error;
+      await setPhoto(supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl,'Photo updated');
       closeCrop();
     }catch{toast.error('Could not save that photo. Try again.');}finally{setUploading(false);}
   };

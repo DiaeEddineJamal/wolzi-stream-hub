@@ -321,7 +321,7 @@ a.profile-item:hover,button.profile-item:hover,a.profile-item:focus-visible { ba
 .catalog-filter-bar { display:flex;flex-direction:column;gap:14px;padding-block:12px 28px;border-bottom:1px solid #ffffff10;margin-bottom:28px; }
 .catalog-filter-bar .filter-pills { padding-block:0; }
 .filter-selects { display:flex;flex-wrap:wrap;align-items:center;gap:10px; }
-.filter-selects .choice-select { min-width:140px;height:38px; }
+.filter-selects .choice-select { width:auto;flex:0 0 auto;min-width:140px;height:38px; }
 @media(max-width:767px){
   .catalog-filter-bar { gap:10px;padding-block:8px 20px;margin-bottom:20px; }
   .filter-selects { gap:8px; }

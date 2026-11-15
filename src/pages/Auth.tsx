@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useSEO } from '@/hooks/useSEO';
 const Particles=lazy(()=>import('@/components/vendor/reactbits/Particles'));
 export default function Auth(){
+  useSEO({title:'Sign in — A&D MAX'});
   const reduced=useReducedMotion();
   const [params,setParams]=useSearchParams();
   const signupMode=params.get('mode')==='signup';

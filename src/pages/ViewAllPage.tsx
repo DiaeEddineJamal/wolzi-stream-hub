@@ -10,9 +10,10 @@ import { useArtworkTheme } from '@/hooks/useArtworkTheme';
 import tmdbApi from '@/integrations/api/tmdb';
 import { MOVIE_GENRES, TV_GENRES } from '@/constants/tmdb-genres';
 import { toMediaItem, type MediaItem } from '@/lib/media';
+import { useSEO } from '@/hooks/useSEO';
 export type { MediaItem } from '@/lib/media';
 interface Props {title:string;fetchDataFunction:(page:number)=>Promise<{items:(MediaItem & {overview?:string})[];totalPages:number;totalResults:number;hasMore?:boolean}>}
-export default function ViewAllPage({title,fetchDataFunction}:Props){return <Results key={title} title={title} fetchDataFunction={fetchDataFunction}/>;}
+export default function ViewAllPage({title,fetchDataFunction}:Props){useSEO({title:title+' — A&D MAX'});return <Results key={title} title={title} fetchDataFunction={fetchDataFunction}/>;}
 function Results({title,fetchDataFunction}:Props){
   const isTrending=/trending/i.test(title);
   const defaultType=/anime/i.test(title)?'anime':/tv|series/i.test(title)?'tv':/movie|cinema/i.test(title)?'movie':'all';

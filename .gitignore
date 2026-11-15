@@ -47,3 +47,7 @@ dist-server
 
 # Local Cloudflare runtime state (wrangler pages dev)
 .wrangler/
+
+# Local tool state and screenshots
+.playwright-mcp/
+.cursor/

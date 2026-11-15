@@ -12,7 +12,8 @@ export function usePlaybackSelection(sources:StreamChoice[],discovering:boolean,
   const [selected,setSelected]=useState<string>(),[health,setHealth]=useState<Record<string,'ready'|'failed'>>({}),[grace,setGrace]=useState(false);
   const manual=useRef(false),played=useRef(false);
   useEffect(()=>{setSelected(undefined);setHealth({});manual.current=false;played.current=false;},[resetKey]);
-  useEffect(()=>{const timeout=setTimeout(()=>setGrace(true),8000);return()=>clearTimeout(timeout);},[]);
+  // Per episode: each new episode waits briefly for a verified source before settling for the first one.
+  useEffect(()=>{setGrace(false);const timeout=setTimeout(()=>setGrace(true),8000);return()=>clearTimeout(timeout);},[resetKey]);
   const choices=useMemo(()=>sources.filter(s=>!isIndianLanguageStream(s.name,s.description,s.filename)).map(s=>health[s.id]?{...s,availability:health[s.id]}:s).sort((a,b)=>preference(b)-preference(a)),[sources,health]);
   const candidates=choices.filter(s=>s.kind==='video'&&s.availability!=='failed');
   const current=choices.find(s=>s.id===selected),best=candidates[0];

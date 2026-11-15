@@ -9,8 +9,9 @@ Motion guidance from the Refero skill supplies reduced-motion handling and an in
 Live Refero research was unavailable because its subscription was inactive.
 
 Behavior:
-- Each new document (including a mobile PWA launched after being closed) plays the intro.
+- Each new tab or app launch (including a mobile PWA launched after being closed) plays the intro once; reloads and further pages in the same tab do not (sessionStorage `admax-splash-seen`).
 - Returning after five minutes hidden replays it; short app switches and internal navigation do not.
+- It never plays over the player: `/watch/…` pages skip it on load and on return.
 - visibilitychange, pagehide/pageshow (including back-forward cache), and freeze/resume cover retained documents.
 - The app mounts underneath and preserves its route/state on return.
 - The animation holds for 2.2 seconds after its renderer is ready, then fades out.

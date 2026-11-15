@@ -8,7 +8,9 @@ import { isIndianLanguageStream } from '../src/lib/stream-language.js';
 export function isPublicAddress(address: string) {
   const ip=address.toLowerCase().replace(/^::ffff:/,'');
   if(isIP(ip)===4){const [a,b]=ip.split('.').map(Number);return a>0&&a!==10&&a!==127&&a<224&&!(a===169&&b===254)&&!(a===172&&b>=16&&b<=31)&&!(a===192&&(b===168||b===0))&&!(a===100&&b>=64&&b<=127)&&!(a===198&&(b===18||b===19));}
-  return isIP(ip)===6&&!['::','::1'].includes(ip)&&!/^f[cd]|^fe[89ab]|^ff/.test(ip);
+  // Global unicast (2000::/3) only, minus 6to4, Teredo and documentation ranges: this also rejects
+  // IPv4-compatible (::7f00:1) and NAT64 (64:ff9b::) forms that can smuggle a private IPv4 address.
+  return isIP(ip)===6&&/^[23][0-9a-f]{3}:/.test(ip)&&!/^2002:|^2001:0?db8:|^2001:(0{1,4})?:/.test(ip);
 }
 export async function publicMediaUrl(value: string) {
   const url=new URL(value);

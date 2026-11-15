@@ -33,9 +33,19 @@ export default function StreamingPlayer({originalAudioLanguage,source,title,stor
   },[storageKey,onProgress]);
   // Updated in an effect, not during render: when the episode changes, the old video's final
   // save must still use the old episode's storage key and progress callback.
-  const latestReport=useRef(report);
-  useEffect(()=>{latestReport.current=report;},[report]);
-  useEffect(()=>{if(!media)return;return()=>latestReport.current(media.currentTime,media.duration,true);},[media]);
+  // Kept per episode: the old video's cleanup runs one render after the episode changes, so a
+  // single "latest" ref would write the old position under the new episode.
+  const reports=useRef<Record<string,typeof report>>({});
+  useEffect(()=>{reports.current[storageKey]=report;},[storageKey,report]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- the key belongs to this element
+  useEffect(()=>{if(!media)return;const key=storageKey;return()=>reports.current[key]?.(media.currentTime,media.duration,true);},[media]);
+  // Closing the tab or backgrounding the app never unmounts React: save there too.
+  useEffect(()=>{
+    if(!media)return;
+    const save=()=>report(media.currentTime,media.duration,true),hidden=()=>{if(document.visibilityState==='hidden')save();};
+    window.addEventListener('pagehide',save);document.addEventListener('visibilitychange',hidden);
+    return()=>{window.removeEventListener('pagehide',save);document.removeEventListener('visibilitychange',hidden);};
+  },[media,report]);
   useEffect(()=>{if(media&&resume&&initialPosition>0&&media.readyState>=1&&media.currentTime<1&&!everPlayed.current&&initialPosition<media.duration-20)media.currentTime=initialPosition;},[media,resume,initialPosition]);
   const playbackError=useCallback(()=>{
     const key=source?.id+'-'+retry+'-'+transcoding+'-'+fullRelay;if(handledError.current===key)return;handledError.current=key;
@@ -44,10 +54,12 @@ export default function StreamingPlayer({originalAudioLanguage,source,title,stor
     if(source?.service&&transcoding&&!everPlayed.current){if(conversionRetries.current.id!==source.id)conversionRetries.current={id:source.id,count:0};if(conversionRetries.current.count++<1){setRetry(value=>value+1);setLoading(true);setFailed(false);return;}}
     setFailed(true);setLoading(false);sourceError.current?.();
   },[source?.id,source?.service,transcoding,retry,relayed,fullRelay]);
-  useEffect(()=>{setLoading(true);setFailed(false);setSlow(false);lastSaved.current=0;handledError.current='';everPlayed.current=false;if(autoStart)playIntent.current=true;const timeout=setTimeout(()=>setSlow(true),15000);return()=>clearTimeout(timeout);},[playbackUrl,source?.id,retry,storageKey,autoStart]);
+  useEffect(()=>{setLoading(true);setFailed(false);setSlow(false);lastSaved.current=0;handledError.current='';everPlayed.current=false;if(autoStart)playIntent.current=true;},[playbackUrl,source?.id,retry,storageKey,autoStart]);
+  // The "still buffering" notice belongs to one buffering spell, not to the whole session.
+  useEffect(()=>{if(!loading||failed){setSlow(false);return;}const timeout=setTimeout(()=>setSlow(true),15000);return()=>clearTimeout(timeout);},[loading,failed,playbackUrl,retry]);
   useEffect(()=>{
     if(!media||!safe||!playbackUrl)return;
-    let cancelled=false,hls:Hls;
+    let cancelled=false,hls:Hls;const key=storageKey;
     setEngine(null);
     if(isHls){void import('hls.js').then(({default:HlsEngine})=>{
       if(cancelled)return;
@@ -60,17 +72,22 @@ export default function StreamingPlayer({originalAudioLanguage,source,title,stor
           ...(relayed?{maxBufferLength:30,maxMaxBufferLength:45}:{}),enableWorker:true,fragLoadPolicy:{default:{maxTimeToFirstByteMs:25000,maxLoadTimeMs:60000,timeoutRetry:{maxNumRetry:4,retryDelayMs:1000,maxRetryDelayMs:8000},errorRetry:{maxNumRetry:relayed&&!fullRelay?1:4,retryDelayMs:1000,maxRetryDelayMs:8000}}},manifestLoadPolicy:{default:{maxTimeToFirstByteMs:20000,maxLoadTimeMs:30000,timeoutRetry:{maxNumRetry:3,retryDelayMs:1000,maxRetryDelayMs:4000},errorRetry:{maxNumRetry:3,retryDelayMs:1000,maxRetryDelayMs:4000}}}});setEngine(hls);hls.attachMedia(media);hls.loadSource(playbackUrl);
         // Bounded recovery: an unlimited startLoad() on a playlist that always fails re-requests it
         // in a tight loop (thousands of requests a minute against the hosting quota).
-        let restarts=0;
+        // The budget is per incident: it refills once video is flowing again, so a long film
+        // survives more than two hiccups without ever looping on a source that stays broken.
+        let restarts=0,mediaRecoveries=0,lastMediaError=0;
+        hls.on(HlsEngine.Events.FRAG_BUFFERED,()=>{restarts=0;});
         hls.on(HlsEngine.Events.ERROR,(_,data)=>{
           if(!data.fatal||cancelled)return;
           const manifestFailed=/^manifest/i.test(String(data.details));
+          if(data.type===HlsEngine.ErrorTypes.MEDIA_ERROR&&Date.now()-lastMediaError>30000)mediaRecoveries=0;
           if(data.type===HlsEngine.ErrorTypes.NETWORK_ERROR&&!manifestFailed&&!(relayed&&!fullRelay)&&restarts++<2)hls.startLoad();
-          else if(data.type===HlsEngine.ErrorTypes.MEDIA_ERROR&&restarts++<2)hls.recoverMediaError();
+          else if(data.type===HlsEngine.ErrorTypes.MEDIA_ERROR&&mediaRecoveries++<2){lastMediaError=Date.now();hls.recoverMediaError();}
           else playbackError();
         });
       }else if(media.canPlayType('application/vnd.apple.mpegurl')){media.src=playbackUrl;media.load();}else playbackError();
     }).catch(()=>{if(!cancelled)playbackError();});}
-    return()=>{cancelled=true;hls?.destroy();};
+    // destroy() resets the element, so the exact position is saved first.
+    return()=>{cancelled=true;if(hls){reports.current[key]?.(media.currentTime,media.duration,true);hls.destroy();}};
   },[media,playbackUrl,isHls,safe,playbackError,source?.service,relayed,fullRelay]);
   useEffect(()=>{if(!loading||failed||!safe||everPlayed.current)return;const timeout=setTimeout(playbackError,transcoding||source?.service?45000:30000);return()=>clearTimeout(timeout);},[loading,failed,safe,transcoding,source?.service,playbackError]);
   useEffect(()=>()=>uploadUrls.current.forEach(url=>URL.revokeObjectURL(url)),[]);
@@ -89,7 +106,7 @@ export default function StreamingPlayer({originalAudioLanguage,source,title,stor
   const tracks=[...(source.subtitles||[]),...uploaded].filter((track,index,list)=>list.findIndex(item=>item.url===track.url)===index);
   return <div ref={container} className="player-stage cinema-player" aria-busy={loading&&!failed} tabIndex={0} aria-label={`Video player: ${title}`}>
     {!safe?<div className="player-message"><ExternalLink size={28}/><h2>{source.kind==='embed'?'Embedded players are disabled':'A different source is needed'}</h2><p>{source.reason||'Choose direct video for playback without pop-up pages.'}</p><div className="flex flex-wrap justify-center gap-3">{source.externalUrl&&<Button asChild><a href={source.externalUrl} target="_blank" rel="noopener noreferrer">Open external provider</a></Button>}{needsService&&<Button onClick={()=>openServiceSetup(false)}><Download size={16}/>Install Stremio Service</Button>}{onRetryService&&needsService&&<Button variant="secondary" onClick={onRetryService}><RotateCcw size={16}/>Retry connection</Button>}<Button variant="secondary" onClick={onNextSource}>Choose another source</Button></div></div>:<>
-      <video key={storageKey+'-'+source.id+'-'+retry+'-'+transcoding+'-'+fullRelay} ref={attach} src={isHls?undefined:playbackUrl} poster={poster} playsInline preload="metadata" autoPlay={playIntent.current} onLoadedMetadata={()=>{setLoading(false);onSourceReady?.();const start=resumePosition();if(video.current&&start>0&&start<video.current.duration-20)video.current.currentTime=start;if(playIntent.current&&video.current?.paused)void video.current.play().catch(()=>{});}} onLoadedData={()=>setLoading(false)} onPlay={()=>{playIntent.current=true;}} onPlaying={()=>{everPlayed.current=true;setLoading(false);onSourceReady?.();}} onWaiting={()=>setLoading(true)} onCanPlay={()=>{setLoading(false);onSourceReady?.();if(playIntent.current&&video.current?.paused)void video.current.play().catch(()=>{});}} onError={playbackError} onTimeUpdate={()=>{if(video.current){if(loading)setLoading(false);report(video.current.currentTime,video.current.duration);}}} onPause={()=>{playIntent.current=false;if(video.current)report(video.current.currentTime,video.current.duration,true);}} onEnded={()=>{if(video.current)report(video.current.duration,video.current.duration,true);onEnded?.();}}>
+      <video key={storageKey+'-'+source.id+'-'+retry+'-'+transcoding+'-'+fullRelay} ref={attach} src={isHls?undefined:playbackUrl} poster={poster} playsInline preload="metadata" autoPlay={playIntent.current} onLoadedMetadata={()=>{setLoading(false);const start=resumePosition();if(video.current&&start>0&&start<video.current.duration-20)video.current.currentTime=start;if(playIntent.current&&video.current?.paused)void video.current.play().catch(()=>{});}} onLoadedData={()=>setLoading(false)} onPlay={()=>{playIntent.current=true;}} onPlaying={()=>{everPlayed.current=true;setLoading(false);onSourceReady?.();}} onWaiting={()=>setLoading(true)} onCanPlay={()=>{setLoading(false);onSourceReady?.();if(playIntent.current&&video.current?.paused)void video.current.play().catch(()=>{});}} onError={playbackError} onTimeUpdate={()=>{if(video.current){if(loading)setLoading(false);report(video.current.currentTime,video.current.duration);}}} onPause={()=>{playIntent.current=false;if(video.current)report(video.current.currentTime,video.current.duration,true);}} onEnded={()=>{if(video.current)report(video.current.duration,video.current.duration,true);onEnded?.();}}>
         {tracks.map(track=><track key={track.url+(browserSubtitles[track.url]?'|browser':'')} id={normalizeLangCode(track.lang)+'|'+(track.id||track.url)} kind="subtitles" src={browserSubtitles[track.url]||subtitleUrl(track.url)} srcLang={normalizeLangCode(track.lang)} label={subtitleLanguage(track.lang)+(track.label?' · '+track.label:'')} onError={()=>subtitleFailed(track.url)}/>)}
       </video>
       <PlayerControls originalAudioLanguage={originalAudioLanguage} captionKey={storageKey+'|'+source.id} media={media} engine={engine} container={container} title={title} sourceName={source.name} loading={loading} nextEpisode={nextEpisode} autoNext={autoNext} onAutoNextChange={onAutoNextChange} onNextSource={onNextSource} onOpenSources={onOpenSources} onUpload={upload} subtitleStatus={subtitleStatus} converted={transcoding} idleMeta={idleMeta} onCompatibility={source.service?()=>{if(video.current)playIntent.current=!video.current.paused;setNativeId(transcoding?source.id:undefined);setTranscodeId(transcoding?undefined:source.id);}:undefined}/>

@@ -11,7 +11,15 @@ export async function onRequest({ request, env }) {
   headers.delete('cookie');
   headers.set('x-proxy-secret', env.PROXY_SECRET);
   headers.set('x-site-host', url.host);
-  const response = await fetch(new URL(url.pathname + url.search, env.API_ORIGIN), { method: request.method, headers, redirect: 'manual' });
+  // The API rate-limits per viewer; a client-supplied value is always overwritten here.
+  headers.set('x-client-ip', request.headers.get('cf-connecting-ip') || '');
+  let response;
+  try {
+    response = await fetch(new URL(url.pathname + url.search, env.API_ORIGIN), { method: request.method, headers, redirect: 'manual' });
+  } catch {
+    // API asleep or unreachable: a clean 503 the player already retries on, not a Cloudflare error page.
+    return new Response('Playback API is unavailable.', { status: 503, headers: { 'Cache-Control': 'no-store', 'Retry-After': '5' } });
+  }
   // Pass redirects (direct-to-source video) and streams (source search events) through unchanged.
   return new Response(response.body, response);
 }
